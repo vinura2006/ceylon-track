@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Ceylon Track</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a5f2a;
+            --primary-dark: #12401c;
+            --primary-light: #2d8a42;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --ontime: #22c55e;
+            --ontime-bg: #dcfce7;
+            --delayed: #f59e0b;
+            --delayed-bg: #fef3c7;
+            --cancelled: #ef4444;
+            --cancelled-bg: #fee2e2;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.025em;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-light);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-medium);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: var(--border);
+            color: var(--text-dark);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Search Summary */
+        .search-summary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-route {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .station-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .route-arrow {
+            opacity: 0.8;
+            font-size: 1.5rem;
+        }
+
+        .search-date {
+            text-align: center;
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+
+        /* Loading State */
+        .loading-container {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .loading-container.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-medium);
+            font-size: 1rem;
+        }
+
+        /* Error State */
+        .error-container {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .error-container.active {
+            display: block;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            color: var(--text-medium);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Results Container */
+        .results-container {
+            display: none;
+        }
+
+        .results-container.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .results-count {
+            font-size: 0.875rem;
+            color: var(--text-medium);
+        }
+
+        .results-count strong {
+            color: var(--text-dark);
+        }
+
+        .legend {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.ontime { background: var(--ontime); }
+        .legend-dot.delayed { background: var(--delayed); }
+        .legend-dot.cancelled { background: var(--cancelled); }
+
+        /* Train Card */
+        .train-card {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .train-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .train-card.cancelled {
+            border-color: var(--cancelled);
+            background: linear-gradient(to right, var(--bg-white) 0%, var(--cancelled-bg) 100%);
+        }
+
+        .train-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .train-info {
+            flex: 1;
+        }
+
+        .train-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .train-number {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .train-type {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            background: var(--bg-light);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-medium);
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-badge.ontime {
+            background: var(--ontime-bg);
+            color: var(--ontime);
+        }
+
+        .status-badge.delayed {
+            background: var(--delayed-bg);
+            color: #92400e;
+        }
+
+        .status-badge.cancelled {
+            background: var(--cancelled-bg);
+            color: var(--cancelled);
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .time-section {
+            text-align: center;
+        }
+
+        .time-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .time-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .time-value.delayed {
+            color: var(--delayed);
+        }
+
+        .time-value.cancelled {
+            color: var(--cancelled);
+            text-decoration: line-through;
+        }
+
+        .time-station {
+            font-size: 0.875rem;
+            color: var(--text-medium);
+            margin-top: 0.25rem;
+        }
+
+        .duration-section {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .duration-line {
+            height: 2px;
+            background: var(--border);
+            position: relative;
+            margin: 0.5rem 0;
+        }
+
+        .duration-line::before,
+        .duration-line::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .duration-line::before { left: 0; }
+        .duration-line::after { right: 0; }
+
+        .duration-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-medium);
+        }
+
+        .distance-text {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+
+        /* Delay Info */
+        .delay-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--delayed-bg);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+
+        .delay-info.hidden {
+            display: none;
+        }
+
+        /* No Results */
+        .no-results {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .no-results.active {
+            display: block;
+        }
+
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .no-results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .no-results-text {
+            color: var(--text-medium);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .timeline {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .duration-section {
+                width: 100%;
+            }
+
+            .train-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .legend {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🚂</div>
+                <div class="logo-text">Ceylon Track</div>
+            </a>
+            <a href="index.html" class="back-btn">
+                <span>←</span>
+                <span>New Search</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Search Summary -->
+        <div class="search-summary" id="searchSummary">
+            <div class="search-route">
+                <span class="station-name" id="fromStation">--</span>
+                <span class="route-arrow">→</span>
+                <span class="station-name" id="toStation">--</span>
+            </div>
+            <div class="search-date" id="searchDate">--</div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-container active" id="loadingContainer">
+            <div class="spinner"></div>
+            <p class="loading-text">Finding available trains...</p>
+        </div>
+
+        <!-- Error -->
+        <div class="error-container" id="errorContainer">
+            <div class="error-icon">⚠️</div>
+            <h2 class="error-title" id="errorTitle">Something went wrong</h2>
+            <p class="error-message" id="errorMessage">Unable to fetch train schedules</p>
+            <a href="index.html" class="back-btn">← Back to Search</a>
+        </div>
+
+        <!-- No Results -->
+        <div class="no-results" id="noResults">
+            <div class="no-results-icon">🚫</div>
+            <h2 class="no-results-title">No Trains Found</h2>
+            <p class="no-results-text">No trains available for this route on the selected date.</p>
+            <a href="index.html" class="back-btn">← Try Different Search</a>
+        </div>
+
+        <!-- Results -->
+        <div class="results-container" id="resultsContainer">
+            <div class="results-header">
+                <span class="results-count">Found <strong id="resultsCount">0</strong> train(s)</span>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-dot ontime"></span>
+                        <span>On Time</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot delayed"></span>
+                        <span>Delayed</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot cancelled"></span>
+                        <span>Cancelled</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsList"></div>
+        </div>
+    </main>
+
+    <script>
+        // API Base URL
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // DOM Elements
+        const loadingContainer = document.getElementById('loadingContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const noResults = document.getElementById('noResults');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsList = document.getElementById('resultsList');
+        const resultsCount = document.getElementById('resultsCount');
+        const fromStationEl = document.getElementById('fromStation');
+        const toStationEl = document.getElementById('toStation');
+        const searchDateEl = document.getElementById('searchDate');
+        const errorTitle = document.getElementById('errorTitle');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Get URL parameters
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                from: params.get('from'),
+                to: params.get('to'),
+                date: params.get('date')
+            };
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+
+        // Fetch schedules from API
+        async function fetchSchedules(from, to, date) {
+            const response = await fetch(
+                `${API_BASE_URL}/schedules/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to fetch schedules');
+            }
+
+            return await response.json();
+        }
+
+        // Determine badge properties based on delay and status
+        function getBadgeInfo(delayMinutes, status) {
+            if (status === 'Cancelled') {
+                return {
+                    text: 'Cancelled',
+                    class: 'cancelled'
+                };
+            }
+
+            if (delayMinutes === 0) {
+                return {
+                    text: 'Usually On Time',
+                    class: 'ontime'
+                };
+            }
+
+            if (delayMinutes <= 15) {
+                return {
+                    text: 'Sometimes Delayed',
+                    class: 'delayed'
+                };
+            }
+
+            return {
+                text: 'Significantly Delayed',
+                class: 'delayed'
+            };
+        }
+
+        // Render train card
+        function createTrainCard(schedule) {
+            const badge = getBadgeInfo(schedule.status.delay_minutes, schedule.status.current);
+            const isCancelled = badge.class === 'cancelled';
+            const hasDelay = schedule.status.delay_minutes > 0;
+
+            const delayInfoHtml = hasDelay && !isCancelled ? `
+                <div class="delay-info">
+                    <span>⏱️</span>
+                    <span>Delayed by ${schedule.status.delay_minutes} minute${schedule.status.delay_minutes > 1 ? 's' : ''}</span>
+                </div>
+            ` : '';
+
+            return `
+                <div class="train-card ${badge.class}">
+                    <div class="train-header">
+                        <div class="train-info">
+                            <div class="train-name">${schedule.train.name}</div>
+                            <div class="train-number">Train No. ${schedule.train.number}</div>
+                            <span class="train-type">${schedule.train.type}</span>
+                        </div>
+                        <span class="status-badge ${badge.class}">${badge.text}</span>
+                    </div>
+
+                    <div class="timeline">
+                        <div class="time-section">
+                            <div class="time-label">Departure</div>
+                            <div class="time-value ${isCancelled ? 'cancelled' : ''}">${schedule.departure_time}</div>
+                            <div class="time-station">${schedule.from_station}</div>
+                        </div>
+
+                        <div class="duration-section">
+                            <div class="duration-line"></div>
+                            <div class="duration-text">${schedule.duration.formatted}</div>
+                            <div class="distance-text">${schedule.distance_km} km</div>
+                        </div>
+
+                        <div class="time-section">
+                            <div class="time-label">Arrival</div>
+                            <div class="time-value ${hasDelay ? 'delayed' : ''} ${isCancelled ? 'cancelled' : ''}">
+                                ${schedule.arrival_time}
+                            </div>
+                            <div class="time-station">${schedule.to_station}</div>
+                        </div>
+                    </div>
+
+                    ${delayInfoHtml}
+                </div>
+            `;
+        }
+
+        // Show error state
+        function showError(title, message) {
+            loadingContainer.classList.remove('active');
+            resultsContainer.classList.remove('active');
+            noResults.classList.remove('active');
+            
+            errorTitle.textContent = title;
+            errorMessage.textContent = message;
+            errorContainer.classList.add('active');
+        }
+
+        // Show results
+        function showResults(data) {
+            loadingContainer.classList.remove('active');
+            errorContainer.classList.remove('active');
+            noResults.classList.remove('active');
+
+            if (data.schedules.length === 0) {
+                noResults.classList.add('active');
+                return;
+            }
+
+            resultsCount.textContent = data.schedules.length;
+            resultsList.innerHTML = data.schedules.map(createTrainCard).join('');
+            resultsContainer.classList.add('active');
+        }
+
+        // Initialize
+        async function init() {
+            const { from, to, date } = getQueryParams();
+
+            // Validate parameters
+            if (!from || !to || !date) {
+                showError('Invalid Search', 'Please provide departure station, destination station, and travel date.');
+                return;
+            }
+
+            // Update summary
+            fromStationEl.textContent = from;
+            toStationEl.textContent = to;
+            searchDateEl.textContent = formatDate(date);
+
+            try {
+                const data = await fetchSchedules(from, to, date);
+                showResults(data);
+            } catch (error) {
+                console.error('Error fetching schedules:', error);
+                showError('Unable to Load Results', error.message || 'Please check your connection and try again.');
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
