@@ -15,10 +15,12 @@
         }
 
         :root {
-            --primary: #1a5f2a;
-            --primary-dark: #12401c;
-            --primary-light: #2d8a42;
-            --accent: #f59e0b;
+            /* Purple/Blue Color Scheme - Feature 5 */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #3b82f6;
+            --accent: #8b5cf6;
             --accent-light: #fbbf24;
             --bg-light: #f8fafc;
             --bg-white: #ffffff;
@@ -38,9 +40,10 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-light);
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
             min-height: 100vh;
             color: var(--text-dark);
+            padding-bottom: 80px; /* Space for bottom nav */
         }
 
         /* Header */
@@ -747,5 +750,74 @@
         // Start
         init();
     </script>
+
+    <!-- Bottom Navigation - Feature 5 -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="index.html" class="nav-item active">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-label">Search</span>
+            </a>
+            <a href="track.html" class="nav-item">
+                <span class="nav-icon">📍</span>
+                <span class="nav-label">Track</span>
+            </a>
+            <a href="watch.html" class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-label">Watch</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Bottom Navigation Styles -->
+    <style>
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-white);
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .bottom-nav-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1.5rem;
+            text-decoration: none;
+            color: var(--text-light);
+            transition: all 0.2s;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .nav-item:hover {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 1.5rem;
+        }
+
+        .nav-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
 </body>
 </html>
