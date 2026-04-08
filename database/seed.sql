@@ -110,12 +110,12 @@ INSERT INTO TripStatusUpdate (schedule_id, trip_date, current_station_id, status
 -- Hash generated with bcrypt, 10 rounds
 -- ============================================
 -- Password for all sample users: 'password123'
--- Hashed with bcrypt: $2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+-- Hashed with bcrypt: $2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC
 
 INSERT INTO "User" (id, email, password_hash, first_name, last_name, phone, role, active, email_verified) VALUES
-    (1, 'admin@ceylontrack.lk', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System', 'Administrator', '+94761234567', 'Admin', TRUE, TRUE),
-    (2, 'staff@ceylontrack.lk', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Station', 'Master', '+94769876543', 'Staff', TRUE, TRUE),
-    (3, 'passenger@example.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Test', 'Passenger', '+94771234567', 'Passenger', TRUE, TRUE);
+    (1, 'admin@ceylontrack.lk', '$2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC', 'System', 'Administrator', '+94761234567', 'Admin', TRUE, TRUE),
+    (2, 'staff@ceylontrack.lk', '$2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC', 'Station', 'Master', '+94769876543', 'Staff', TRUE, TRUE),
+    (3, 'passenger@example.com', '$2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC', 'Test', 'Passenger', '+94771234567', 'Passenger', TRUE, TRUE);
 
 -- ============================================
 -- 8. Sample Journey Watches
