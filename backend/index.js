@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const scheduleRoutes = require('./routes/schedules');
-const trainRoutes = require('./routes/trains');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,7 +38,6 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/schedules', scheduleRoutes);
-app.use('/api/trains', trainRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -52,11 +50,6 @@ app.get('/', (req, res) => {
                 register: 'POST /api/auth/register',
                 login: 'POST /api/auth/login',
                 profile: 'GET /api/auth/me'
-            },
-            trains: {
-                list: 'GET /api/trains/',
-                search: 'GET /api/trains/search?from=STATION&to=STATION&date=YYYY-MM-DD',
-                route: 'GET /api/trains/:id/route'
             },
             schedules: {
                 search: 'GET /api/schedules/search?from=CODE&to=CODE&date=YYYY-MM-DD',
