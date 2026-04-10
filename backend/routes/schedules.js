@@ -51,31 +51,46 @@ router.get('/search', async (req, res) => {
             });
         }
 
-        // Simple test query first
+        // Get schedules - match by ScheduleStationTiming only (most reliable)
         const query = `
             SELECT 
                 s.id as schedule_id,
                 t.name as train_name,
                 t.number as train_number,
                 t.type as train_type,
-                'Colombo Fort' as from_station,
-                'Galle' as to_station,
-                '08:30:00' as departure_time,
-                '11:15:00' as arrival_time,
-                0 as from_day_offset,
-                0 as to_day_offset,
-                'On Time' as current_status,
-                0 as delay_minutes,
-                120.5 as distance_km,
-                165 as duration_minutes,
-                'On Time' as display_status
+                r.name as route_name,
+                r.type as route_type,
+                st_from.name as from_station,
+                st_to.name as to_station,
+                sst_from.departure_time,
+                sst_to.arrival_time,
+                sst_from.day_offset as from_day_offset,
+                sst_to.day_offset as to_day_offset,
+                COALESCE(tsu.status, 'On Time') as current_status,
+                COALESCE(tsu.delay_minutes, 0) as delay_minutes,
+                100.00 as distance_km,
+                EXTRACT(EPOCH FROM (sst_to.arrival_time - sst_from.departure_time))/60 + 
+                    (sst_to.day_offset - sst_from.day_offset) * 1440 as duration_minutes,
+                CASE 
+                    WHEN tsu.status = 'Cancelled' THEN 'Cancelled'
+                    WHEN tsu.delay_minutes > 0 THEN 'Delayed'
+                    ELSE 'On Time'
+                END as display_status
             FROM Schedule s
             JOIN Train t ON s.train_id = t.id
-            WHERE s.id = 2
-            LIMIT 1
+            JOIN Route r ON s.route_id = r.id
+            JOIN ScheduleStationTiming sst_from ON sst_from.schedule_id = s.id
+            JOIN ScheduleStationTiming sst_to ON sst_to.schedule_id = s.id
+            JOIN Station st_from ON st_from.id = sst_from.station_id AND st_from.code = $1
+            JOIN Station st_to ON st_to.id = sst_to.station_id AND st_to.code = $2
+            JOIN ScheduleDays sd ON sd.schedule_id = s.id AND sd.day_of_week = $3
+            LEFT JOIN TripStatusUpdate tsu ON tsu.schedule_id = s.id AND tsu.trip_date = $4
+            WHERE sst_from.stop_sequence < sst_to.stop_sequence
+            ORDER BY sst_from.departure_time
+            LIMIT 10
         `;
 
-        const result = await pool.query(query);
+        const result = await pool.query(query, [from.toUpperCase(), to.toUpperCase(), dayOfWeek, date]);
 
         if (result.rows.length === 0) {
             return res.json({
