@@ -15,15 +15,12 @@
         }
 
         :root {
-            /* Purple/Blue Color Scheme - Feature 5 */
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --primary-light: #818cf8;
-            --secondary: #3b82f6;
-            --accent: #8b5cf6;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+            /* Green Theme (Default) */
+            --primary: #1a5f2a;
+            --primary-dark: #12401c;
+            --primary-light: #2d8a42;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
             --bg-light: #f8fafc;
             --bg-white: #ffffff;
             --text-dark: #1e293b;
@@ -32,14 +29,69 @@
             --border: #e2e8f0;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --body-bg: linear-gradient(135deg, #1a5f2a 0%, #0d3d16 100%);
+            --hero-text: white;
+            --info-card-bg: rgba(255, 255, 255, 0.1);
+            --footer-text: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Blue Theme */
+        [data-theme="blue"] {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent: #f97316;
+            --accent-light: #fb923c;
+            --body-bg: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
+        /* Purple Theme */
+        [data-theme="purple"] {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --primary-light: #8b5cf6;
+            --accent: #10b981;
+            --accent-light: #34d399;
+            --body-bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+
+        /* Pink Theme */
+        [data-theme="pink"] {
+            --primary: #ec4899;
+            --primary-dark: #db2777;
+            --primary-light: #f472b6;
+            --accent: #8b5cf6;
+            --accent-light: #a78bfa;
+            --body-bg: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #34d399;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
+            --bg-light: #1e293b;
+            --bg-white: #0f172a;
+            --text-dark: #f1f5f9;
+            --text-medium: #94a3b8;
+            --text-light: #64748b;
+            --border: #334155;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+            --body-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --hero-text: #f1f5f9;
+            --info-card-bg: rgba(255, 255, 255, 0.05);
+            --footer-text: rgba(148, 163, 184, 0.7);
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            background: var(--body-bg);
             min-height: 100vh;
             color: var(--text-dark);
-            padding-bottom: 80px; /* Space for bottom nav */
+            transition: background 0.3s ease;
         }
 
         /* Header */
@@ -70,7 +122,7 @@
         .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -122,7 +174,7 @@
         .hero {
             text-align: center;
             margin-bottom: 2.5rem;
-            color: white;
+            color: var(--hero-text);
         }
 
         .hero h1 {
@@ -328,11 +380,11 @@
         }
 
         .info-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--info-card-bg);
             backdrop-filter: blur(10px);
             border-radius: 12px;
             padding: 1.25rem;
-            color: white;
+            color: var(--hero-text);
             text-align: center;
         }
 
@@ -356,9 +408,98 @@
         .footer {
             text-align: center;
             padding: 2rem 1rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--footer-text);
             font-size: 0.875rem;
         }
+
+        /* Theme Customizer */
+        .theme-customizer {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 200;
+        }
+
+        .theme-toggle-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-white);
+            border: 2px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+        .theme-panel {
+            position: absolute;
+            top: 55px;
+            right: 0;
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            display: none;
+            border: 1px solid var(--border);
+        }
+
+        .theme-panel.active {
+            display: block;
+        }
+
+        .theme-panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.15s;
+            font-size: 0.875rem;
+            color: var(--text-medium);
+        }
+
+        .theme-option:hover {
+            background: var(--bg-light);
+        }
+
+        .theme-option.active {
+            background: var(--bg-light);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .theme-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+        }
+
+        .theme-color.green { background: linear-gradient(135deg, #1a5f2a, #2d8a42); }
+        .theme-color.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+        .theme-color.purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+        .theme-color.pink { background: linear-gradient(135deg, #ec4899, #f472b6); }
+        .theme-color.dark { background: linear-gradient(135deg, #0f172a, #1e293b); border-color: #334155; }
 
         /* Error Message */
         .error-message {
@@ -423,10 +564,40 @@
             <nav class="nav-links">
                 <a href="index.html">Home</a>
                 <a href="#">Schedules</a>
-                <a href="#">Login</a>
+                <a href="login.html" id="authLink">Login</a>
             </nav>
         </div>
     </header>
+
+    <!-- Theme Customizer -->
+    <div class="theme-customizer">
+        <button class="theme-toggle-btn" id="themeToggle" title="Customize Theme">
+            🎨
+        </button>
+        <div class="theme-panel" id="themePanel">
+            <div class="theme-panel-title">Choose Theme</div>
+            <div class="theme-option active" data-theme="green">
+                <div class="theme-color green"></div>
+                <span>Green</span>
+            </div>
+            <div class="theme-option" data-theme="blue">
+                <div class="theme-color blue"></div>
+                <span>Blue</span>
+            </div>
+            <div class="theme-option" data-theme="purple">
+                <div class="theme-color purple"></div>
+                <span>Purple</span>
+            </div>
+            <div class="theme-option" data-theme="pink">
+                <div class="theme-color pink"></div>
+                <span>Pink</span>
+            </div>
+            <div class="theme-option" data-theme="dark">
+                <div class="theme-color dark"></div>
+                <span>Dark Mode</span>
+            </div>
+        </div>
+    </div>
 
     <main class="main-content">
         <section class="hero">
@@ -522,13 +693,80 @@
     </footer>
 
     <script>
-        // Station data for autocomplete
+        // Station data for autocomplete - Sri Lankan Railway Stations
         const stations = [
+            // Main Line (Colombo to Badulla)
             { name: 'Colombo Fort', code: 'FOT' },
+            { name: 'Maradana', code: 'MAD' },
+            { name: 'Ragama', code: 'RAG' },
+            { name: 'Gampaha', code: 'GAM' },
+            { name: 'Veyangoda', code: 'VEY' },
+            { name: 'Mirigama', code: 'MRI' },
+            { name: 'Polgahawela', code: 'PLG' },
+            { name: 'Rambukkana', code: 'RBK' },
+            { name: 'Kadugannawa', code: 'KDG' },
             { name: 'Kandy', code: 'KAN' },
+            { name: 'Gampola', code: 'GPL' },
+            { name: 'Nawalapitiya', code: 'NWP' },
+            { name: 'Hatton', code: 'HAT' },
+            { name: 'Talawakele', code: 'TLW' },
+            { name: 'Nanu Oya', code: 'NOA' },
+            { name: 'Nuwara Eliya', code: 'NUW' },
+            { name: 'Ohiya', code: 'OHY' },
+            { name: 'Haputale', code: 'HPT' },
+            { name: 'Diyatalawa', code: 'DYA' },
+            { name: 'Bandarawela', code: 'BDA' },
+            { name: 'Ella', code: 'ELL' },
+            { name: 'Badulla', code: 'BAD' },
+
+            // Coast Line (Colombo to Galle/Matara)
+            { name: 'Slave Island', code: 'SLI' },
+            { name: 'Kollupitiya', code: 'KOL' },
+            { name: 'Bambalapitiya', code: 'BAM' },
+            { name: 'Wellawatte', code: 'WEL' },
+            { name: 'Dehiwala', code: 'DEH' },
+            { name: 'Mount Lavinia', code: 'MLV' },
+            { name: 'Moratuwa', code: 'MOR' },
+            { name: 'Panadura', code: 'PAN' },
+            { name: 'Kalutara South', code: 'KTS' },
+            { name: 'Kalutara North', code: 'KTN' },
+            { name: 'Aluthgama', code: 'ALG' },
+            { name: 'Bentota', code: 'BEN' },
+            { name: 'Ambalangoda', code: 'AMB' },
+            { name: 'Hikkaduwa', code: 'HIK' },
             { name: 'Galle', code: 'GAL' },
+            { name: 'Unawatuna', code: 'UNA' },
+            { name: 'Thalpe', code: 'THA' },
+            { name: 'Weligama', code: 'WLM' },
+            { name: 'Matara', code: 'MAT' },
+            { name: 'Beliatta', code: 'BEL' },
+
+            // Northern Line (Colombo to Jaffna)
+            { name: 'Kurunegala', code: 'KUR' },
+            { name: 'Maho', code: 'MAH' },
             { name: 'Anuradhapura', code: 'ANU' },
-            { name: 'Jaffna', code: 'JAF' }
+            { name: 'Medawachchiya', code: 'MED' },
+            { name: 'Vavuniya', code: 'VAV' },
+            { name: 'Kilinochchi', code: 'KIL' },
+            { name: 'Jaffna', code: 'JAF' },
+            { name: 'Kankesanthurai', code: 'KNK' },
+
+            // Batticaloa Line
+            { name: 'Polonnaruwa', code: 'POL' },
+            { name: 'Hingurakgoda', code: 'HGD' },
+            { name: 'Medirigiriya', code: 'MDG' },
+            { name: 'Lankapura', code: 'LNK' },
+            { name: 'Batticaloa', code: 'BAT' },
+
+            // Trincomalee Line
+            { name: 'Habarana', code: 'HAB' },
+            { name: 'Gal Oya', code: 'GOY' },
+            { name: 'Trincomalee', code: 'TRI' },
+
+            // Mannar Line
+            { name: 'Cheddikulam', code: 'CHE' },
+            { name: 'Mannar', code: 'MAN' },
+            { name: 'Talaimannar', code: 'TAL' }
         ];
 
         // DOM elements
@@ -541,6 +779,79 @@
         const travelDateInput = document.getElementById('travelDate');
         const errorMessage = document.getElementById('errorMessage');
         const searchBtn = document.getElementById('searchBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const themePanel = document.getElementById('themePanel');
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('ceylonTrackTheme') || 'green';
+            setTheme(savedTheme);
+        }
+
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('ceylonTrackTheme', themeName);
+
+            // Update active state in panel
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.toggle('active', option.dataset.theme === themeName);
+            });
+        }
+
+        // Theme toggle button
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themePanel.classList.toggle('active');
+        });
+
+        // Theme selection
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const theme = option.dataset.theme;
+                setTheme(theme);
+                themePanel.classList.remove('active');
+            });
+        });
+
+        // Close theme panel when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!themeToggle.contains(e.target) && !themePanel.contains(e.target)) {
+                themePanel.classList.remove('active');
+            }
+        });
+
+        // Initialize theme on load
+        initTheme();
+
+        // Auth State Management
+        function updateAuthUI() {
+            const token = localStorage.getItem('token');
+            const authLink = document.getElementById('authLink');
+
+            if (token) {
+                // User is logged in - show Logout
+                authLink.textContent = 'Logout';
+                authLink.href = '#';
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('ceylonTrackTheme');
+                    localStorage.removeItem('ceylonTrackLogoIcon');
+                    localStorage.removeItem('ceylonTrackAllIcons');
+                    window.location.href = 'index.html';
+                };
+            } else {
+                // User is not logged in - show Login
+                authLink.textContent = 'Login';
+                authLink.href = 'login.html';
+                authLink.onclick = null;
+            }
+        }
+
+        // Check auth state on page load
+        updateAuthUI();
 
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
@@ -757,74 +1068,5 @@
             window.location.href = `results.html?${params.toString()}`;
         });
     </script>
-
-    <!-- Bottom Navigation - Feature 5: Purple/Blue themed navigation bar -->
-    <nav class="bottom-nav">
-        <div class="bottom-nav-content">
-            <a href="index.html" class="nav-item active">
-                <span class="nav-icon">🔍</span>
-                <span class="nav-label">Search</span>
-            </a>
-            <a href="track.html" class="nav-item">
-                <span class="nav-icon">📍</span>
-                <span class="nav-label">Track</span>
-            </a>
-            <a href="watch.html" class="nav-item">
-                <span class="nav-icon">🔔</span>
-                <span class="nav-label">Watch</span>
-            </a>
-        </div>
-    </nav>
-
-    <!-- Bottom Navigation Styles -->
-    <style>
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-white);
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-
-        .bottom-nav-content {
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-around;
-            padding: 0.75rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.5rem 1.5rem;
-            text-decoration: none;
-            color: var(--text-light);
-            transition: all 0.2s;
-            border-radius: 12px;
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-        }
-
-        .nav-item:hover {
-            color: var(--primary);
-        }
-
-        .nav-icon {
-            font-size: 1.5rem;
-        }
-
-        .nav-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-    </style>
 </body>
 </html>
