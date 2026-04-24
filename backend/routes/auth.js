@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
+const { authenticateToken } = require('../middleware/authenticate');
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ceylon_track_secret_key_2024';
@@ -214,27 +215,5 @@ router.get('/me', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-// Middleware to verify JWT token
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-        return res.status(401).json({ 
-            error: 'Access token is required' 
-        });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ 
-                error: 'Invalid or expired token' 
-            });
-        }
-        req.user = user;
-        next();
-    });
-}
 
 module.exports = router;
