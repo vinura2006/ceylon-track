@@ -196,6 +196,129 @@
             color: var(--primary);
             text-decoration: none;
         }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-medium);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .form-message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .form-message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
@@ -215,6 +338,42 @@
     <main class="main" id="mainContent">
         <!-- Content loaded by JavaScript -->
     </main>
+
+    <!-- Update Delay Modal -->
+    <div class="modal-overlay" id="delayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Update Train Delay</div>
+                <button class="modal-close" onclick="closeDelayModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="delayForm" onsubmit="submitDelayUpdate(event)">
+                    <div class="form-group">
+                        <label for="scheduleId">Schedule ID</label>
+                        <input type="number" id="scheduleId" required min="1" placeholder="e.g. 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="delayMinutes">Delay (minutes)</label>
+                        <input type="number" id="delayMinutes" required min="0" placeholder="e.g. 15">
+                    </div>
+                    <div class="form-group">
+                        <label for="statusSelect">Status</label>
+                        <select id="statusSelect">
+                            <option value="Delayed">Delayed</option>
+                            <option value="On Time">On Time</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">Update Status</button>
+                    <div class="form-message" id="formMessage"></div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         const API_BASE_URL = 'http://localhost:3000/api';
@@ -267,7 +426,7 @@
 
                 <div class="actions">
                     <h2>Quick Actions</h2>
-                    <button class="action-btn" onclick="alert('Update Delay feature coming in Sprint 2')">
+                    <button class="action-btn" onclick="openDelayModal()">
                         ⏱️ Update Train Delay
                     </button>
                     <button class="action-btn" onclick="alert('Schedule management coming in Sprint 2')">
@@ -298,6 +457,82 @@
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = 'login.html';
+        }
+
+        // Delay modal functions
+        function openDelayModal() {
+            document.getElementById('delayModal').classList.add('active');
+            document.getElementById('formMessage').className = 'form-message';
+            document.getElementById('formMessage').textContent = '';
+        }
+
+        function closeDelayModal() {
+            document.getElementById('delayModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('delayModal').addEventListener('click', (e) => {
+            if (e.target.id === 'delayModal') closeDelayModal();
+        });
+
+        /**
+         * Submit delay update to the staff endpoint
+         */
+        async function submitDelayUpdate(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const scheduleId = document.getElementById('scheduleId').value;
+            const delayMinutes = document.getElementById('delayMinutes').value;
+            const status = document.getElementById('statusSelect').value;
+            const notes = document.getElementById('notes').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const formMessage = document.getElementById('formMessage');
+
+            submitBtn.disabled = true;
+            formMessage.className = 'form-message';
+            formMessage.textContent = '';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/staff/trains/${scheduleId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        delay_minutes: parseInt(delayMinutes),
+                        status: status,
+                        notes: notes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update status');
+                }
+
+                formMessage.className = 'form-message success';
+                formMessage.textContent = 'Train status updated successfully!';
+
+                // Clear form after short delay
+                setTimeout(() => {
+                    document.getElementById('delayForm').reset();
+                    closeDelayModal();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Update error:', error);
+                formMessage.className = 'form-message error';
+                formMessage.textContent = error.message || 'Failed to update train status. Please try again.';
+            } finally {
+                submitBtn.disabled = false;
+            }
         }
 
         // Start

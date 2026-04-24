@@ -5,6 +5,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const scheduleRoutes = require('./routes/schedules');
 const stationRoutes = require('./routes/stations');
+const staffRoutes = require('./routes/staff');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/stations', stationRoutes);
+app.use('/api/staff', staffRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -59,6 +61,9 @@ app.get('/', (req, res) => {
             },
             stations: {
                 list: 'GET /api/stations'
+            },
+            staff: {
+                updateStatus: 'POST /api/staff/trains/:id/status'
             },
             health: 'GET /health'
         }
