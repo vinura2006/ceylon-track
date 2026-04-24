@@ -693,81 +693,42 @@
     </footer>
 
     <script>
-        // Station data for autocomplete - Sri Lankan Railway Stations
-        const stations = [
-            // Main Line (Colombo to Badulla)
-            { name: 'Colombo Fort', code: 'FOT' },
-            { name: 'Maradana', code: 'MAD' },
-            { name: 'Ragama', code: 'RAG' },
-            { name: 'Gampaha', code: 'GAM' },
-            { name: 'Veyangoda', code: 'VEY' },
-            { name: 'Mirigama', code: 'MRI' },
-            { name: 'Polgahawela', code: 'PLG' },
-            { name: 'Rambukkana', code: 'RBK' },
-            { name: 'Kadugannawa', code: 'KDG' },
-            { name: 'Kandy', code: 'KAN' },
-            { name: 'Gampola', code: 'GPL' },
-            { name: 'Nawalapitiya', code: 'NWP' },
-            { name: 'Hatton', code: 'HAT' },
-            { name: 'Talawakele', code: 'TLW' },
-            { name: 'Nanu Oya', code: 'NOA' },
-            { name: 'Nuwara Eliya', code: 'NUW' },
-            { name: 'Ohiya', code: 'OHY' },
-            { name: 'Haputale', code: 'HPT' },
-            { name: 'Diyatalawa', code: 'DYA' },
-            { name: 'Bandarawela', code: 'BDA' },
-            { name: 'Ella', code: 'ELL' },
-            { name: 'Badulla', code: 'BAD' },
+        // API Base URL
+        const API_BASE_URL = 'http://localhost:3000/api';
 
-            // Coast Line (Colombo to Galle/Matara)
-            { name: 'Slave Island', code: 'SLI' },
-            { name: 'Kollupitiya', code: 'KOL' },
-            { name: 'Bambalapitiya', code: 'BAM' },
-            { name: 'Wellawatte', code: 'WEL' },
-            { name: 'Dehiwala', code: 'DEH' },
-            { name: 'Mount Lavinia', code: 'MLV' },
-            { name: 'Moratuwa', code: 'MOR' },
-            { name: 'Panadura', code: 'PAN' },
-            { name: 'Kalutara South', code: 'KTS' },
-            { name: 'Kalutara North', code: 'KTN' },
-            { name: 'Aluthgama', code: 'ALG' },
-            { name: 'Bentota', code: 'BEN' },
-            { name: 'Ambalangoda', code: 'AMB' },
-            { name: 'Hikkaduwa', code: 'HIK' },
-            { name: 'Galle', code: 'GAL' },
-            { name: 'Unawatuna', code: 'UNA' },
-            { name: 'Thalpe', code: 'THA' },
-            { name: 'Weligama', code: 'WLM' },
-            { name: 'Matara', code: 'MAT' },
-            { name: 'Beliatta', code: 'BEL' },
+        // Station data - will be loaded from API
+        let stations = [];
 
-            // Northern Line (Colombo to Jaffna)
-            { name: 'Kurunegala', code: 'KUR' },
-            { name: 'Maho', code: 'MAH' },
-            { name: 'Anuradhapura', code: 'ANU' },
-            { name: 'Medawachchiya', code: 'MED' },
-            { name: 'Vavuniya', code: 'VAV' },
-            { name: 'Kilinochchi', code: 'KIL' },
-            { name: 'Jaffna', code: 'JAF' },
-            { name: 'Kankesanthurai', code: 'KNK' },
-
-            // Batticaloa Line
-            { name: 'Polonnaruwa', code: 'POL' },
-            { name: 'Hingurakgoda', code: 'HGD' },
-            { name: 'Medirigiriya', code: 'MDG' },
-            { name: 'Lankapura', code: 'LNK' },
-            { name: 'Batticaloa', code: 'BAT' },
-
-            // Trincomalee Line
-            { name: 'Habarana', code: 'HAB' },
-            { name: 'Gal Oya', code: 'GOY' },
-            { name: 'Trincomalee', code: 'TRI' },
-
-            // Mannar Line
-            { name: 'Cheddikulam', code: 'CHE' },
-            { name: 'Mannar', code: 'MAN' },
-            { name: 'Talaimannar', code: 'TAL' }
-        ];
+        /**
+         * Fetch stations from API
+         * Loads all station names and codes for autocomplete functionality
+         */
+        async function fetchStations() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/stations`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch stations');
+                }
+                const data = await response.json();
+                stations = data.stations.map(s => ({
+                    name: s.name,
+                    code: s.code
+                }));
+            } catch (error) {
+                console.error('Error loading stations:', error);
+                // Fallback to hardcoded list if API fails
+                stations = [
+                    { name: 'Colombo Fort', code: 'FOT' },
+                    { name: 'Kandy', code: 'KAN' },
+                    { name: 'Galle', code: 'GAL' },
+                    { name: 'Matara', code: 'MAT' },
+                    { name: 'Badulla', code: 'BAD' },
+                    { name: 'Vavuniya', code: 'VAV' },
+                    { name: 'Anuradhapura', code: 'ANU' },
+                    { name: 'Jaffna', code: 'JAF' }
+                ];
+            }
+        }
 
         // DOM elements
         const fromInput = document.getElementById('fromStation');
@@ -852,6 +813,9 @@
 
         // Check auth state on page load
         updateAuthUI();
+
+        // Load stations from API on page load
+        fetchStations();
 
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
