@@ -71,6 +71,9 @@ router.get('/search', async (req, res) => {
                 100.00 as distance_km,
                 EXTRACT(EPOCH FROM (sst_to.arrival_time - sst_from.departure_time))/60 + 
                     (sst_to.day_offset - sst_from.day_offset) * 1440 as duration_minutes,
+                (SELECT array_agg(DISTINCT class_type ORDER BY class_type) 
+                 FROM RouteFare 
+                 WHERE route_id = r.id) as available_classes,
                 CASE 
                     WHEN tsu.status = 'Cancelled' THEN 'Cancelled'
                     WHEN tsu.delay_minutes > 0 THEN 'Delayed'
@@ -191,6 +194,7 @@ router.get('/search', async (req, res) => {
                     badge: badge,
                     badge_class: badgeClass
                 },
+                available_classes: row.available_classes || [1, 2, 3],
                 reliability: reliabilityData[row.schedule_id] || {
                     reliability: 'medium',
                     punctuality_percent: 0

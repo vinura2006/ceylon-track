@@ -294,8 +294,40 @@
             font-weight: 600;
         }
 
-        /* Train Card */
+        /* Class Filter */
+        .class-filter {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-medium);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Train Card - clickable cursor */
         .train-card {
+            cursor: pointer;
             background: var(--bg-white);
             border-radius: 16px;
             padding: 1.5rem;
@@ -531,6 +563,123 @@
             }
         }
 
+        /* Modal / Station Sequence */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0.25rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-dark);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .station-sequence {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .station-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-left: 2px solid var(--border);
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .station-item::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .station-item:first-child::before,
+        .station-item:last-child::before {
+            background: var(--primary-dark);
+            width: 12px;
+            height: 12px;
+            left: -7px;
+        }
+
+        .station-time {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--primary);
+            min-width: 60px;
+        }
+
+        .station-name {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .station-code {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-left: auto;
+            background: var(--bg-light);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
         /* Mobile specific (375px) */
         @media (max-width: 375px) {
             .train-header {
@@ -629,7 +778,28 @@
                 </div>
             </div>
 
+            <div class="class-filter" id="classFilter">
+                <button class="filter-btn active" data-class="all">All Classes</button>
+                <button class="filter-btn" data-class="1">1st Class</button>
+                <button class="filter-btn" data-class="2">2nd Class</button>
+                <button class="filter-btn" data-class="3">3rd Class</button>
+            </div>
+
             <div id="resultsList"></div>
+        </div>
+        <!-- Station Sequence Modal -->
+        <div class="modal-overlay" id="stationModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title" id="modalTitle">Train Details</div>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="station-sequence" id="stationSequence">
+                        <!-- Station items injected here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -649,6 +819,16 @@
         const searchDateEl = document.getElementById('searchDate');
         const errorTitle = document.getElementById('errorTitle');
         const errorMessage = document.getElementById('errorMessage');
+        const classFilter = document.getElementById('classFilter');
+        const stationModal = document.getElementById('stationModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const stationSequence = document.getElementById('stationSequence');
+
+        // Global state
+        let currentSchedules = [];
+        let currentFilter = 'all';
+        let pollInterval = null;
+        let currentSearchParams = {};
 
         // Get URL parameters
         function getQueryParams() {
@@ -734,7 +914,7 @@
             `;
 
             return `
-                <div class="train-card ${badge.class}">
+                <div class="train-card ${badge.class}" data-schedule-id="${schedule.schedule_id}" data-classes="${(schedule.available_classes || [1,2,3]).join(',')}" onclick="openModal(${schedule.schedule_id})">
                     <div class="train-header">
                         <div class="train-info">
                             <div class="train-name">${schedule.train.name}</div>
@@ -785,21 +965,124 @@
             errorContainer.classList.add('active');
         }
 
+        // Apply class filter and re-render cards
+        function applyClassFilter() {
+            const filtered = currentFilter === 'all'
+                ? currentSchedules
+                : currentSchedules.filter(s => {
+                    const classes = s.available_classes || [1, 2, 3];
+                    return classes.includes(parseInt(currentFilter));
+                });
+
+            resultsCount.textContent = filtered.length;
+            if (filtered.length === 0) {
+                resultsList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-medium)">No trains available for the selected class.</div>';
+            } else {
+                resultsList.innerHTML = filtered.map(createTrainCard).join('');
+            }
+        }
+
         // Show results
         function showResults(data) {
             loadingContainer.classList.remove('active');
             errorContainer.classList.remove('active');
             noResults.classList.remove('active');
 
-            if (data.schedules.length === 0) {
+            currentSchedules = data.schedules || [];
+
+            if (currentSchedules.length === 0) {
                 noResults.classList.add('active');
                 return;
             }
 
-            resultsCount.textContent = data.schedules.length;
-            resultsList.innerHTML = data.schedules.map(createTrainCard).join('');
+            applyClassFilter();
             resultsContainer.classList.add('active');
         }
+
+        /**
+         * Poll train status every 30 seconds and update UI without full reload
+         */
+        async function pollStatus() {
+            if (!currentSearchParams.from || !currentSearchParams.to || !currentSearchParams.date) return;
+            try {
+                const data = await fetchSchedules(
+                    currentSearchParams.from,
+                    currentSearchParams.to,
+                    currentSearchParams.date
+                );
+                currentSchedules = data.schedules || [];
+                applyClassFilter();
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }
+
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(pollStatus, 30000);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        /**
+         * Fetch and display station sequence modal for a given schedule ID
+         */
+        async function fetchScheduleDetail(scheduleId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/schedules/${scheduleId}?date=${currentSearchParams.date || ''}`);
+                if (!response.ok) throw new Error('Failed to fetch details');
+                const data = await response.json();
+
+                modalTitle.textContent = `${data.schedule.train_name} (${data.schedule.train_number})`;
+
+                stationSequence.innerHTML = data.stations.map((st, idx) => {
+                    const time = st.arrival_time
+                        ? st.arrival_time.substring(0, 5)
+                        : st.departure_time
+                            ? st.departure_time.substring(0, 5)
+                            : '--:--';
+                    return `
+                        <div class="station-item">
+                            <div class="station-time">${time}</div>
+                            <div class="station-name">${st.station_name}</div>
+                            <div class="station-code">${st.station_code}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                stationModal.classList.add('active');
+            } catch (error) {
+                console.error('Error fetching schedule detail:', error);
+                alert('Unable to load station sequence. Please try again.');
+            }
+        }
+
+        function openModal(scheduleId) {
+            fetchScheduleDetail(scheduleId);
+        }
+
+        function closeModal() {
+            stationModal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        stationModal.addEventListener('click', (e) => {
+            if (e.target === stationModal) closeModal();
+        });
+
+        // Class filter button listeners
+        classFilter.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('filter-btn')) return;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = e.target.dataset.class;
+            applyClassFilter();
+        });
 
         // Initialize
         async function init() {
@@ -811,6 +1094,8 @@
                 return;
             }
 
+            currentSearchParams = { from, to, date };
+
             // Update summary
             fromStationEl.textContent = from;
             toStationEl.textContent = to;
@@ -819,11 +1104,15 @@
             try {
                 const data = await fetchSchedules(from, to, date);
                 showResults(data);
+                startPolling();
             } catch (error) {
                 console.error('Error fetching schedules:', error);
                 showError('Unable to Load Results', error.message || 'Please check your connection and try again.');
             }
         }
+
+        // Stop polling when user leaves the page
+        window.addEventListener('beforeunload', stopPolling);
 
         // Start
         init();
