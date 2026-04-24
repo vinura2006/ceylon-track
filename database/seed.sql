@@ -400,12 +400,39 @@ INSERT INTO RouteFare (route_id, class_type, price, effective_date) VALUES
 -- 9. Trip Status Updates (Sample real-time data)
 -- ============================================
 INSERT INTO TripStatusUpdate (schedule_id, trip_date, current_station_id, status, delay_minutes, last_updated, notes) VALUES
+    -- Current day updates
     (1, CURRENT_DATE, 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '2 hours', 'Arrived on time at Kandy'),
     (2, CURRENT_DATE, 10, 'On Time', 0, CURRENT_TIMESTAMP - INTERVAL '1 hour', 'Running on schedule'),
     (5, CURRENT_DATE, 37, 'On Time', 0, CURRENT_TIMESTAMP - INTERVAL '30 minutes', 'Arrived Galle on time'),
     (6, CURRENT_DATE, 31, 'Delayed', 15, CURRENT_TIMESTAMP - INTERVAL '10 minutes', 'Signal issue at Panadura'),
     (7, CURRENT_DATE, 41, 'On Time', 0, CURRENT_TIMESTAMP - INTERVAL '45 minutes', 'Running smoothly'),
-    (8, CURRENT_DATE, 45, 'Delayed', 10, CURRENT_TIMESTAMP - INTERVAL '5 minutes', 'Minor delay at Anuradhapura');
+    (8, CURRENT_DATE, 45, 'Delayed', 10, CURRENT_TIMESTAMP - INTERVAL '5 minutes', 'Minor delay at Anuradhapura'),
+
+    -- Historical data for Schedule 1 (Udarata Menike) - HIGH RELIABILITY (mostly on time)
+    (1, CURRENT_DATE - INTERVAL '1 day', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '1 day', 'Arrived on time'),
+    (1, CURRENT_DATE - INTERVAL '2 days', 10, 'Completed', 2, CURRENT_TIMESTAMP - INTERVAL '2 days', 'Minor delay'),
+    (1, CURRENT_DATE - INTERVAL '3 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '3 days', 'On time'),
+    (1, CURRENT_DATE - INTERVAL '4 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '4 days', 'On time'),
+    (1, CURRENT_DATE - INTERVAL '5 days', 10, 'Completed', 3, CURRENT_TIMESTAMP - INTERVAL '5 days', 'Slight delay'),
+    (1, CURRENT_DATE - INTERVAL '6 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '6 days', 'On time'),
+    (1, CURRENT_DATE - INTERVAL '7 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '7 days', 'On time'),
+    (1, CURRENT_DATE - INTERVAL '8 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '8 days', 'On time'),
+
+    -- Historical data for Schedule 2 (Podi Menike) - MEDIUM RELIABILITY (mix of on time and delayed)
+    (2, CURRENT_DATE - INTERVAL '1 day', 10, 'Completed', 8, CURRENT_TIMESTAMP - INTERVAL '1 day', 'Moderate delay'),
+    (2, CURRENT_DATE - INTERVAL '2 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '2 days', 'On time'),
+    (2, CURRENT_DATE - INTERVAL '3 days', 10, 'Completed', 12, CURRENT_TIMESTAMP - INTERVAL '3 days', 'Delayed'),
+    (2, CURRENT_DATE - INTERVAL '4 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '4 days', 'On time'),
+    (2, CURRENT_DATE - INTERVAL '5 days', 10, 'Completed', 15, CURRENT_TIMESTAMP - INTERVAL '5 days', 'Significant delay'),
+    (2, CURRENT_DATE - INTERVAL '6 days', 10, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '6 days', 'On time'),
+    (2, CURRENT_DATE - INTERVAL '7 days', 10, 'Completed', 5, CURRENT_TIMESTAMP - INTERVAL '7 days', 'Minor delay'),
+
+    -- Historical data for Schedule 5 (Ruhunu Kumari) - LOW RELIABILITY (often delayed)
+    (5, CURRENT_DATE - INTERVAL '1 day', 37, 'Completed', 20, CURRENT_TIMESTAMP - INTERVAL '1 day', 'Major delay'),
+    (5, CURRENT_DATE - INTERVAL '2 days', 37, 'Completed', 25, CURRENT_TIMESTAMP - INTERVAL '2 days', 'Severe delay'),
+    (5, CURRENT_DATE - INTERVAL '3 days', 37, 'Completed', 15, CURRENT_TIMESTAMP - INTERVAL '3 days', 'Delayed'),
+    (5, CURRENT_DATE - INTERVAL '4 days', 37, 'Completed', 30, CURRENT_TIMESTAMP - INTERVAL '4 days', 'Very late'),
+    (5, CURRENT_DATE - INTERVAL '5 days', 37, 'Completed', 0, CURRENT_TIMESTAMP - INTERVAL '5 days', 'Rare on-time arrival');
 
 -- ============================================
 -- 7. Sample Users (with bcrypt hashed passwords: 'password123')

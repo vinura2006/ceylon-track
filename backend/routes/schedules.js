@@ -99,6 +99,45 @@ router.get('/search', async (req, res) => {
             });
         }
 
+        // Calculate reliability for each schedule
+        const scheduleIds = result.rows.map(row => row.schedule_id);
+        const reliabilityData = {};
+
+        for (const scheduleId of scheduleIds) {
+            const reliabilityQuery = `
+                SELECT 
+                    COUNT(*) as total_trips,
+                    SUM(CASE WHEN delay_minutes <= 5 THEN 1 ELSE 0 END) as on_time_trips
+                FROM TripStatusUpdate
+                WHERE schedule_id = $1
+                AND trip_date >= CURRENT_DATE - INTERVAL '30 days'
+            `;
+            const reliabilityResult = await pool.query(reliabilityQuery, [scheduleId]);
+            
+            const totalTrips = parseInt(reliabilityResult.rows[0].total_trips) || 0;
+            const onTimeTrips = parseInt(reliabilityResult.rows[0].on_time_trips) || 0;
+            
+            let punctualityPercent = 0;
+            let reliability = 'medium';
+            
+            if (totalTrips > 0) {
+                punctualityPercent = Math.round((onTimeTrips / totalTrips) * 100);
+                
+                if (punctualityPercent >= 80) {
+                    reliability = 'high';
+                } else if (punctualityPercent >= 50) {
+                    reliability = 'medium';
+                } else {
+                    reliability = 'low';
+                }
+            }
+            
+            reliabilityData[scheduleId] = {
+                reliability: reliability,
+                punctuality_percent: punctualityPercent
+            };
+        }
+
         // Format the response
         const schedules = result.rows.map(row => {
             const durationHours = Math.floor(row.duration_minutes / 60);
@@ -151,6 +190,10 @@ router.get('/search', async (req, res) => {
                     delay_minutes: parseInt(row.delay_minutes),
                     badge: badge,
                     badge_class: badgeClass
+                },
+                reliability: reliabilityData[row.schedule_id] || {
+                    reliability: 'medium',
+                    punctuality_percent: 0
                 },
                 date: date
             };
