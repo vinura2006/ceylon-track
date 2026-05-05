@@ -709,6 +709,34 @@
                 padding: 0.375rem 0.625rem;
             }
         }
+
+        /* Watch button */
+        .watch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-top: 0.875rem;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1.5px solid var(--primary);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .watch-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .watch-btn.watching {
+            background: #dcfce7;
+            border-color: #22c55e;
+            color: #166534;
+            cursor: default;
+        }
+        .watch-btn:disabled { opacity: 0.7; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -829,6 +857,7 @@
         let currentFilter = 'all';
         let pollInterval = null;
         let currentSearchParams = {};
+        let watchedScheduleIds = new Set(); // tracks which schedules user has already watched
 
         // Get URL parameters
         function getQueryParams() {
@@ -913,6 +942,19 @@
                 </div>
             `;
 
+            // Watch button
+            const isWatching = watchedScheduleIds.has(schedule.schedule_id);
+            const watchBtnHtml = `
+                <button
+                    class="watch-btn ${isWatching ? 'watching' : ''}"
+                    id="watch-btn-${schedule.schedule_id}"
+                    onclick="handleWatch(event, ${schedule.schedule_id})"
+                    ${isWatching ? 'disabled' : ''}
+                >
+                    ${isWatching ? '✅ Watching' : '🔔 Watch this train'}
+                </button>
+            `;
+
             return `
                 <div class="train-card ${badge.class}" data-schedule-id="${schedule.schedule_id}" data-classes="${(schedule.available_classes || [1,2,3]).join(',')}" onclick="openModal(${schedule.schedule_id})">
                     <div class="train-header">
@@ -950,6 +992,7 @@
                     </div>
 
                     ${delayInfoHtml}
+                    ${watchBtnHtml}
                 </div>
             `;
         }
@@ -970,8 +1013,9 @@
             const filtered = currentFilter === 'all'
                 ? currentSchedules
                 : currentSchedules.filter(s => {
-                    const classes = s.available_classes || [1, 2, 3];
-                    return classes.includes(parseInt(currentFilter));
+                    // Type-safe comparison: convert both sides to String (BUG: string vs int mismatch)
+                    const classes = (s.available_classes || [1, 2, 3]).map(c => String(c));
+                    return classes.includes(String(currentFilter));
                 });
 
             resultsCount.textContent = filtered.length;
@@ -1077,18 +1121,111 @@
 
         // Class filter button listeners
         classFilter.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('filter-btn')) return;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            e.target.classList.add('active');
-            currentFilter = e.target.dataset.class;
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.class;
             applyClassFilter();
         });
+
+        // ── Watch helpers ─────────────────────────────────────────
+        /**
+         * Handle the Watch button click. Stops card click propagation,
+         * calls POST /api/watch, and updates button state.
+         */
+        async function handleWatch(event, scheduleId) {
+            event.stopPropagation(); // Don't open station modal
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const btn = document.getElementById(`watch-btn-${scheduleId}`);
+            if (!btn || btn.disabled) return;
+
+            // Find the schedule to get station IDs from URL params
+            // The search API doesn't return station IDs, so we fetch them from stations list
+            const { from, to, date } = currentSearchParams;
+
+            btn.textContent = '⏳ Watching...';
+            btn.disabled = true;
+
+            try {
+                // Resolve station codes to IDs via the stations endpoint
+                const stRes = await fetch(`${API_BASE_URL}/stations`);
+                const stData = await stRes.json();
+                const stationMap = {};
+                stData.stations.forEach(s => { stationMap[s.code] = s.id; });
+
+                const fromId = stationMap[from.toUpperCase()];
+                const toId   = stationMap[to.toUpperCase()];
+
+                if (!fromId || !toId) throw new Error('Station codes not found');
+
+                const res = await fetch(`${API_BASE_URL}/watch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        schedule_id:     scheduleId,
+                        from_station_id: fromId,
+                        to_station_id:   toId,
+                        watch_date:      date
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.status === 409) {
+                    // Already watching — still mark as watching
+                    btn.textContent = '✅ Watching';
+                    btn.classList.add('watching');
+                    watchedScheduleIds.add(scheduleId);
+                    return;
+                }
+
+                if (!res.ok) throw new Error(data.error || 'Failed to watch');
+
+                btn.textContent = '✅ Watching';
+                btn.classList.add('watching');
+                watchedScheduleIds.add(scheduleId);
+
+            } catch (err) {
+                console.error('Watch error:', err);
+                btn.textContent = '🔔 Watch this train';
+                btn.disabled = false;
+                alert(err.message || 'Could not set watch. Please try again.');
+            }
+        }
+
+        /**
+         * Pre-load which schedules the logged-in user is already watching
+         * so the buttons render in the correct state.
+         */
+        async function loadExistingWatches() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/watch`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                data.watches.forEach(w => watchedScheduleIds.add(w.schedule.id));
+            } catch (err) {
+                // Non-critical — just skip pre-marking
+            }
+        }
 
         // Initialize
         async function init() {
             const { from, to, date } = getQueryParams();
 
-            // Validate parameters
             if (!from || !to || !date) {
                 showError('Invalid Search', 'Please provide departure station, destination station, and travel date.');
                 return;
@@ -1096,10 +1233,19 @@
 
             currentSearchParams = { from, to, date };
 
+            // Reset class filter on every new search (BUG-04 fix)
+            currentFilter = 'all';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.class === 'all');
+            });
+
             // Update summary
             fromStationEl.textContent = from;
-            toStationEl.textContent = to;
-            searchDateEl.textContent = formatDate(date);
+            toStationEl.textContent   = to;
+            searchDateEl.textContent  = formatDate(date);
+
+            // Load user's existing watches before fetching schedules
+            await loadExistingWatches();
 
             try {
                 const data = await fetchSchedules(from, to, date);

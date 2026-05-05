@@ -493,6 +493,13 @@
             const submitBtn = document.getElementById('submitBtn');
             const formMessage = document.getElementById('formMessage');
 
+            // BUG-05: Reject negative delays on the frontend
+            if (parseInt(delayMinutes) < 0) {
+                formMessage.className = 'form-message error';
+                formMessage.textContent = 'Delay minutes cannot be negative.';
+                return;
+            }
+
             submitBtn.disabled = true;
             formMessage.className = 'form-message';
             formMessage.textContent = '';

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Journeys - Ceylon Track</title>
+    <meta name="description" content="View and manage your watched train journeys on Ceylon Track.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+            --ontime: #22c55e;
+            --ontime-bg: #dcfce7;
+            --delayed: #f59e0b;
+            --delayed-bg: #fef3c7;
+            --cancelled: #ef4444;
+            --cancelled-bg: #fee2e2;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.25rem;
+        }
+        .logo-text {
+            font-size: 1.5rem; font-weight: 700;
+            color: var(--primary); letter-spacing: -.025em;
+        }
+        .nav-links {
+            display: flex; gap: 1.5rem; align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none; color: var(--text-medium);
+            font-weight: 500; font-size: .875rem; transition: color .2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-links a.active { color: var(--primary); font-weight: 600; }
+
+        /* Main */
+        .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        /* Hero bar */
+        .page-hero {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .page-hero h1 { font-size: 1.5rem; font-weight: 700; }
+        .page-hero p  { opacity: .9; font-size: .9rem; margin-top: .25rem; }
+        .refresh-btn {
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.3);
+            color: white;
+            padding: .5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .875rem;
+            font-weight: 500;
+            transition: background .2s;
+            white-space: nowrap;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,.3); }
+
+        /* State panels */
+        .state-panel {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+        .state-panel.active { display: block; }
+        .state-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .state-title { font-size: 1.25rem; font-weight: 600; color: var(--text-dark); margin-bottom: .5rem; }
+        .state-text  { color: var(--text-medium); margin-bottom: 1.5rem; }
+        .cta-btn {
+            display: inline-block;
+            padding: .75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: .9rem;
+            transition: background .2s;
+        }
+        .cta-btn:hover { background: var(--primary-dark); }
+
+        /* Watch cards */
+        .watches-list { display: flex; flex-direction: column; gap: 1rem; }
+
+        .watch-card {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
+            transition: box-shadow .2s;
+        }
+        .watch-card:hover { box-shadow: var(--shadow-lg); }
+        .watch-card.cancelled { border-color: var(--cancelled); }
+        .watch-card.delayed   { border-color: var(--delayed); }
+
+        .watch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .train-name  { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); }
+        .train-meta  { font-size: .8rem; color: var(--text-light); margin-top: .2rem; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            padding: .375rem .75rem;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .025em;
+        }
+        .status-badge.ontime    { background: var(--ontime-bg);    color: var(--ontime); }
+        .status-badge.delayed   { background: var(--delayed-bg);   color: #92400e; }
+        .status-badge.cancelled { background: var(--cancelled-bg); color: var(--cancelled); }
+        .status-badge.default   { background: var(--bg-light);     color: var(--text-medium); }
+
+        .journey-timeline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .875rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: .875rem;
+        }
+        .time-block { text-align: center; }
+        .time-value { font-size: 1.4rem; font-weight: 700; color: var(--text-dark); }
+        .time-label { font-size: .75rem; color: var(--text-light); margin-bottom: .15rem; }
+        .time-station { font-size: .8rem; color: var(--text-medium); margin-top: .15rem; }
+        .arrow-block {
+            flex: 1;
+            text-align: center;
+            color: var(--text-light);
+            font-size: .8rem;
+        }
+        .arrow-line {
+            height: 2px;
+            background: var(--border);
+            margin: .4rem 0;
+            position: relative;
+        }
+        .arrow-line::after {
+            content: '→';
+            position: absolute;
+            right: -8px;
+            top: -9px;
+            font-size: .9rem;
+            color: var(--primary);
+        }
+
+        .watch-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+        .watch-date {
+            font-size: .8rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: .35rem;
+        }
+        .delay-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            font-size: .8rem;
+            padding: .3rem .65rem;
+            background: var(--delayed-bg);
+            color: #92400e;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .unwatch-btn {
+            padding: .4rem .9rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-medium);
+            font-size: .8rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .unwatch-btn:hover {
+            border-color: var(--cancelled);
+            color: var(--cancelled);
+            background: var(--cancelled-bg);
+        }
+
+        /* spinner */
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--bg-white);
+            box-shadow: 0 -4px 6px -1px rgba(0,0,0,.1);
+            z-index: 100;
+        }
+        .bottom-nav-content {
+            max-width: 800px; margin: 0 auto;
+            display: flex; justify-content: space-around;
+            padding: .75rem 0;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: .25rem; padding: .5rem 1.5rem;
+            text-decoration: none; color: var(--text-light);
+            transition: color .2s; border-radius: 12px;
+        }
+        .nav-item.active { color: var(--primary); background: rgba(99,102,241,.1); }
+        .nav-item:hover  { color: var(--primary); }
+        .nav-icon  { font-size: 1.5rem; }
+        .nav-label { font-size: .75rem; font-weight: 500; }
+
+        /* login prompt */
+        .login-prompt {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .login-prompt p { color: var(--text-medium); margin-bottom: 1.5rem; font-size: 1rem; }
+
+        @media (max-width: 640px) {
+            .page-hero { flex-direction: column; text-align: center; }
+            .journey-timeline { flex-direction: column; gap: 1rem; }
+            .arrow-block { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">🚂</div>
+                <div class="logo-text">Ceylon Track</div>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">Search</a>
+                <a href="watch.html" class="active">My Journeys</a>
+                <a href="login.html" id="authLink">Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Page Hero -->
+        <div class="page-hero">
+            <div>
+                <h1>🔔 My Journeys</h1>
+                <p>Live status for your watched trains</p>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="loadWatches()">⟳ Refresh</button>
+        </div>
+
+        <!-- Not logged in -->
+        <div class="login-prompt" id="loginPrompt" style="display:none;">
+            <div class="state-icon">🔒</div>
+            <h2 class="state-title">Sign In to Watch Trains</h2>
+            <p>Create an account or sign in to track your train journeys and get live delay updates.</p>
+            <a href="login.html" class="cta-btn">Sign In</a>
+        </div>
+
+        <!-- Loading -->
+        <div class="state-panel active" id="loadingPanel">
+            <div class="spinner"></div>
+            <p class="state-text">Loading your watched journeys...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div class="state-panel" id="emptyPanel">
+            <div class="state-icon">🚉</div>
+            <h2 class="state-title">No Journeys Watched Yet</h2>
+            <p class="state-text">Search for a train and tap "Watch this train" to track it here.</p>
+            <a href="index.html" class="cta-btn">Search Trains</a>
+        </div>
+
+        <!-- Error state -->
+        <div class="state-panel" id="errorPanel">
+            <div class="state-icon">⚠️</div>
+            <h2 class="state-title">Could Not Load Journeys</h2>
+            <p class="state-text" id="errorText">Please check your connection and try again.</p>
+            <button class="cta-btn" onclick="loadWatches()">Try Again</button>
+        </div>
+
+        <!-- Watch cards -->
+        <div class="watches-list" id="watchesList" style="display:none;"></div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-content">
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-label">Search</span>
+            </a>
+            <a href="watch.html" class="nav-item active">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-label">Watch</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // ── Auth state ───────────────────────────────────────────────
+        function getToken() { return localStorage.getItem('token'); }
+        function getUser()  {
+            try { return JSON.parse(localStorage.getItem('user')); }
+            catch { return null; }
+        }
+
+        function updateNav() {
+            const user     = getUser();
+            const authLink = document.getElementById('authLink');
+            if (user) {
+                authLink.textContent = 'Logout';
+                authLink.href = '#';
+                authLink.onclick = e => {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    location.reload();
+                };
+            }
+        }
+
+        // ── Status helpers ───────────────────────────────────────────
+        function statusBadgeHtml(status, delayMinutes) {
+            if (status === 'Cancelled')    return `<span class="status-badge cancelled">🚫 Cancelled</span>`;
+            if (status === 'Not Started')  return `<span class="status-badge default">⏳ Not Started</span>`;
+            if (status === 'Completed')    return `<span class="status-badge ontime">✅ Completed</span>`;
+            if (delayMinutes > 0)          return `<span class="status-badge delayed">⏱️ Delayed ${delayMinutes}m</span>`;
+            return `<span class="status-badge ontime">✅ On Time</span>`;
+        }
+
+        function cardClass(status, delay) {
+            if (status === 'Cancelled') return 'cancelled';
+            if (delay > 0)              return 'delayed';
+            return '';
+        }
+
+        function formatWatchDate(dateStr) {
+            if (!dateStr) return 'Any day';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // ── Render one watch card ────────────────────────────────────
+        function renderCard(w) {
+            const { watch_id, watch_date, schedule, journey, live_status } = w;
+            const delay  = live_status.delay_minutes;
+            const status = live_status.status;
+
+            return `
+                <div class="watch-card ${cardClass(status, delay)}" id="card-${watch_id}">
+                    <div class="watch-header">
+                        <div>
+                            <div class="train-name">${schedule.train_name}</div>
+                            <div class="train-meta">Train ${schedule.train_number} · ${schedule.route_name}</div>
+                        </div>
+                        ${statusBadgeHtml(status, delay)}
+                    </div>
+
+                    <div class="journey-timeline">
+                        <div class="time-block">
+                            <div class="time-label">Departure</div>
+                            <div class="time-value">${journey.departure_time || '--:--'}</div>
+                            <div class="time-station">${journey.from_station}</div>
+                        </div>
+
+                        <div class="arrow-block">
+                            <div class="arrow-line"></div>
+                            <div>${journey.from_code} → ${journey.to_code}</div>
+                        </div>
+
+                        <div class="time-block">
+                            <div class="time-label">Arrival</div>
+                            <div class="time-value">${journey.arrival_time || '--:--'}</div>
+                            <div class="time-station">${journey.to_station}</div>
+                        </div>
+                    </div>
+
+                    <div class="watch-footer">
+                        <span class="watch-date">
+                            📅 ${formatWatchDate(watch_date)}
+                            ${delay > 0 && status !== 'Cancelled'
+                                ? `<span class="delay-chip">⏱️ +${delay} min delay</span>`
+                                : ''}
+                        </span>
+                        <button class="unwatch-btn" onclick="unwatch(${watch_id}, this)">
+                            Remove Watch
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ── Load watches ─────────────────────────────────────────────
+        async function loadWatches() {
+            const token = getToken();
+            if (!token) {
+                document.getElementById('loadingPanel').classList.remove('active');
+                document.getElementById('loginPrompt').style.display = 'block';
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingPanel').classList.add('active');
+            document.getElementById('emptyPanel').classList.remove('active');
+            document.getElementById('errorPanel').classList.remove('active');
+            document.getElementById('watchesList').style.display = 'none';
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/watch`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.status === 401 || res.status === 403) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    location.reload();
+                    return;
+                }
+
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+
+                document.getElementById('loadingPanel').classList.remove('active');
+
+                if (!data.watches || data.watches.length === 0) {
+                    document.getElementById('emptyPanel').classList.add('active');
+                    return;
+                }
+
+                const list = document.getElementById('watchesList');
+                list.innerHTML = data.watches.map(renderCard).join('');
+                list.style.display = 'flex';
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loadingPanel').classList.remove('active');
+                document.getElementById('errorText').textContent = err.message || 'Unexpected error';
+                document.getElementById('errorPanel').classList.add('active');
+            }
+        }
+
+        // ── Unwatch ──────────────────────────────────────────────────
+        async function unwatch(watchId, btn) {
+            const token = getToken();
+            if (!token) return;
+
+            const original = btn.textContent;
+            btn.textContent = 'Removing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/watch/${watchId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to remove');
+                }
+
+                // Animate out
+                const card = document.getElementById(`card-${watchId}`);
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(100%)';
+                card.style.transition = 'all .3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    // If list is now empty, show empty state
+                    const list = document.getElementById('watchesList');
+                    if (list.children.length === 0) {
+                        list.style.display = 'none';
+                        document.getElementById('emptyPanel').classList.add('active');
+                    }
+                }, 300);
+
+            } catch (err) {
+                btn.textContent = original;
+                btn.disabled = false;
+                alert(err.message);
+            }
+        }
+
+        // ── Init ─────────────────────────────────────────────────────
+        updateNav();
+        loadWatches();
+    </script>
+</body>
+</html>

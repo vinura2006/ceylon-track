@@ -1,11 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const scheduleRoutes = require('./routes/schedules');
 const stationRoutes = require('./routes/stations');
 const staffRoutes = require('./routes/staff');
+const watchRoutes = require('./routes/watch');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +22,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -42,6 +47,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/watch', watchRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -52,8 +58,8 @@ app.get('/', (req, res) => {
         endpoints: {
             auth: {
                 register: 'POST /api/auth/register',
-                login: 'POST /api/auth/login',
-                profile: 'GET /api/auth/me'
+                login:    'POST /api/auth/login',
+                profile:  'GET /api/auth/me'
             },
             schedules: {
                 search: 'GET /api/schedules/search?from=CODE&to=CODE&date=YYYY-MM-DD',
@@ -63,7 +69,15 @@ app.get('/', (req, res) => {
                 list: 'GET /api/stations'
             },
             staff: {
-                updateStatus: 'POST /api/staff/trains/:id/status'
+                stats:         'GET /api/staff/stats',
+                updateStatus:  'POST /api/staff/trains/:id/status',
+                addStation:    'POST /api/staff/stations',
+                addSchedule:   'POST /api/staff/schedules'
+            },
+            watch: {
+                list:        'GET /api/watch',
+                subscribe:   'POST /api/watch',
+                unsubscribe: 'DELETE /api/watch/:id'
             },
             health: 'GET /health'
         }
