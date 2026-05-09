@@ -8,6 +8,7 @@ const scheduleRoutes = require('./routes/schedules');
 const stationRoutes = require('./routes/stations');
 const staffRoutes = require('./routes/staff');
 const watchRoutes = require('./routes/watch');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use('/public', express.static(path.join(__dirname, '..', 'frontend', 'public')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -48,6 +50,7 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/watch', watchRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -84,8 +87,8 @@ app.get('/', (req, res) => {
     });
 });
 
-// 404 handler
-app.use((req, res) => {
+// 404 handler — only for API routes, not static files
+app.use('/api/*', (req, res) => {
     res.status(404).json({
         error: 'Endpoint not found',
         path: req.path,

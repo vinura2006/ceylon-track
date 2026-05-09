@@ -401,6 +401,26 @@
             showDashboard(user);
         }
 
+        async function fetchStats() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('statStations').textContent = data.total_stations || 0;
+                    document.getElementById('statTrains').textContent = data.active_trains || 0;
+                    document.getElementById('statTrips').textContent = data.todays_trips || 0;
+                }
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
         function showDashboard(user) {
             const main = document.getElementById('mainContent');
             main.innerHTML = `
@@ -412,27 +432,27 @@
                 <div class="dashboard-grid">
                     <div class="card">
                         <h3>Total Stations</h3>
-                        <div class="value">32</div>
+                        <div class="value" id="statStations">--</div>
                     </div>
                     <div class="card">
                         <h3>Active Trains</h3>
-                        <div class="value">12</div>
+                        <div class="value" id="statTrains">--</div>
                     </div>
                     <div class="card">
                         <h3>Today's Trips</h3>
-                        <div class="value">48</div>
+                        <div class="value" id="statTrips">--</div>
                     </div>
                 </div>
 
                 <div class="actions">
                     <h2>Quick Actions</h2>
-                    <button class="action-btn" onclick="openDelayModal()">
+                    <button class="action-btn" onclick="window.location.href='public/delay-update.html'">
                         ⏱️ Update Train Delay
                     </button>
-                    <button class="action-btn" onclick="alert('Schedule management coming in Sprint 2')">
+                    <button class="action-btn" onclick="window.location.href='public/manage-schedules.html'">
                         📅 Manage Schedules
                     </button>
-                    <button class="action-btn" onclick="alert('Station management coming in Sprint 2')">
+                    <button class="action-btn" onclick="window.location.href='public/manage-stations.html'">
                         🚉 Manage Stations
                     </button>
                     <button class="action-btn" onclick="window.location.href='index.html'">
@@ -544,6 +564,9 @@
 
         // Start
         init();
+        
+        // Fetch dynamic stats after dashboard loads
+        fetchStats();
     </script>
 </body>
 </html>

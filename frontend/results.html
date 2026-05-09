@@ -290,6 +290,11 @@
             background: var(--cancelled);
         }
 
+        /* BUG-03 Sprint 3 fix: added grey dot for trains with no historical data */
+        .reliability-dot.no-data {
+            background: #94a3b8;
+        }
+
         .reliability-percent {
             font-weight: 600;
         }
@@ -890,7 +895,7 @@
             return await response.json();
         }
 
-        // Determine badge properties based on delay and status
+        // Determine status badge properties based on delay and current status
         function getBadgeInfo(delayMinutes, status) {
             if (status === 'Cancelled') {
                 return {
@@ -901,14 +906,14 @@
 
             if (delayMinutes === 0) {
                 return {
-                    text: 'Usually On Time',
+                    text: 'On Schedule',
                     class: 'ontime'
                 };
             }
 
             if (delayMinutes <= 15) {
                 return {
-                    text: 'Sometimes Delayed',
+                    text: 'Slightly Delayed',
                     class: 'delayed'
                 };
             }
@@ -917,6 +922,47 @@
                 text: 'Significantly Delayed',
                 class: 'delayed'
             };
+        }
+
+        /**
+         * BUG-03 Sprint 3 fix — completes the resolution started in Sprint 2.
+         * Previously the reliability badge LABEL came from getBadgeInfo() (delay-based)
+         * while the dot colour came from the API's pre-computed 'reliability' field
+         * (punctuality-based). The two sources could contradict each other
+         * (e.g. green label "USUALLY ON TIME" alongside an orange/red dot at 0%).
+         *
+         * This function is now the single source of truth for BOTH the dot colour
+         * and the label text. The conditions for each tier are identical:
+         *   punctuality > 80            → high  (green)  → USUALLY ON TIME
+         *   punctuality 50–79           → medium (orange) → SOMETIMES DELAYED
+         *   punctuality < 50 and > 0    → low   (red)    → OFTEN LATE
+         *   punctuality 0, totalTrips 0 → no-data (grey) → NO DATA YET
+         *   punctuality 0, totalTrips>0 → low   (red)    → OFTEN LATE
+         */
+        function getReliabilityInfo(reliabilityData) {
+            const pct        = (reliabilityData && reliabilityData.punctuality_percent != null)
+                                   ? reliabilityData.punctuality_percent
+                                   : 0;
+            const totalTrips = (reliabilityData && reliabilityData.total_trips != null)
+                                   ? reliabilityData.total_trips
+                                   : 0;
+
+            // No historical data at all
+            if (pct === 0 && totalTrips === 0) {
+                return { dotClass: 'no-data', label: 'NO DATA YET', percent: pct };
+            }
+
+            // Has data but always late
+            if (pct < 50) {
+                return { dotClass: 'low', label: 'OFTEN LATE', percent: pct };
+            }
+
+            if (pct <= 79) {
+                return { dotClass: 'medium', label: 'SOMETIMES DELAYED', percent: pct };
+            }
+
+            // pct > 80
+            return { dotClass: 'high', label: 'USUALLY ON TIME', percent: pct };
         }
 
         // Render train card
@@ -932,13 +978,14 @@
                 </div>
             ` : '';
 
-            // Reliability badge
-            const reliability = schedule.reliability || { reliability: 'medium', punctuality_percent: 0 };
+            // BUG-03 Sprint 3 fix: both dot colour and label now use getReliabilityInfo(),
+            // guaranteeing they can never contradict each other.
+            const rel = getReliabilityInfo(schedule.reliability);
             const reliabilityBadgeHtml = `
                 <div class="reliability-badge">
-                    <span class="reliability-dot ${reliability.reliability}"></span>
-                    <span class="reliability-percent">${reliability.punctuality_percent}%</span>
-                    <span>on time</span>
+                    <span class="reliability-dot ${rel.dotClass}"></span>
+                    <span class="reliability-percent">${rel.percent}%</span>
+                    <span>${rel.label}</span>
                 </div>
             `;
 

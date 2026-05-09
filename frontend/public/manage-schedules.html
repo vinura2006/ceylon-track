@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Schedules - Ceylon Track Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2D6A4F;
+            --primary-dark: #1B4332;
+            --primary-light: #40916C;
+            --orange: #E67E22;
+            --orange-light: #F39C12;
+            --red: #C0392B;
+            --red-light: #E74C3C;
+            --blue: #2980B9;
+            --blue-light: #3498DB;
+            --grey: #7F8C8D;
+            --grey-light: #95A5A6;
+            --green-light: #10b981;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .navbar-brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .navbar-email {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select {
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            background: white;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--bg-light);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-medium);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9375rem;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #f0f7ff;
+        }
+
+        /* Day Pills */
+        .day-pills {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .day-pill {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            background: var(--grey-light);
+            color: white;
+        }
+
+        .day-pill.active {
+            background: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: var(--grey);
+            color: white;
+            margin-right: 0.25rem;
+        }
+
+        .btn-view:hover {
+            background: var(--grey-light);
+        }
+
+        .btn-view.expanded {
+            background: var(--blue);
+        }
+
+        .btn-edit {
+            background: var(--blue);
+            color: white;
+            margin-right: 0.25rem;
+        }
+
+        .btn-edit:hover {
+            background: var(--blue-light);
+        }
+
+        .btn-delete {
+            background: var(--red);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: var(--red-light);
+        }
+
+        /* Expanded Row */
+        .stops-row {
+            background: #f1f5f9;
+            display: none;
+        }
+
+        .stops-row.active {
+            display: table-row;
+        }
+
+        .stops-table {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        .stops-table th,
+        .stops-table td {
+            padding: 0.5rem;
+            font-size: 0.8125rem;
+            border: none;
+        }
+
+        .stops-table th {
+            background: #e2e8f0;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-medium);
+            margin-bottom: 0.375rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9375rem;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .helper-text {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+
+        .days-checkboxes {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .day-checkbox input {
+            width: auto;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-cancel {
+            background: var(--grey);
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-cancel:hover {
+            background: var(--grey-light);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-success {
+            background: var(--primary);
+        }
+
+        .toast-error {
+            background: var(--red);
+        }
+
+        /* Loading/Empty */
+        .loading, .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-medium);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            th, td {
+                padding: 0.75rem;
+                font-size: 0.8125rem;
+            }
+
+            .day-pill {
+                width: 20px;
+                height: 20px;
+                font-size: 0.625rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span>🚆</span>
+            <span>Ceylon Track Admin</span>
+        </div>
+        <div class="navbar-user">
+            <span class="navbar-email" id="userEmail"></span>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <a href="/admin.html" class="back-link">← Back to Dashboard</a>
+
+        <div class="page-header">
+            <h1 class="page-title">Manage Schedules</h1>
+            <button class="btn-add" onclick="openAddModal()">
+                <span>+</span>
+                <span>Add Schedule</span>
+            </button>
+        </div>
+
+        <div class="filter-bar">
+            <select id="routeFilter" onchange="filterByRoute()">
+                <option value="">All Routes</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="schedulesTable">
+                    <thead>
+                        <tr>
+                            <th>Train</th>
+                            <th>No</th>
+                            <th>Route</th>
+                            <th>Type</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Days</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedulesTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">Loading schedules...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="scheduleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Schedule</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm" onsubmit="event.preventDefault(); saveSchedule();">
+                    <input type="hidden" id="scheduleId">
+                    
+                    <div class="form-group">
+                        <label for="trainSelect">Train *</label>
+                        <select id="trainSelect" required>
+                            <option value="">Select a train...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="routeSelect">Route *</label>
+                        <select id="routeSelect" required>
+                            <option value="">Select a route...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="departureTime">Departure Time *</label>
+                            <input type="time" id="departureTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="arrivalTime">Arrival Time *</label>
+                            <input type="time" id="arrivalTime" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dayOffset">Day Offset</label>
+                        <input type="number" id="dayOffset" min="0" max="1" value="0">
+                        <p class="helper-text">Use 1 for overnight journeys (arrives next day)</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Operating Days *</label>
+                        <div class="days-checkboxes">
+                            <label class="day-checkbox"><input type="checkbox" value="1" checked> Mon</label>
+                            <label class="day-checkbox"><input type="checkbox" value="2" checked> Tue</label>
+                            <label class="day-checkbox"><input type="checkbox" value="3" checked> Wed</label>
+                            <label class="day-checkbox"><input type="checkbox" value="4" checked> Thu</label>
+                            <label class="day-checkbox"><input type="checkbox" value="5" checked> Fri</label>
+                            <label class="day-checkbox"><input type="checkbox" value="6"> Sat</label>
+                            <label class="day-checkbox"><input type="checkbox" value="0"> Sun</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">Save Schedule</button>
+                        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let allSchedules = [];
+        let filteredSchedules = [];
+        let allRoutes = [];
+        let allTrains = [];
+        let expandedRows = new Set();
+        let editingScheduleId = null;
+
+        const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+        // Auth check
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+            
+            if (!token || !userStr) {
+                window.location.href = '/admin.html';
+                return false;
+            }
+            
+            const user = JSON.parse(userStr);
+            if (user.role !== 'Admin' && user.role !== 'Staff') {
+                window.location.href = '/admin.html';
+                return false;
+            }
+            
+            document.getElementById('userEmail').textContent = user.email;
+            return true;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/admin.html';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = type === 'success' ? `✅ ${message}` : `❌ ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Fetch data
+        async function fetchData() {
+            const token = localStorage.getItem('token');
+            
+            try {
+                const [schedulesRes, routesRes, trainsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/admin/schedules`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE_URL}/admin/routes`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE_URL}/admin/trains`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+                
+                if (!schedulesRes.ok || !routesRes.ok || !trainsRes.ok) {
+                    if (schedulesRes.status === 401 || schedulesRes.status === 403) {
+                        window.location.href = '/admin.html';
+                        return;
+                    }
+                    throw new Error('Failed to fetch data');
+                }
+                
+                const schedulesData = await schedulesRes.json();
+                const routesData = await routesRes.json();
+                const trainsData = await trainsRes.json();
+                
+                allSchedules = schedulesData.schedules || [];
+                filteredSchedules = [...allSchedules];
+                allRoutes = routesData.routes || [];
+                allTrains = trainsData.trains || [];
+                
+                populateRouteFilter();
+                populateModalDropdowns();
+                renderSchedules();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('schedulesTableBody').innerHTML = `
+                    <tr><td colspan="8" class="empty-state">Error loading schedules</td></tr>
+                `;
+                showToast('Failed to load data', 'error');
+            }
+        }
+
+        // Populate route filter
+        function populateRouteFilter() {
+            const select = document.getElementById('routeFilter');
+            select.innerHTML = '<option value="">All Routes</option>' +
+                allRoutes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+        }
+
+        // Populate modal dropdowns
+        function populateModalDropdowns() {
+            const trainSelect = document.getElementById('trainSelect');
+            const routeSelect = document.getElementById('routeSelect');
+            
+            trainSelect.innerHTML = '<option value="">Select a train...</option>' +
+                allTrains.map(t => `<option value="${t.id}">${t.name} (${t.number})</option>`).join('');
+            
+            routeSelect.innerHTML = '<option value="">Select a route...</option>' +
+                allRoutes.map(r => `<option value="${r.id}">${r.name} (${r.type})</option>`).join('');
+        }
+
+        // Filter by route
+        function filterByRoute() {
+            const routeId = document.getElementById('routeFilter').value;
+            if (routeId) {
+                filteredSchedules = allSchedules.filter(s => s.route_id === parseInt(routeId));
+            } else {
+                filteredSchedules = [...allSchedules];
+            }
+            renderSchedules();
+        }
+
+        // Render day pills
+        function renderDayPills(operatingDays) {
+            const days = operatingDays || [];
+            return `<div class="day-pills">
+                ${[1,2,3,4,5,6,0].map((d, i) => 
+                    `<span class="day-pill ${days.includes(d) ? 'active' : ''}">${dayNames[d]}</span>`
+                ).join('')}
+            </div>`;
+        }
+
+        // Render schedules table
+        function renderSchedules() {
+            const tbody = document.getElementById('schedulesTableBody');
+            
+            if (filteredSchedules.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No schedules found</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = filteredSchedules.map(s => `
+                <tr data-schedule-id="${s.schedule_id}">
+                    <td><strong>${s.train_name}</strong></td>
+                    <td>${s.train_number}</td>
+                    <td>${s.route_name}</td>
+                    <td>${s.route_type}</td>
+                    <td>${s.departure_time ? s.departure_time.substring(0, 5) : '--:--'}</td>
+                    <td>${s.arrival_time ? s.arrival_time.substring(0, 5) : '--:--'}</td>
+                    <td>${renderDayPills(s.operating_days)}</td>
+                    <td>
+                        <button class="btn btn-view ${expandedRows.has(s.schedule_id) ? 'expanded' : ''}" 
+                                onclick="toggleStops(${s.schedule_id})">
+                            ${expandedRows.has(s.schedule_id) ? 'Hide' : 'View'} Stops
+                        </button>
+                        <button class="btn btn-edit" onclick="openEditModal(${s.schedule_id})">Edit</button>
+                        <button class="btn btn-delete" onclick="deleteSchedule(${s.schedule_id})">Delete</button>
+                    </td>
+                </tr>
+                <tr class="stops-row ${expandedRows.has(s.schedule_id) ? 'active' : ''}" id="stops-${s.schedule_id}">
+                    <td colspan="8">
+                        <div id="stops-content-${s.schedule_id}">
+                            ${expandedRows.has(s.schedule_id) ? 'Loading stops...' : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Toggle stops view
+        async function toggleStops(scheduleId) {
+            if (expandedRows.has(scheduleId)) {
+                expandedRows.delete(scheduleId);
+                renderSchedules();
+                return;
+            }
+            
+            expandedRows.add(scheduleId);
+            renderSchedules();
+            
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/schedules/${scheduleId}/stations`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch stops');
+                
+                const data = await response.json();
+                const contentDiv = document.getElementById(`stops-content-${scheduleId}`);
+                
+                contentDiv.innerHTML = `
+                    <table class="stops-table">
+                        <thead>
+                            <tr>
+                                <th>Stop #</th>
+                                <th>Station Name</th>
+                                <th>Code</th>
+                                <th>Arrival</th>
+                                <th>Departure</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.stations.map(st => `
+                                <tr>
+                                    <td>${st.stop_sequence}</td>
+                                    <td>${st.station_name}</td>
+                                    <td>${st.station_code}</td>
+                                    <td>${st.arrival_time ? st.arrival_time.substring(0, 5) : '-'}</td>
+                                    <td>${st.departure_time ? st.departure_time.substring(0, 5) : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                document.getElementById(`stops-content-${scheduleId}`).innerHTML = 
+                    '<p style="color: var(--red);">Error loading stops</p>';
+            }
+        }
+
+        // Modal functions
+        function openAddModal() {
+            editingScheduleId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Schedule';
+            document.getElementById('scheduleForm').reset();
+            document.getElementById('scheduleId').value = '';
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function openEditModal(id) {
+            const schedule = allSchedules.find(s => s.schedule_id === id);
+            if (!schedule) return;
+            
+            editingScheduleId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Schedule';
+            document.getElementById('scheduleId').value = schedule.schedule_id;
+            document.getElementById('trainSelect').value = schedule.train_id;
+            document.getElementById('routeSelect').value = schedule.route_id;
+            document.getElementById('departureTime').value = schedule.departure_time ? schedule.departure_time.substring(0, 5) : '';
+            document.getElementById('arrivalTime').value = schedule.arrival_time ? schedule.arrival_time.substring(0, 5) : '';
+            
+            // Set day checkboxes
+            const checkboxes = document.querySelectorAll('.day-checkbox input');
+            checkboxes.forEach(cb => {
+                cb.checked = schedule.operating_days && schedule.operating_days.includes(parseInt(cb.value));
+            });
+            
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('scheduleModal').classList.remove('active');
+        }
+
+        // Save schedule
+        async function saveSchedule() {
+            const token = localStorage.getItem('token');
+            const trainId = document.getElementById('trainSelect').value;
+            const routeId = document.getElementById('routeSelect').value;
+            const departureTime = document.getElementById('departureTime').value;
+            const arrivalTime = document.getElementById('arrivalTime').value;
+            const dayOffset = parseInt(document.getElementById('dayOffset').value) || 0;
+            
+            const daysCheckboxes = document.querySelectorAll('.day-checkbox input:checked');
+            const operatingDays = Array.from(daysCheckboxes).map(cb => parseInt(cb.value));
+            
+            if (!trainId || !routeId || !departureTime || !arrivalTime || operatingDays.length === 0) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            
+            const payload = {
+                train_id: parseInt(trainId),
+                route_id: parseInt(routeId),
+                departure_time: departureTime,
+                arrival_time: arrivalTime,
+                day_offset: dayOffset,
+                days_of_week: operatingDays
+            };
+            
+            try {
+                let response;
+                if (editingScheduleId) {
+                    response = await fetch(`${API_BASE_URL}/admin/schedules/${editingScheduleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(`${API_BASE_URL}/admin/schedules`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            ...payload,
+                            effective_start_date: new Date().toISOString().split('T')[0]
+                        })
+                    });
+                }
+                
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        window.location.href = '/admin.html';
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save schedule');
+                }
+                
+                closeModal();
+                showToast(editingScheduleId ? 'Schedule updated' : 'Schedule created');
+                fetchData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Delete schedule
+        async function deleteSchedule(id) {
+            if (!confirm('Are you sure you want to delete this schedule?')) return;
+            
+            const token = localStorage.getItem('token');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/schedules/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        window.location.href = '/admin.html';
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete schedule');
+                }
+                
+                showToast('Schedule deleted');
+                fetchData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('scheduleModal').addEventListener('click', (e) => {
+            if (e.target.id === 'scheduleModal') closeModal();
+        });
+
+        // Initialize
+        if (checkAuth()) {
+            fetchData();
+        }
+    </script>
+</body>
+</html>
