@@ -9,6 +9,9 @@ const stationRoutes = require('./routes/stations');
 const staffRoutes = require('./routes/staff');
 const watchRoutes = require('./routes/watch');
 const adminRoutes = require('./routes/admin');
+const gpsRoutes = require('./routes/gps');
+const journeywatchRoutes = require('./routes/journeywatch');
+const { startNotificationJob } = require('./jobs/notificationChecker');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +54,8 @@ app.use('/api/stations', stationRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/watch', watchRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/gps', gpsRoutes);
+app.use('/api/journeywatch', journeywatchRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -105,9 +110,9 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`
+function startServer() {
+    app.listen(PORT, () => {
+        console.log(`
 ====================================
   Ceylon Track API Server
 ====================================
@@ -122,6 +127,14 @@ app.listen(PORT, () => {
     - http://localhost:${PORT}/api/schedules
 ====================================
     `);
-});
+
+        // Start background jobs
+        startNotificationJob();
+    });
+}
+
+if (require.main === module) {
+    startServer();
+}
 
 module.exports = app;

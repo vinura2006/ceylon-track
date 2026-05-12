@@ -13,7 +13,9 @@ function authorize(allowedRoles) {
             });
         }
 
-        if (!allowedRoles.includes(req.user.role)) {
+        const userRole = String(req.user.role || '').toLowerCase();
+        const allowed = allowedRoles.map((r) => String(r).toLowerCase());
+        if (!allowed.includes(userRole)) {
             return res.status(403).json({
                 error: 'Access denied. Insufficient permissions.'
             });

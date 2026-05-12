@@ -539,6 +539,9 @@ INSERT INTO "User" (id, email, password_hash, first_name, last_name, phone, role
     (2, 'staff@ceylontrack.lk', '$2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC', 'Station', 'Master', '+94769876543', 'Staff', TRUE, TRUE),
     (3, 'passenger@example.com', '$2b$10$Y8k/wbXoW3iHLFNiiKudwuegDAlViFIkHKu0ZCWAozzAwGixnXgZC', 'Test', 'Passenger', '+94771234567', 'Passenger', TRUE, TRUE);
 
+-- Keep SERIAL in sync when rows use explicit ids (avoids duplicate key on next registration)
+SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE((SELECT MAX(id) FROM "User"), 1));
+
 -- ============================================
 -- 8. Sample Journey Watches
 -- ============================================

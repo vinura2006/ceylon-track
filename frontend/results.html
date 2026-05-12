@@ -8,6 +8,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner-overlay.active { display: flex; }
+        .spinner-overlay .spinner-global {
+            width: 40px; height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin-global 0.8s linear infinite;
+        }
+        @keyframes spin-global { to { transform: rotate(360deg); } }
+
         * {
             margin: 0;
             padding: 0;
@@ -636,13 +656,44 @@
         }
 
         .station-item {
-            display: flex;
+            display: grid;
+            grid-template-columns: 140px 1fr 60px;
             align-items: center;
             gap: 1rem;
             padding: 0.75rem 0;
             border-left: 2px solid var(--border);
             padding-left: 1.5rem;
             position: relative;
+        }
+
+        .station-times {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .time-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .time-col small {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .time-col div {
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-col div.delayed-text {
+            color: var(--delayed);
         }
 
         .station-item::before {
@@ -745,6 +796,10 @@
     </style>
 </head>
 <body>
+    <div class="spinner-overlay" id="spinner">
+        <div class="spinner-global"></div>
+    </div>
+    <div id="offlineResultsBanner" style="display:none;background:#fef9c3;color:#854d0e;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #fde047;"></div>
     <header class="header">
         <div class="header-content">
             <a href="index.html" class="logo">
@@ -840,6 +895,58 @@
         // API Base URL
         const API_BASE_URL = 'http://localhost:3000/api';
 
+        function showSpinner() {
+            document.getElementById('spinner').classList.add('active');
+        }
+        function hideSpinner() {
+            document.getElementById('spinner').classList.remove('active');
+        }
+        function showError(message) {
+            const existing = document.getElementById('error-banner');
+            if (existing) existing.remove();
+            const banner = document.createElement('div');
+            banner.id = 'error-banner';
+            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
+            banner.textContent = message;
+            document.body.insertBefore(banner, document.body.firstChild);
+            setTimeout(() => banner.remove(), 5000);
+        }
+
+        function resultsCacheKey(from, to, date) {
+            return `${encodeURIComponent(from)}_${encodeURIComponent(to)}_${encodeURIComponent(date)}`;
+        }
+
+        function cacheResults(searchKey, results) {
+            const payload = {
+                data: results,
+                timestamp: Date.now(),
+                from: currentSearchParams.from || document.getElementById('fromStation').textContent,
+                to: currentSearchParams.to || document.getElementById('toStation').textContent
+            };
+            try {
+                localStorage.setItem('ceylontrack_results_' + searchKey, JSON.stringify(payload));
+            } catch (e) {
+                console.warn('Could not cache results', e);
+            }
+        }
+
+        function loadCachedResults(searchKey) {
+            const raw = localStorage.getItem('ceylontrack_results_' + searchKey);
+            if (!raw) return null;
+            try {
+                const o = JSON.parse(raw);
+                const age = Date.now() - o.timestamp;
+                const TWO_H = 2 * 60 * 60 * 1000;
+                return {
+                    data: o.data,
+                    stale: age > TWO_H,
+                    timestamp: o.timestamp
+                };
+            } catch (e) {
+                return null;
+            }
+        }
+
         // DOM Elements
         const loadingContainer = document.getElementById('loadingContainer');
         const errorContainer = document.getElementById('errorContainer');
@@ -862,7 +969,7 @@
         let currentFilter = 'all';
         let pollInterval = null;
         let currentSearchParams = {};
-        let watchedScheduleIds = new Set(); // tracks which schedules user has already watched
+        let watchedTrainIds = new Set(); // tracks which trains user has already watched
 
         // Get URL parameters
         function getQueryParams() {
@@ -888,7 +995,7 @@
             );
 
             if (!response.ok) {
-                const error = await response.json();
+                const error = await response.json().catch(() => ({}));
                 throw new Error(error.error || 'Failed to fetch schedules');
             }
 
@@ -940,29 +1047,34 @@
          *   punctuality 0, totalTrips>0 → low   (red)    → OFTEN LATE
          */
         function getReliabilityInfo(reliabilityData) {
-            const pct        = (reliabilityData && reliabilityData.punctuality_percent != null)
-                                   ? reliabilityData.punctuality_percent
-                                   : 0;
+            const pct = (reliabilityData && reliabilityData.punctuality_percent != null)
+                                   ? parseFloat(reliabilityData.punctuality_percent)
+                                   : null;
             const totalTrips = (reliabilityData && reliabilityData.total_trips != null)
-                                   ? reliabilityData.total_trips
+                                   ? parseInt(reliabilityData.total_trips)
                                    : 0;
 
             // No historical data at all
-            if (pct === 0 && totalTrips === 0) {
-                return { dotClass: 'no-data', label: 'NO DATA YET', percent: pct };
+            if (totalTrips === 0 || pct === null) {
+                return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
             }
 
             // Has data but always late
-            if (pct < 50) {
+            if (pct < 50 && totalTrips > 0) {
                 return { dotClass: 'low', label: 'OFTEN LATE', percent: pct };
             }
 
-            if (pct <= 79) {
+            // pct 50 to 80
+            if (pct >= 50 && pct <= 80) {
                 return { dotClass: 'medium', label: 'SOMETIMES DELAYED', percent: pct };
             }
 
             // pct > 80
-            return { dotClass: 'high', label: 'USUALLY ON TIME', percent: pct };
+            if (pct > 80 && totalTrips > 0) {
+                return { dotClass: 'high', label: 'USUALLY ON TIME', percent: pct };
+            }
+            
+            return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
         }
 
         // Render train card
@@ -990,13 +1102,14 @@
             `;
 
             // Watch button
-            const isWatching = watchedScheduleIds.has(schedule.schedule_id);
+            const isWatching = watchedTrainIds.has(schedule.train.id);
             const watchBtnHtml = `
                 <button
                     class="watch-btn ${isWatching ? 'watching' : ''}"
-                    id="watch-btn-${schedule.schedule_id}"
-                    onclick="handleWatch(event, ${schedule.schedule_id})"
+                    id="watch-btn-${schedule.train.id}"
+                    onclick="handleWatch(event, ${schedule.train.id})"
                     ${isWatching ? 'disabled' : ''}
+                    title="${!localStorage.getItem('token') ? 'Login to watch this train' : ''}"
                 >
                     ${isWatching ? '✅ Watching' : '🔔 Watch this train'}
                 </button>
@@ -1045,7 +1158,7 @@
         }
 
         // Show error state
-        function showError(title, message) {
+        function showResultsPageError(title, message) {
             loadingContainer.classList.remove('active');
             resultsContainer.classList.remove('active');
             noResults.classList.remove('active');
@@ -1074,7 +1187,7 @@
         }
 
         // Show results
-        function showResults(data) {
+        async function showResults(data) {
             loadingContainer.classList.remove('active');
             errorContainer.classList.remove('active');
             noResults.classList.remove('active');
@@ -1084,6 +1197,30 @@
             if (currentSchedules.length === 0) {
                 noResults.classList.add('active');
                 return;
+            }
+
+            const token = localStorage.getItem('token');
+            if (token) {
+                showSpinner();
+                try {
+                    for (const schedule of currentSchedules) {
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/journeywatch/check?train_id=${schedule.train.id}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                const { watched } = await res.json();
+                                if (watched) {
+                                    watchedTrainIds.add(schedule.train.id);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Check watch error', e);
+                        }
+                    }
+                } finally {
+                    hideSpinner();
+                }
             }
 
             applyClassFilter();
@@ -1124,6 +1261,7 @@
          * Fetch and display station sequence modal for a given schedule ID
          */
         async function fetchScheduleDetail(scheduleId) {
+            showSpinner();
             try {
                 const response = await fetch(`${API_BASE_URL}/schedules/${scheduleId}?date=${currentSearchParams.date || ''}`);
                 if (!response.ok) throw new Error('Failed to fetch details');
@@ -1137,9 +1275,24 @@
                         : st.departure_time
                             ? st.departure_time.substring(0, 5)
                             : '--:--';
+                    
+                    const predicted = st.predicted_eta ? st.predicted_eta.substring(0, 5) : time;
+                    const isDelayed = predicted !== time && data.schedule.delay_minutes > 0;
+
                     return `
                         <div class="station-item">
-                            <div class="station-time">${time}</div>
+                            <div class="station-times">
+                                <div class="time-col">
+                                    <small>Scheduled</small>
+                                    <div>${time}</div>
+                                </div>
+                                <div class="time-col">
+                                    <small>Predicted</small>
+                                    <div class="${isDelayed ? 'delayed-text' : ''}">
+                                        ${predicted} ${isDelayed ? '⏰' : ''}
+                                    </div>
+                                </div>
+                            </div>
                             <div class="station-name">${st.station_name}</div>
                             <div class="station-code">${st.station_code}</div>
                         </div>
@@ -1150,6 +1303,8 @@
             } catch (error) {
                 console.error('Error fetching schedule detail:', error);
                 alert('Unable to load station sequence. Please try again.');
+            } finally {
+                hideSpinner();
             }
         }
 
@@ -1179,94 +1334,78 @@
         // ── Watch helpers ─────────────────────────────────────────
         /**
          * Handle the Watch button click. Stops card click propagation,
-         * calls POST /api/watch, and updates button state.
+         * calls POST /api/journeywatch, and updates button state.
          */
-        async function handleWatch(event, scheduleId) {
+        async function handleWatch(event, trainId) {
             event.stopPropagation(); // Don't open station modal
 
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = 'login.html';
+                // Save params and redirect to login
+                sessionStorage.setItem('searchParams', JSON.stringify(currentSearchParams));
+                window.location.href = 'login.html?redirect=results';
                 return;
             }
 
-            const btn = document.getElementById(`watch-btn-${scheduleId}`);
+            const btn = document.getElementById(`watch-btn-${trainId}`);
             if (!btn || btn.disabled) return;
 
-            // Find the schedule to get station IDs from URL params
-            // The search API doesn't return station IDs, so we fetch them from stations list
-            const { from, to, date } = currentSearchParams;
+            const { date } = currentSearchParams;
 
             btn.textContent = '⏳ Watching...';
             btn.disabled = true;
 
+            showSpinner();
             try {
-                // Resolve station codes to IDs via the stations endpoint
-                const stRes = await fetch(`${API_BASE_URL}/stations`);
-                const stData = await stRes.json();
-                const stationMap = {};
-                stData.stations.forEach(s => { stationMap[s.code] = s.id; });
-
-                const fromId = stationMap[from.toUpperCase()];
-                const toId   = stationMap[to.toUpperCase()];
-
-                if (!fromId || !toId) throw new Error('Station codes not found');
-
-                const res = await fetch(`${API_BASE_URL}/watch`, {
+                const res = await fetch(`${API_BASE_URL}/journeywatch`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        schedule_id:     scheduleId,
-                        from_station_id: fromId,
-                        to_station_id:   toId,
-                        watch_date:      date
+                        train_id: trainId,
+                        travel_date: date
                     })
                 });
 
-                const data = await res.json();
-
-                if (res.status === 409) {
-                    // Already watching — still mark as watching
-                    btn.textContent = '✅ Watching';
-                    btn.classList.add('watching');
-                    watchedScheduleIds.add(scheduleId);
+                if (res.status === 401) {
+                    window.location.href = 'login.html?redirect=results';
                     return;
                 }
 
-                if (!res.ok) throw new Error(data.error || 'Failed to watch');
+                if (res.status === 409) {
+                    btn.textContent = '✅ Watching';
+                    btn.classList.add('watching');
+                    watchedTrainIds.add(trainId);
+                    return;
+                }
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to watch');
+                }
 
                 btn.textContent = '✅ Watching';
                 btn.classList.add('watching');
-                watchedScheduleIds.add(scheduleId);
+                watchedTrainIds.add(trainId);
 
             } catch (err) {
                 console.error('Watch error:', err);
                 btn.textContent = '🔔 Watch this train';
                 btn.disabled = false;
                 alert(err.message || 'Could not set watch. Please try again.');
+            } finally {
+                hideSpinner();
             }
         }
 
         /**
-         * Pre-load which schedules the logged-in user is already watching
+         * Pre-load which trains the logged-in user is already watching
          * so the buttons render in the correct state.
          */
         async function loadExistingWatches() {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            try {
-                const res = await fetch(`${API_BASE_URL}/watch`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                data.watches.forEach(w => watchedScheduleIds.add(w.schedule.id));
-            } catch (err) {
-                // Non-critical — just skip pre-marking
-            }
+            // Replaced by individual check calls in showResults
         }
 
         // Initialize
@@ -1274,7 +1413,7 @@
             const { from, to, date } = getQueryParams();
 
             if (!from || !to || !date) {
-                showError('Invalid Search', 'Please provide departure station, destination station, and travel date.');
+                showResultsPageError('Invalid Search', 'Please provide departure station, destination station, and travel date.');
                 return;
             }
 
@@ -1291,16 +1430,39 @@
             toStationEl.textContent   = to;
             searchDateEl.textContent  = formatDate(date);
 
-            // Load user's existing watches before fetching schedules
             await loadExistingWatches();
 
+            const searchKey = resultsCacheKey(from, to, date);
+            const offlineBanner = document.getElementById('offlineResultsBanner');
+
+            showSpinner();
             try {
                 const data = await fetchSchedules(from, to, date);
-                showResults(data);
+                cacheResults(searchKey, data);
+                if (offlineBanner) offlineBanner.style.display = 'none';
+                await showResults(data);
                 startPolling();
             } catch (error) {
                 console.error('Error fetching schedules:', error);
-                showError('Unable to Load Results', error.message || 'Please check your connection and try again.');
+                const cached = loadCachedResults(searchKey);
+                if (cached && cached.data) {
+                    if (offlineBanner) {
+                        offlineBanner.style.display = 'block';
+                        const d = new Date(cached.timestamp);
+                        offlineBanner.textContent =
+                            `You appear to be offline — showing cached results from ${d.toLocaleString()}`;
+                    }
+                    await showResults(cached.data);
+                    startPolling();
+                } else {
+                    if (offlineBanner) offlineBanner.style.display = 'none';
+                    showResultsPageError(
+                        'Cannot load results — please check your connection',
+                        ''
+                    );
+                }
+            } finally {
+                hideSpinner();
             }
         }
 

@@ -5,6 +5,14 @@ const pool = require('../db/pool');
 const { authenticateToken } = require('../middleware/authenticate');
 const router = express.Router();
 
+function normalizeUserRole(role) {
+    if (!role) return 'Passenger';
+    const lower = String(role).trim().toLowerCase();
+    if (lower === 'admin') return 'Admin';
+    if (lower === 'staff') return 'Staff';
+    return 'Passenger';
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'ceylon_track_secret_key_2024';
 const SALT_ROUNDS = 10;
 
@@ -23,7 +31,15 @@ router.get('/', (req, res) => {
 // POST /api/auth/register - Register a new user
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, first_name, last_name, phone, role } = req.body;
+        const { email, password, first_name, last_name, phone, role, name } = req.body;
+
+        const resolvedFirst = first_name || (name ? String(name).trim().split(/\s+/)[0] : null);
+        const resolvedLast =
+            last_name ||
+            (name && String(name).trim().includes(' ')
+                ? String(name).trim().split(/\s+/).slice(1).join(' ')
+                : null);
+        const normalizedRole = normalizeUserRole(role);
 
         // Validation
         if (!email || !password) {
@@ -68,12 +84,12 @@ router.post('/register', async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6) 
              RETURNING id, email, first_name, last_name, role, created_at`,
             [
-                email, 
-                passwordHash, 
-                first_name || null, 
-                last_name || null, 
-                phone || null, 
-                role || 'Passenger'
+                email,
+                passwordHash,
+                resolvedFirst || null,
+                resolvedLast || null,
+                phone || null,
+                normalizedRole
             ]
         );
 

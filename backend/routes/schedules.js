@@ -33,22 +33,36 @@ router.get('/search', async (req, res) => {
             });
         }
 
+        const STATION_CODE_ALIASES = {
+            CMB: 'FOT',
+            KDY: 'KAN'
+        };
+        let fromCode = String(from).toUpperCase().trim();
+        let toCode = String(to).toUpperCase().trim();
+        if (STATION_CODE_ALIASES[fromCode]) fromCode = STATION_CODE_ALIASES[fromCode];
+        if (STATION_CODE_ALIASES[toCode]) toCode = STATION_CODE_ALIASES[toCode];
+
+        let dateStr = String(date).trim();
+        if (dateStr.toLowerCase() === 'today') {
+            dateStr = new Date().toISOString().split('T')[0];
+        }
+
         // Validate date format (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(date)) {
+        if (!dateRegex.test(dateStr)) {
             return res.status(400).json({
-                error: 'Invalid date format. Please use YYYY-MM-DD'
+                error: 'Invalid date format. Please use YYYY-MM-DD or the keyword today'
             });
         }
 
         // Get day of week (0=Sunday, 6=Saturday)
-        const searchDate = new Date(date);
+        const searchDate = new Date(dateStr + 'T12:00:00');
         const dayOfWeek = searchDate.getDay();
 
         // Validate station codes
         const stationCheck = await pool.query(
             'SELECT code FROM Station WHERE code IN ($1, $2)',
-            [from.toUpperCase(), to.toUpperCase()]
+            [fromCode, toCode]
         );
 
         if (stationCheck.rows.length < 2) {
@@ -61,6 +75,7 @@ router.get('/search', async (req, res) => {
         const query = `
             SELECT 
                 s.id as schedule_id,
+                t.id as train_id,
                 t.name as train_name,
                 t.number as train_number,
                 t.type as train_type,
@@ -98,10 +113,10 @@ router.get('/search', async (req, res) => {
             LEFT JOIN TripStatusUpdate tsu ON tsu.schedule_id = s.id AND tsu.trip_date = $4
             WHERE sst_from.stop_sequence < sst_to.stop_sequence
             ORDER BY sst_from.departure_time
-            LIMIT 10
+            LIMIT 50
         `;
 
-        const result = await pool.query(query, [from.toUpperCase(), to.toUpperCase(), dayOfWeek, date]);
+        const result = await pool.query(query, [fromCode, toCode, dayOfWeek, dateStr]);
 
         if (result.rows.length === 0) {
             return res.json({
@@ -123,6 +138,7 @@ router.get('/search', async (req, res) => {
             return {
                 schedule_id: row.schedule_id,
                 train: {
+                    id: row.train_id,
                     name: row.train_name,
                     number: row.train_number,
                     type: row.train_type
@@ -149,18 +165,19 @@ router.get('/search', async (req, res) => {
                 },
                 available_classes: availableClasses,
                 reliability: reliabilityData[row.schedule_id] || {
-                    reliability: 'medium',
-                    punctuality_percent: 0
+                    reliability: 'no_data',
+                    punctuality_percent: 0,
+                    total_trips: 0
                 },
-                date: date
+                date: dateStr
             };
         });
 
         res.json({
             search_params: {
-                from: from.toUpperCase(),
-                to: to.toUpperCase(),
-                date: date,
+                from: fromCode,
+                to: toCode,
+                date: dateStr,
                 day_of_week: dayOfWeek
             },
             count: schedules.length,
@@ -194,6 +211,7 @@ router.get('/:id', async (req, res) => {
                 r.type as route_type,
                 COALESCE(tsu.status, 'Not Started') as current_status,
                 COALESCE(tsu.delay_minutes, 0) as delay_minutes,
+                tsu.current_station_id,
                 tsu.last_updated
             FROM Schedule s
             JOIN Train t ON s.train_id = t.id
@@ -209,9 +227,12 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Schedule not found' });
         }
 
+        const schedule = result.rows[0];
+
         // Get full station timings
         const timingsQuery = `
             SELECT 
+                st.id as station_id,
                 st.name as station_name,
                 st.code as station_code,
                 sst.arrival_time,
@@ -225,10 +246,50 @@ router.get('/:id', async (req, res) => {
         `;
 
         const timingsResult = await pool.query(timingsQuery, [id]);
+        const stations = timingsResult.rows;
+
+        // Find current stop sequence
+        let currentSeq = 1;
+        if (schedule.current_station_id) {
+            const currentStation = stations.find(s => s.station_id === schedule.current_station_id);
+            if (currentStation) {
+                currentSeq = currentStation.stop_sequence;
+            }
+        }
+
+        function calculateETA(scheduledArrivalTime, currentDelayMinutes, stopsRemaining) {
+            if (currentDelayMinutes === 0) return scheduledArrivalTime;
+            if (!scheduledArrivalTime) return null;
+            
+            let addedMinutes = currentDelayMinutes;
+            if (currentDelayMinutes > 10) {
+                const recoveredDelay = currentDelayMinutes - (currentDelayMinutes * 0.20 * stopsRemaining);
+                addedMinutes = Math.max(Math.round(recoveredDelay), 0);
+            }
+            
+            if (addedMinutes === 0) return scheduledArrivalTime;
+            
+            const parts = scheduledArrivalTime.split(':');
+            let minutes = parseInt(parts[0]) * 60 + parseInt(parts[1]) + addedMinutes;
+            
+            const h = Math.floor(minutes / 60) % 24;
+            const m = minutes % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        const enrichedStations = stations.map(st => {
+            let stopsRemaining = st.stop_sequence - currentSeq;
+            if (stopsRemaining < 0) stopsRemaining = 0; // Already passed
+            
+            return {
+                ...st,
+                predicted_eta: calculateETA(st.arrival_time || st.departure_time, schedule.delay_minutes, stopsRemaining)
+            };
+        });
 
         res.json({
-            schedule: result.rows[0],
-            stations: timingsResult.rows
+            schedule: schedule,
+            stations: enrichedStations
         });
 
     } catch (error) {

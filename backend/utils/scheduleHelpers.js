@@ -23,7 +23,7 @@ async function calculateReliability(pool, scheduleIds) {
         const onTimeTrips = parseInt(reliabilityResult.rows[0].on_time_trips) || 0;
         
         let punctualityPercent = 0;
-        let reliability = 'medium';
+        let reliability = 'no_data';
         
         if (totalTrips > 0) {
             punctualityPercent = Math.round((onTimeTrips / totalTrips) * 100);
@@ -39,7 +39,8 @@ async function calculateReliability(pool, scheduleIds) {
         
         reliabilityData[scheduleId] = {
             reliability: reliability,
-            punctuality_percent: punctualityPercent
+            punctuality_percent: punctualityPercent,
+            total_trips: totalTrips
         };
     }
 

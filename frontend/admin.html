@@ -7,6 +7,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner-overlay.active { display: flex; }
+        .spinner-overlay .spinner-global {
+            width: 40px; height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin-global 0.8s linear infinite;
+        }
+        @keyframes spin-global { to { transform: rotate(360deg); } }
+
         * {
             margin: 0;
             padding: 0;
@@ -322,6 +342,9 @@
     </style>
 </head>
 <body>
+    <div class="spinner-overlay" id="spinner">
+        <div class="spinner-global"></div>
+    </div>
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -378,6 +401,23 @@
     <script>
         const API_BASE_URL = 'http://localhost:3000/api';
 
+        function showSpinner() {
+            document.getElementById('spinner').classList.add('active');
+        }
+        function hideSpinner() {
+            document.getElementById('spinner').classList.remove('active');
+        }
+        function showError(message) {
+            const existing = document.getElementById('error-banner');
+            if (existing) existing.remove();
+            const banner = document.createElement('div');
+            banner.id = 'error-banner';
+            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
+            banner.textContent = message;
+            document.body.insertBefore(banner, document.body.firstChild);
+            setTimeout(() => banner.remove(), 5000);
+        }
+
         // Check if user is logged in and has proper role
         function init() {
             const token = localStorage.getItem('token');
@@ -405,6 +445,7 @@
             const token = localStorage.getItem('token');
             if (!token) return;
             
+            showSpinner();
             try {
                 const response = await fetch(`${API_BASE_URL}/admin/stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -418,6 +459,8 @@
                 }
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
+            } finally {
+                hideSpinner();
             }
         }
 
@@ -524,6 +567,7 @@
             formMessage.className = 'form-message';
             formMessage.textContent = '';
 
+            showSpinner();
             try {
                 const response = await fetch(`${API_BASE_URL}/staff/trains/${scheduleId}/status`, {
                     method: 'POST',
@@ -559,6 +603,7 @@
                 formMessage.textContent = error.message || 'Failed to update train status. Please try again.';
             } finally {
                 submitBtn.disabled = false;
+                hideSpinner();
             }
         }
 
