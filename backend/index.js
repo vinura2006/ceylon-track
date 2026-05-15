@@ -11,6 +11,7 @@ const watchRoutes = require('./routes/watch');
 const adminRoutes = require('./routes/admin');
 const gpsRoutes = require('./routes/gps');
 const journeywatchRoutes = require('./routes/journeywatch');
+const disruptionsRoutes = require('./routes/disruptions');
 const { startNotificationJob } = require('./jobs/notificationChecker');
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/watch', watchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/gps', gpsRoutes);
 app.use('/api/journeywatch', journeywatchRoutes);
+app.use('/api/disruptions', disruptionsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
