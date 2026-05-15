@@ -1,0 +1,17 @@
+ALTER TABLE Train DROP CONSTRAINT IF EXISTS train_type_check;
+UPDATE Train SET number = id || '_temp';
+UPDATE Train SET name = 'Udarata Menike', number = '1015', type = 'Intercity' WHERE id = 1;
+UPDATE Train SET name = 'Podi Menike', number = '1009', type = 'Express' WHERE id = 2;
+UPDATE Train SET name = 'Tikiri Menike', number = '1023', type = 'Intercity' WHERE id = 3;
+UPDATE Train SET name = 'Intercity Express', number = '1025', type = 'Intercity' WHERE id = 4;
+UPDATE Train SET name = 'Night Mail', number = '1017', type = 'Mail' WHERE id = 5;
+UPDATE Train SET name = 'Ruhunu Kumari', number = '8057', type = 'Intercity' WHERE id = 6;
+UPDATE Train SET name = 'Galu Kumari', number = '8056', type = 'Express' WHERE id = 7;
+UPDATE Train SET name = 'Samudra Devi', number = '8059', type = 'Intercity' WHERE id = 8;
+UPDATE Train SET name = 'Yal Devi', number = '4001', type = 'Intercity' WHERE id = 9;
+UPDATE Train SET name = 'Udaya Devi', number = '4011', type = 'Express' WHERE id = 10;
+UPDATE Train SET name = 'Uttara Devi', number = '4003', type = 'Express' WHERE id = 11;
+UPDATE Train SET name = 'Denuwara Manike', number = '1001', type = 'Intercity' WHERE id = 12;
+UPDATE Train SET name = 'Rajarata Rajini', number = '6001', type = 'Express' WHERE id = 13;
+UPDATE Train SET name = 'Muthu Kumari', number = '7001', type = 'Intercity' WHERE id = 14;
+UPDATE Train SET name = 'Batticaloa Night Express', number = '5001', type = 'Night Express' WHERE id = 15;
