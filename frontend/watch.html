@@ -3,656 +3,565 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Journey Watch - Ceylon Track</title>
+    <title>My Journey Watch — Ceylon Track</title>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    
+    <!-- Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('ceylon_track_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <style>
-        .spinner-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
+        /* ============================================================
+           CEYLON TRACK GLOBAL DESIGN SYSTEM
+           ============================================================ */
+        :root {
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --surface-2: #F1F5F9;
+            --text: #0F172A;
+            --text-2: #475569;
+            --border: #E2E8F0;
+            --primary: #0F4C75;
+            --primary-2: #1B6CA8;
+            --accent: #00B4D8;
+            --accent-2: #0077B6;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(8px);
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Syne', sans-serif;
         }
-        .spinner-overlay.active { display: flex; }
-        .spinner-overlay .spinner-global {
-            width: 40px; height: 40px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            animation: spin-global 0.8s linear infinite;
+
+        [data-theme="dark"] {
+            --bg: #0A0F1E;
+            --surface: #111827;
+            --surface-2: #1F2937;
+            --text: #F9FAFB;
+            --text-2: #9CA3AF;
+            --border: #374151;
+            --primary: #1B6CA8;
+            --primary-2: #2196F3;
+            --accent: #00D4FF;
+            --accent-2: #00B4D8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-blur: blur(12px);
         }
-        @keyframes spin-global { to { transform: rotate(360deg); } }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --primary-light: #818cf8;
-            --secondary: #3b82f6;
-            --accent: #8b5cf6;
-            --bg-light: #f8fafc;
-            --bg-white: #ffffff;
-            --text-dark: #1e293b;
-            --text-medium: #475569;
-            --text-light: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --ontime: #22c55e;
-            --ontime-bg: #dcfce7;
-            --delayed: #f59e0b;
-            --delayed-bg: #fef3c7;
-            --cancelled: #ef4444;
-            --cancelled-bg: #fee2e2;
+            font-family: var(--font-body);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
             min-height: 100vh;
-            color: var(--text-dark);
-            padding-bottom: 80px;
+            display: flex;
+            flex-direction: column;
         }
 
-        .header {
-            background: var(--bg-white);
-            box-shadow: var(--shadow);
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: var(--accent-2);
+        }
+
+        /* Nav & Header */
+        header {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .header-content {
+        .header-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 1rem 1.5rem;
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
         }
 
-        .logo {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .logo-text {
+            gap: 0.5rem;
             font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--text);
         }
 
         .nav-links {
             display: flex;
+            align-items: center;
             gap: 1.5rem;
         }
 
         .nav-links a {
-            text-decoration: none;
-            color: var(--text-medium);
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: color 0.2s;
-        }
-        .nav-links a.active {
-            color: var(--primary);
-            font-weight: 700;
-        }
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        .main-content {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-        }
-
-        .summary-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-        .stat-box {
-            flex: 1;
-            background: var(--bg-white);
-            border-radius: 12px;
-            padding: 1.25rem;
-            text-align: center;
-            box-shadow: var(--shadow);
-            min-width: 120px;
-        }
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-medium);
-            margin-bottom: 0.5rem;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        .stat-value.ontime { color: var(--ontime); }
-        .stat-value.delayed { color: var(--delayed); }
-
-        .watch-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .watch-card {
-            background: var(--bg-white);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            position: relative;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-        .train-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-        .train-number {
-            font-size: 0.875rem;
-            color: var(--text-light);
-            font-weight: 500;
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 0.875rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            color: var(--text-2);
             font-weight: 600;
-            text-transform: uppercase;
+            font-size: 0.95rem;
         }
-        .status-badge.ontime { background: var(--ontime-bg); color: var(--ontime); }
-        .status-badge.delayed { background: var(--delayed-bg); color: #92400e; }
-        .status-badge.cancelled { background: var(--cancelled-bg); color: var(--cancelled); }
-
-        .reliability-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-medium);
-            background: var(--bg-light);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            margin-top: 0.5rem;
-        }
-        .reliability-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        .reliability-dot.high { background: var(--ontime); }
-        .reliability-dot.medium { background: var(--delayed); }
-        .reliability-dot.low { background: var(--cancelled); }
-        .reliability-dot.no-data { background: var(--text-light); }
-        .reliability-percent { font-weight: 600; }
-
-        .route-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 1rem;
-            font-weight: 500;
-        }
-        .route-arrow { color: var(--text-light); }
-        .dept-time { font-weight: 600; color: var(--primary); margin-left: auto; }
-
-        .delay-info {
-            font-size: 0.875rem;
-            color: #92400e;
-            background: var(--delayed-bg);
-            padding: 0.5rem;
-            border-radius: 8px;
-            display: inline-block;
-            margin-bottom: 1rem;
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
         }
 
-        .actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid var(--border);
-            padding-top: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .toggles {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-        }
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--text-medium);
-        }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 36px;
-            height: 20px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
+        .theme-btn, .menu-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text);
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: .4s;
+            font-size: 1.25rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 50%;
+            transition: background 0.2s;
         }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(16px); }
-
-        .remove-btn {
-            background: transparent;
-            color: var(--cancelled);
-            border: 1px solid var(--cancelled);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s;
+        .theme-btn:hover {
+            background-color: var(--surface-2);
         }
-        .remove-btn:hover { background: var(--cancelled-bg); }
 
-        .empty-state {
-            text-align: center;
-            background: var(--bg-white);
-            padding: 3rem;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+        .menu-toggle-btn {
             display: none;
         }
-        .empty-state h2 { margin-bottom: 1rem; color: var(--text-dark); }
-        .empty-state p { color: var(--text-medium); margin-bottom: 1.5rem; }
-        .btn-primary {
-            display: inline-block;
-            background: var(--primary);
-            color: white;
+
+        /* Mobile Dropdown Nav */
+        .mobile-nav {
+            display: none;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mobile-nav a {
+            font-weight: 600;
+            color: var(--text-2);
+        }
+        .mobile-nav.open {
+            display: flex;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            min-height: 48px;
         }
 
-        .status-bar {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+        .btn-primary {
+            background-color: var(--primary);
+            color: #FFFFFF;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-2);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: #FFFFFF;
+        }
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-success { background-color: rgba(5, 150, 105, 0.15); color: var(--success); }
+        .badge-warning { background-color: rgba(217, 119, 6, 0.15); color: var(--warning); }
+        .badge-danger { background-color: rgba(220, 38, 38, 0.15); color: var(--danger); }
+
+        /* Watch Layout */
+        .watch-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex: 1;
+        }
+
+        .watch-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-        .offline-banner {
-            background: #fef08a;
-            color: #854d0e;
-            padding: 0.75rem;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.875rem;
-            margin-bottom: 1.5rem;
-            display: none;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
-        @media (max-width: 640px) {
-            .nav-links { display: none; }
+        .watch-title-block h1 {
+            font-size: 2.25rem;
+            line-height: 1.2;
+        }
+        .watch-title-block p {
+            color: var(--text-2);
+            font-size: 1.1rem;
+        }
+
+        .watch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Card Design */
+        .watch-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-left: 6px solid var(--primary);
+            position: relative;
+            opacity: 1;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .watch-card.fade-out {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .time-display {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--primary-2);
+        }
+
+        /* Pulsing Status Badge Animation */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(217, 119, 6, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+        }
+        @keyframes pulse-border-danger {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        .badge-pulse-warning {
+            animation: pulse-border 1.5s infinite;
+        }
+        .badge-pulse-danger {
+            animation: pulse-border-danger 1.5s infinite;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            grid-column: span 2;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 0.85rem;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            .watch-grid {
+                grid-template-columns: 1fr;
+            }
+            .empty-state {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="spinner-overlay" id="spinner">
-        <div class="spinner-global"></div>
-    </div>
-    <header class="header">
-        <div class="header-content">
-            <a href="index.html" class="logo">
-                <div class="logo-icon">🚂</div>
-                <div class="logo-text">Ceylon Track</div>
+
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo-container">
+                <span>🚂</span> Ceylon Track
             </a>
-            <nav class="nav-links" id="navLinks">
+            <div class="nav-links" id="navLinks">
                 <a href="index.html">Search</a>
-                <a href="watch.html" class="active">Watch</a>
-                <a href="map.html">Live Map</a>
-                <!-- Admin link injected if applicable -->
-            </nav>
+                <a href="watch.html" class="active">My Watches</a>
+                <a href="gps-demo.html">GPS Demo 🛰</a>
+                <a href="login.html" id="authLink">Login</a>
+                <button class="theme-btn" id="themeBtn">🌓</button>
+            </div>
+            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
         </div>
     </header>
 
-    <main class="main-content">
-        <div class="offline-banner" id="offlineBanner">Showing last known data — you may be offline</div>
+    <div class="mobile-nav" id="mobileNav">
+        <a href="index.html">Search</a>
+        <a href="watch.html" class="active">My Watches</a>
+        <a href="gps-demo.html">GPS Demo 🛰</a>
+        <a href="login.html" id="authLinkMobile">Login</a>
+        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
+    </div>
+
+    <main class="watch-container">
         
-        <div class="status-bar">
-            <span>Live Journey Watch</span>
-            <span id="lastUpdated">Updating...</span>
+        <div class="watch-header">
+            <div class="watch-title-block">
+                <h1>My Journey Watch</h1>
+                <p>Real-time status updates of trains you're monitoring</p>
+            </div>
+            <button class="btn btn-secondary" id="refreshBtn">
+                🔄 Refresh
+            </button>
         </div>
 
-        <div class="summary-bar" id="summaryBar">
-            <div class="stat-box">
-                <div class="stat-label">Total Watching</div>
-                <div class="stat-value" id="statTotal">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">On Time</div>
-                <div class="stat-value ontime" id="statOntime">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Delayed</div>
-                <div class="stat-value delayed" id="statDelayed">0</div>
-            </div>
+        <div class="watch-grid" id="watchGrid">
+            <!-- Watches injected here -->
         </div>
 
-        <div class="empty-state" id="emptyState">
-            <h2>You are not watching any trains yet</h2>
-            <p>Search for trains and click the bell icon to get live updates.</p>
-            <a href="index.html" class="btn-primary">Search Trains</a>
-        </div>
-
-        <div class="watch-list" id="watchList">
-            <!-- Cards injected here -->
-        </div>
     </main>
 
+    <footer>
+        <p>© 2026 Ceylon Track — Sri Lanka Railway Passenger Portal</p>
+    </footer>
+
+    <script src="/js/api.js"></script>
     <script>
-        const API_URL = 'http://localhost:3000/api';
+        // Check Auth
+        window.api.requireAuth();
 
-        function showSpinner() {
-            document.getElementById('spinner').classList.add('active');
-        }
-        function hideSpinner() {
-            document.getElementById('spinner').classList.remove('active');
-        }
-        function showError(message) {
-            const existing = document.getElementById('error-banner');
-            if (existing) existing.remove();
-            const banner = document.createElement('div');
-            banner.id = 'error-banner';
-            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
-            banner.textContent = message;
-            document.body.insertBefore(banner, document.body.firstChild);
-            setTimeout(() => banner.remove(), 5000);
-        }
-
-        // Ensure authentication
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html?redirect=watch';
-        }
-
-        // Setup nav based on role
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user && (user.role === 'Staff' || user.role === 'Admin')) {
-                const navLinks = document.getElementById('navLinks');
-                const adminLink = document.createElement('a');
-                adminLink.href = 'admin.html';
-                adminLink.textContent = 'Admin';
-                navLinks.appendChild(adminLink);
-            }
-        } catch(e) {}
-
-        let lastUpdateTime = Date.now();
-        let updateInterval;
-
-        async function fetchWatches() {
-            showSpinner();
-            try {
-                const response = await fetch(`${API_URL}/journeywatch`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const watches = await response.json();
-                renderWatches(watches);
-                
-                document.getElementById('offlineBanner').style.display = 'none';
-                lastUpdateTime = Date.now();
-            } catch (error) {
-                console.error('Fetch error:', error);
-                document.getElementById('offlineBanner').style.display = 'block';
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        function renderWatches(watches) {
-            const watchList = document.getElementById('watchList');
-            const emptyState = document.getElementById('emptyState');
-            const summaryBar = document.getElementById('summaryBar');
+        // Update Nav Auth Links
+        const user = window.api.getUser();
+        if (user) {
+            const authLink = document.getElementById('authLink');
+            const authLinkMobile = document.getElementById('authLinkMobile');
+            authLink.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
+            authLinkMobile.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
             
+            if (user.role === 'staff' || user.role === 'admin') {
+                const navLinks = document.getElementById('navLinks');
+                const adminNode = document.createElement('a');
+                adminNode.href = 'admin.html';
+                adminNode.textContent = 'Dashboard 📊';
+                navLinks.insertBefore(adminNode, document.getElementById('themeBtn'));
+            }
+        }
+
+        // Mobile Nav & Theme logic
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
+
+        const themeBtn = document.getElementById('themeBtn');
+        const themeBtnMobile = document.getElementById('themeBtnMobile');
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('ceylon_track_theme', newTheme);
+        }
+        themeBtn.addEventListener('click', toggleTheme);
+        themeBtnMobile.addEventListener('click', toggleTheme);
+
+        // Load Watches
+        async function fetchWatches() {
+            window.api.showSpinner();
+            try {
+                const res = await window.api.getWatches();
+                const watches = res.watches || [];
+                renderWatches(watches);
+            } catch (err) {
+                window.api.showToast(err.message || 'Failed to load watches', 'error');
+            } finally {
+                window.api.hideSpinner();
+            }
+        }
+
+        // Remove Watch
+        async function removeWatchItem(watchId, btn) {
+            try {
+                btn.disabled = true;
+                await window.api.removeWatch(watchId);
+                window.api.showToast('Train removed from watch list', 'success');
+                
+                const card = btn.closest('.watch-card');
+                card.classList.add('fade-out');
+                setTimeout(() => {
+                    fetchWatches();
+                }, 500);
+            } catch (err) {
+                btn.disabled = false;
+                window.api.showToast(err.message || 'Remove failed', 'error');
+            }
+        }
+
+        // Format times
+        function formatTime(t) {
+            return t ? t.slice(0, 5) : '';
+        }
+
+        // Render Watches
+        function renderWatches(watches) {
+            const container = document.getElementById('watchGrid');
+            container.innerHTML = '';
+
             if (watches.length === 0) {
-                watchList.style.display = 'none';
-                summaryBar.style.display = 'none';
-                emptyState.style.display = 'block';
+                container.innerHTML = `
+                    <div class="empty-state card">
+                        <div class="empty-icon">🚂</div>
+                        <h3>You're not watching any trains yet</h3>
+                        <p>Search for a train and subscribe to receive real-time alerts.</p>
+                        <a href="index.html" class="btn btn-primary">Find Trains</a>
+                    </div>
+                `;
                 return;
             }
 
-            watchList.style.display = 'flex';
-            summaryBar.style.display = 'flex';
-            emptyState.style.display = 'none';
-
-            let ontime = 0, delayed = 0;
-            watchList.innerHTML = '';
-
-            function getReliabilityInfo(reliabilityData) {
-                const pct = (reliabilityData && reliabilityData.punctuality_percent != null)
-                                       ? parseFloat(reliabilityData.punctuality_percent)
-                                       : null;
-                const totalTrips = (reliabilityData && reliabilityData.total_trips != null)
-                                       ? parseInt(reliabilityData.total_trips)
-                                       : 0;
-
-                // No historical data at all
-                if (totalTrips === 0 || pct === null) {
-                    return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
-                }
-
-                // Has data but always late
-                if (pct < 50 && totalTrips > 0) {
-                    return { dotClass: 'low', label: 'OFTEN LATE', percent: pct };
-                }
-
-                // pct 50 to 80
-                if (pct >= 50 && pct <= 80) {
-                    return { dotClass: 'medium', label: 'SOMETIMES DELAYED', percent: pct };
-                }
-
-                // pct > 80
-                if (pct > 80 && totalTrips > 0) {
-                    return { dotClass: 'high', label: 'USUALLY ON TIME', percent: pct };
-                }
-                
-                return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
-            }
-
             watches.forEach(w => {
-                if (w.current_status === 'Delayed') delayed++;
-                else if (w.current_status === 'On Time') ontime++;
-
-                const statusClass = w.current_status.toLowerCase().replace(' ', '');
-                const delayText = w.delay_minutes > 0 ? `<div class="delay-info">Delayed by ${w.delay_minutes} mins</div>` : '';
-                
-                const rel = getReliabilityInfo(w.reliability);
-                const reliabilityBadgeHtml = `
-                    <div class="reliability-badge">
-                        <span class="reliability-dot ${rel.dotClass}"></span>
-                        <span class="reliability-percent">${rel.percent}%</span>
-                        <span>${rel.label}</span>
-                    </div>
-                `;
-                
                 const card = document.createElement('div');
-                card.className = 'watch-card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div>
-                            <div class="train-name">${w.train_name}</div>
-                            <div class="train-number">${w.train_number} - ${w.watch_date.substring(0,10)}</div>
-                            ${reliabilityBadgeHtml}
-                        </div>
-                        <div class="status-badge ${statusClass}">${w.current_status}</div>
-                    </div>
-                    <div class="route-info">
-                        <span>${w.from_station_name}</span>
-                        <span class="route-arrow">→</span>
-                        <span>${w.to_station_name}</span>
-                        <span class="dept-time">${w.departure_time.substring(0,5)}</span>
-                    </div>
-                    ${delayText}
-                    <div class="actions">
-                        <div class="toggles">
-                            <label class="toggle-group">
-                                <span>Delays</span>
-                                <div class="switch">
-                                    <input type="checkbox" onchange="updatePref(${w.id}, 'notify_delays', this.checked)" ${w.notify_delays ? 'checked' : ''}>
-                                    <span class="slider"></span>
-                                </div>
-                            </label>
-                            <label class="toggle-group">
-                                <span>Departure</span>
-                                <div class="switch">
-                                    <input type="checkbox" onchange="updatePref(${w.id}, 'notify_departure', this.checked)" ${w.notify_departure ? 'checked' : ''}>
-                                    <span class="slider"></span>
-                                </div>
-                            </label>
-                            <label class="toggle-group">
-                                <span>Cancel</span>
-                                <div class="switch">
-                                    <input type="checkbox" onchange="updatePref(${w.id}, 'notify_cancellations', this.checked)" ${w.notify_cancellations ? 'checked' : ''}>
-                                    <span class="slider"></span>
-                                </div>
-                            </label>
-                        </div>
-                        <button class="remove-btn" onclick="removeWatch(${w.id}, this)">Remove</button>
-                    </div>
-                `;
-                watchList.appendChild(card);
-            });
+                card.className = 'card watch-card';
 
-            document.getElementById('statTotal').textContent = watches.length;
-            document.getElementById('statOntime').textContent = ontime;
-            document.getElementById('statDelayed').textContent = delayed;
-        }
-
-        async function updatePref(id, field, value) {
-            showSpinner();
-            try {
-                const body = {};
-                body[field] = value;
-                await fetch(`${API_URL}/journeywatch/${id}/notifications`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-            } catch (err) {
-                console.error(err);
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        async function removeWatch(id, btn) {
-            btn.disabled = true;
-            showSpinner();
-            try {
-                const res = await fetch(`${API_URL}/journeywatch/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    fetchWatches();
+                let statusBadge = 'badge-success';
+                let pulseClass = '';
+                if (w.liveStatus === 'DELAYED') {
+                    statusBadge = 'badge-warning';
+                    pulseClass = 'badge-pulse-warning';
+                } else if (w.liveStatus === 'CANCELLED') {
+                    statusBadge = 'badge-danger';
+                    pulseClass = 'badge-pulse-danger';
                 }
-            } catch (err) {
-                console.error(err);
-                btn.disabled = false;
-            } finally {
-                hideSpinner();
-            }
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                        <div>
+                            <h3 style="font-weight: 800;">Train ${w.trainNumber}</h3>
+                            <p style="color: var(--text-2); font-weight: 600; font-size: 0.9rem; margin-top: 0.25rem;">
+                                ${w.fromStation} ➔ ${w.toStation}
+                            </p>
+                        </div>
+                        <span class="badge ${statusBadge} ${pulseClass}">${w.liveStatus.replace('_', ' ')}</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0.5rem 0;">
+                        <div>
+                            <div class="time-display">${formatTime(w.departureTime)}</div>
+                            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-2);">Scheduled Dep</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="time-display" style="color: var(--text-2);">${formatTime(w.arrivalTime)}</div>
+                            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-2);">Scheduled Arr</div>
+                        </div>
+                    </div>
+
+                    ${w.liveStatus === 'DELAYED' ? `
+                        <div style="background-color: rgba(217, 119, 6, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; text-align: center;">
+                            ⚠️ Delayed: +${w.delayMinutes}m
+                        </div>
+                    ` : ''}
+
+                    <button class="btn btn-danger" style="width: 100%; margin-top: 0.5rem;" onclick="removeWatchItem(${w.id}, this)">
+                        Remove from Watch
+                    </button>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        function updateTimeAgo() {
-            const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
-            document.getElementById('lastUpdated').textContent = `Last updated ${seconds} seconds ago`;
-        }
-
-        // Initial fetch
-        fetchWatches();
-        
-        // Poll every 30s
-        setInterval(fetchWatches, 30000);
-        
-        // Update time ago every second
-        setInterval(updateTimeAgo, 1000);
-
+        // On Load
+        window.addEventListener('load', () => {
+            fetchWatches();
+            
+            // Refresh handlers
+            document.getElementById('refreshBtn').addEventListener('click', fetchWatches);
+            
+            // Auto refresh
+            setInterval(fetchWatches, 60000);
+        });
     </script>
 </body>
 </html>

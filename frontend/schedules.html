@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Schedules — Ceylon Track</title>
+    <meta name="description" content="View all Sri Lankan Railway train schedules, routes, and timetables on Ceylon Track.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/ticketing.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #1a5f2a;
+            --primary-dark: #12401c;
+            --primary-light: #2d8a42;
+            --accent: #f59e0b;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-light: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            --body-bg: linear-gradient(135deg, #1a5f2a 0%, #0d3d16 100%);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--body-bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* ── Header ── */
+        .header {
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.25rem;
+        }
+        .logo-text { font-size: 1.5rem; font-weight: 700; color: var(--primary); letter-spacing: -0.025em; }
+        .logo-tagline { font-size: 0.75rem; color: var(--text-medium); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-medium); font-weight: 500; font-size: 0.875rem; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+
+        /* ── Page Layout ── */
+        .page-content { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+        .page-hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+        .page-hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .page-hero p { font-size: 1rem; opacity: 0.85; font-weight: 300; }
+
+        /* ── Search & Filter Bar ── */
+        .controls-card {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 180px; }
+        .control-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-medium); text-transform: uppercase; letter-spacing: 0.05em; }
+        .control-group input,
+        .control-group select {
+            padding: 0.65rem 0.9rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text-dark);
+            background: var(--bg-white);
+            transition: border-color 0.2s;
+        }
+        .control-group input:focus,
+        .control-group select:focus { outline: none; border-color: var(--primary); }
+        .search-btn {
+            padding: 0.68rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            align-self: flex-end;
+        }
+        .search-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,95,42,0.35); }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .stat-card .s-icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+        .stat-card .s-value { font-size: 1.75rem; font-weight: 700; }
+        .stat-card .s-label { font-size: 0.72rem; opacity: 0.8; font-weight: 500; margin-top: 0.1rem; }
+
+        /* ── Main Table Card ── */
+        .main-card {
+            background: var(--bg-white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .card-title { font-size: 1rem; font-weight: 700; color: var(--text-dark); }
+        .card-sub { font-size: 0.8rem; color: var(--text-light); margin-top: 0.15rem; }
+
+        .type-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .type-btn {
+            padding: 0.35rem 0.9rem;
+            border: 2px solid var(--border);
+            border-radius: 999px;
+            background: var(--bg-white);
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-medium);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .type-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .type-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
+
+        /* ── Table ── */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 0.875rem 1.25rem;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: var(--bg-light);
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f0fdf4; cursor: pointer; }
+        tbody td { padding: 1rem 1.25rem; font-size: 0.875rem; color: var(--text-dark); vertical-align: middle; }
+
+        .train-cell { display: flex; flex-direction: column; gap: 0.15rem; }
+        .train-name { font-weight: 700; color: var(--text-dark); }
+        .train-num { font-size: 0.73rem; color: var(--text-light); }
+
+        .route-cell { display: flex; flex-direction: column; gap: 0.2rem; }
+        .route-name { font-weight: 500; }
+        .route-stops { font-size: 0.73rem; color: var(--text-light); }
+
+        .time-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+        .type-chip {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .chip-intercity { background: #ede9fe; color: #6d28d9; }
+        .chip-express { background: #dcfce7; color: #166534; }
+        .chip-local { background: #fef9c3; color: #854d0e; }
+        .chip-mail { background: #fee2e2; color: #991b1b; }
+
+        .days-cell { display: flex; gap: 3px; flex-wrap: wrap; }
+        .day-dot {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+        .day-on { background: var(--primary); color: white; }
+        .day-off { background: var(--bg-light); color: var(--text-light); }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.4rem 0.85rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(26,95,42,0.3); }
+
+        /* ── Loading / Empty / Error ── */
+        .state-container { display: flex; justify-content: center; align-items: center; padding: 4rem 2rem; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-light); }
+        .empty-state .e-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+        .empty-state p { font-size: 0.95rem; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .page-hero h1 { font-size: 1.5rem; }
+            .controls-card { flex-direction: column; }
+            .days-cell { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a class="logo" href="index.html">
+                <div class="logo-icon">🚂</div>
+                <div>
+                    <div class="logo-text">Ceylon Track</div>
+                    <div class="logo-tagline">Sri Lankan Railway</div>
+                </div>
+            </a>
+            <nav class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="schedules.html" class="active">Schedules</a>
+                <a href="#" onclick="openPravesha(); return false;" title="Book tickets via Pravesha or SLR web portal">🎟️ Book Tickets</a>
+                <a href="watch.html">Journey Watch</a>
+                <a href="map.html">Live Map</a>
+                <a href="disruptions.html">Disruptions</a>
+                <a href="login.html" id="authLink">Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="page-content">
+        <div class="page-hero">
+            <h1>🗓️ Train Schedules</h1>
+            <p>Full timetable of all Sri Lankan Railway services</p>
+        </div>
+
+        <!-- Search / Filter Controls -->
+        <div class="controls-card">
+            <div class="control-group">
+                <label>Search by Train Name</label>
+                <input type="text" id="searchInput" placeholder="e.g. Udarata Menike...">
+            </div>
+            <div class="control-group">
+                <label>Filter by Type</label>
+                <select id="typeSelect">
+                    <option value="all">All Types</option>
+                    <option value="Intercity">Intercity</option>
+                    <option value="Express">Express</option>
+                    <option value="Local">Local</option>
+                    <option value="Diesel">Diesel</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Travel Date</label>
+                <input type="date" id="dateInput">
+            </div>
+            <button class="search-btn" onclick="applyFilters()">🔍 Filter</button>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="s-icon">🚂</div>
+                <div class="s-value" id="statTotal">—</div>
+                <div class="s-label">Total Schedules</div>
+            </div>
+            <div class="stat-card">
+                <div class="s-icon">🚄</div>
+                <div class="s-value" id="statIntercity">—</div>
+                <div class="s-label">Intercity</div>
+            </div>
+            <div class="stat-card">
+                <div class="s-icon">🚃</div>
+                <div class="s-value" id="statExpress">—</div>
+                <div class="s-label">Express</div>
+            </div>
+            <div class="stat-card">
+                <div class="s-icon">🛤️</div>
+                <div class="s-value" id="statRoutes">—</div>
+                <div class="s-label">Routes Covered</div>
+            </div>
+        </div>
+
+        <!-- Main Table -->
+        <div class="main-card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">📋 All Train Schedules</div>
+                    <div class="card-sub" id="cardSub">Loading schedules from the database...</div>
+                </div>
+                <div class="type-filters">
+                    <button class="type-btn active" onclick="setTypeFilter('all', this)">All</button>
+                    <button class="type-btn" onclick="setTypeFilter('Intercity', this)">Intercity</button>
+                    <button class="type-btn" onclick="setTypeFilter('Express', this)">Express</button>
+                    <button class="type-btn" onclick="setTypeFilter('Local', this)">Local</button>
+                </div>
+            </div>
+
+            <div id="tableArea">
+                <div class="state-container"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API = `http://${window.location.hostname}:3000/api`;
+        const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        let allSchedules = [];
+        let currentTypeFilter = 'all';
+
+        // Set default date to today
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+
+        async function loadAllSchedules() {
+            try {
+                // Fetch all trains with their schedules
+                const res = await fetch(`${API}/schedules/all`);
+                if (!res.ok) throw new Error('API not available');
+                const data = await res.json();
+                allSchedules = data.schedules || data || [];
+            } catch (e) {
+                // Fallback: fetch all trains and build schedule list
+                try {
+                    const res = await fetch(`${API}/staff/trains`);
+                    if (!res.ok) throw new Error('Could not load trains');
+                    const data = await res.json();
+                    allSchedules = (data.trains || data || []).map(t => ({
+                        schedule_id: t.id,
+                        train_name: t.name,
+                        train_number: t.number,
+                        train_type: t.type,
+                        route_name: 'See Search Page',
+                        route_type: t.type,
+                        from_station: '—',
+                        to_station: '—',
+                        departure_time: '—',
+                        arrival_time: '—',
+                        days: [0,1,2,3,4,5,6],
+                        active: t.active
+                    }));
+                } catch (e2) {
+                    showError('Could not connect to the backend. Make sure the server is running.');
+                    return;
+                }
+            }
+            updateStats();
+            renderTable();
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').textContent = allSchedules.length;
+            document.getElementById('statIntercity').textContent =
+                allSchedules.filter(s => (s.train_type || s.route_type || '').toLowerCase().includes('intercity')).length;
+            document.getElementById('statExpress').textContent =
+                allSchedules.filter(s => (s.train_type || s.route_type || '').toLowerCase().includes('express')).length;
+            const routes = new Set(allSchedules.map(s => s.route_name).filter(Boolean));
+            document.getElementById('statRoutes').textContent = routes.size || '—';
+        }
+
+        function setTypeFilter(type, btn) {
+            currentTypeFilter = type;
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTable();
+        }
+
+        function applyFilters() { renderTable(); }
+
+        function renderTable() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const typeVal = document.getElementById('typeSelect').value;
+
+            let filtered = allSchedules.filter(s => {
+                const name = (s.train_name || '').toLowerCase();
+                const type = (s.train_type || s.route_type || '');
+                const matchSearch = !searchVal || name.includes(searchVal);
+                const matchType = (currentTypeFilter === 'all' && typeVal === 'all') ||
+                    (currentTypeFilter !== 'all' && type.includes(currentTypeFilter)) ||
+                    (typeVal !== 'all' && type.includes(typeVal));
+                return matchSearch && matchType;
+            });
+
+            document.getElementById('cardSub').textContent =
+                `Showing ${filtered.length} of ${allSchedules.length} schedules`;
+
+            if (filtered.length === 0) {
+                document.getElementById('tableArea').innerHTML = `
+                    <div class="empty-state">
+                        <div class="e-icon">🔎</div>
+                        <p>No schedules match your search. Try a different name or type.</p>
+                    </div>`;
+                return;
+            }
+
+            const typeChip = type => {
+                const t = (type || '').toLowerCase();
+                if (t.includes('intercity')) return `<span class="type-chip chip-intercity">${type}</span>`;
+                if (t.includes('express')) return `<span class="type-chip chip-express">${type}</span>`;
+                if (t.includes('local')) return `<span class="type-chip chip-local">${type}</span>`;
+                return `<span class="type-chip chip-mail">${type || 'N/A'}</span>`;
+            };
+
+            const daysHtml = (days) => {
+                if (!days || days.length === 0) return DAY_LABELS.map((d, i) =>
+                    `<span class="day-dot day-on" title="${d}">${d}</span>`).join('');
+                return DAY_LABELS.map((d, i) =>
+                    `<span class="day-dot ${days.includes(i) ? 'day-on' : 'day-off'}" title="${d}">${d}</span>`
+                ).join('');
+            };
+
+            const rows = filtered.map(s => `
+                <tr onclick="goToSearch('${s.train_name || ''}')">
+                    <td>
+                        <div class="train-cell">
+                            <span class="train-name">${s.train_name || '—'}</span>
+                            <span class="train-num">#${s.train_number || s.schedule_id}</span>
+                        </div>
+                    </td>
+                    <td>${typeChip(s.train_type || s.route_type)}</td>
+                    <td>
+                        <div class="route-cell">
+                            <span class="route-name">${s.route_name || '—'}</span>
+                            ${s.from_station && s.from_station !== '—'
+                                ? `<span class="route-stops">${s.from_station} → ${s.to_station}</span>`
+                                : ''}
+                        </div>
+                    </td>
+                    <td>
+                        ${s.departure_time && s.departure_time !== '—'
+                            ? `<span class="time-badge">🕐 ${s.departure_time}</span>`
+                            : '<span style="color:var(--text-light)">—</span>'}
+                    </td>
+                    <td>
+                        ${s.arrival_time && s.arrival_time !== '—'
+                            ? `<span class="time-badge">🏁 ${s.arrival_time}</span>`
+                            : '<span style="color:var(--text-light)">—</span>'}
+                    </td>
+                    <td><div class="days-cell">${daysHtml(s.days)}</div></td>
+                    <td>
+                        <a class="action-btn" href="index.html" onclick="prefillSearch('${s.from_station}', '${s.to_station}')">
+                            🔍 Search Route
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('tableArea').innerHTML = `
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Train</th>
+                                <th>Type</th>
+                                <th>Route</th>
+                                <th>Departs</th>
+                                <th>Arrives</th>
+                                <th>Runs On</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function showError(msg) {
+            document.getElementById('tableArea').innerHTML = `
+                <div class="empty-state">
+                    <div class="e-icon">⚠️</div>
+                    <p><strong>Could not load schedules</strong></p>
+                    <p style="font-size:0.8rem;margin-top:0.5rem;color:#94a3b8">${msg}</p>
+                </div>`;
+            document.getElementById('cardSub').textContent = 'Failed to load data.';
+        }
+
+        function goToSearch(trainName) {
+            // User clicked a row — navigate to search page
+            window.location.href = `index.html`;
+        }
+
+        function prefillSearch(from, to) {
+            // Store in sessionStorage so index.html can pick it up
+            if (from && from !== '—') sessionStorage.setItem('prefill_from', from);
+            if (to && to !== '—') sessionStorage.setItem('prefill_to', to);
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') applyFilters();
+        });
+
+        // ── Kick off ──
+        loadAllSchedules();
+    </script>
+</body>
+</html>

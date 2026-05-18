@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Ceylon Track</title>
+    <title>Register — Ceylon Track</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -268,7 +268,7 @@
 
         .auth-card {
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
@@ -278,6 +278,12 @@
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
+        }
+
+        .name-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
 
         footer {
@@ -296,6 +302,9 @@
             .menu-toggle-btn {
                 display: flex;
             }
+            .name-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -310,7 +319,7 @@
                 <a href="index.html">Search</a>
                 <a href="watch.html">My Watches</a>
                 <a href="gps-demo.html">GPS Demo 🛰</a>
-                <a href="login.html" class="active">Login</a>
+                <a href="login.html">Login</a>
                 <button class="theme-btn" id="themeBtn">🌓</button>
             </div>
             <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
@@ -321,7 +330,7 @@
         <a href="index.html">Search</a>
         <a href="watch.html">My Watches</a>
         <a href="gps-demo.html">GPS Demo 🛰</a>
-        <a href="login.html" class="active">Login</a>
+        <a href="login.html">Login</a>
         <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
     </div>
 
@@ -329,27 +338,41 @@
         
         <div class="card auth-card">
             <div style="text-align: center;">
-                <h2 style="font-size: 2rem; margin-bottom: 0.25rem;">Welcome Back</h2>
-                <p style="color: var(--text-2); font-weight: 600;">Sign in to your Ceylon Track account</p>
+                <h2 style="font-size: 2rem; margin-bottom: 0.25rem;">Create Account</h2>
+                <p style="color: var(--text-2); font-weight: 600;">Join Ceylon Track today</p>
             </div>
 
-            <form class="auth-form" id="loginForm">
+            <form class="auth-form" id="registerForm">
+                <div class="name-row">
+                    <div class="input-group">
+                        <label for="firstNameInput">First Name</label>
+                        <input type="text" id="firstNameInput" class="input" placeholder="e.g. Ruwan" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="lastNameInput">Last Name</label>
+                        <input type="text" id="lastNameInput" class="input" placeholder="e.g. Perera" required>
+                    </div>
+                </div>
                 <div class="input-group">
                     <label for="emailInput">Email Address</label>
-                    <input type="email" id="emailInput" class="input" placeholder="e.g. passenger@ceylon.lk" required>
+                    <input type="email" id="emailInput" class="input" placeholder="e.g. ruwan@ceylon.lk" required>
                 </div>
                 <div class="input-group">
                     <label for="passwordInput">Password</label>
-                    <input type="password" id="passwordInput" class="input" placeholder="••••••••" required>
+                    <input type="password" id="passwordInput" class="input" placeholder="At least 6 characters" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirmPasswordInput">Confirm Password</label>
+                    <input type="password" id="confirmPasswordInput" class="input" placeholder="••••••••" required>
                 </div>
                 <div id="errorMsg" style="color: var(--danger); font-weight: 700; text-align: center; display: none; margin-top: 0.5rem;"></div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
-                    Sign In
+                    Sign Up
                 </button>
             </form>
 
             <div style="text-align: center; font-size: 0.95rem; color: var(--text-2); font-weight: 600;">
-                Don't have an account? <a href="register.html">Register here</a>
+                Already have an account? <a href="login.html">Sign in here</a>
             </div>
         </div>
 
@@ -387,31 +410,59 @@
         themeBtn.addEventListener('click', toggleTheme);
         themeBtnMobile.addEventListener('click', toggleTheme);
 
-        // Login Handler
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        // Register Handler
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const firstName = document.getElementById('firstNameInput').value.trim();
+            const lastName = document.getElementById('lastNameInput').value.trim();
             const email = document.getElementById('emailInput').value.trim();
             const password = document.getElementById('passwordInput').value;
+            const confirmPassword = document.getElementById('confirmPasswordInput').value;
             const errorMsg = document.getElementById('errorMsg');
 
             errorMsg.style.display = 'none';
+
+            if (!firstName) {
+                errorMsg.textContent = 'First name is required';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            if (!lastName) {
+                errorMsg.textContent = 'Last name is required';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            if (!email) {
+                errorMsg.textContent = 'Email address is required';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters';
+                errorMsg.style.display = 'block';
+                window.api.showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            if (password !== confirmPassword) {
+                errorMsg.textContent = 'Passwords do not match';
+                errorMsg.style.display = 'block';
+                window.api.showToast('Passwords do not match', 'error');
+                return;
+            }
+
             window.api.showSpinner();
             try {
-                const res = await window.api.login(email, password);
+                const res = await window.api.register(firstName, lastName, email, password);
                 window.api.setAuth(res.token, res.user);
-                window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
+                window.api.showToast(`Account created successfully! Welcome, ${res.user.firstName}!`, 'success');
                 
                 setTimeout(() => {
-                    if (res.user.role === 'staff' || res.user.role === 'admin') {
-                        window.location.href = '/admin.html';
-                    } else {
-                        window.location.href = '/index.html';
-                    }
+                    window.location.href = '/index.html';
                 }, 1500);
             } catch (err) {
-                console.error('Login failed:', err);
-                window.api.showToast(err.message || 'Login failed', 'error');
-                errorMsg.textContent = err.message || 'Login failed';
+                console.error('Registration failed:', err);
+                window.api.showToast(err.message || 'Registration failed', 'error');
+                errorMsg.textContent = err.message || 'Registration failed';
                 errorMsg.style.display = 'block';
             } finally {
                 window.api.hideSpinner();

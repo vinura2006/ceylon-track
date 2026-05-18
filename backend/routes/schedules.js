@@ -1,300 +1,150 @@
 const express = require('express');
-const pool = require('../db/pool');
-const { 
-    calculateReliability, 
-    formatScheduleTimeAndDuration, 
-    determineStatusBadge, 
-    getAvailableClasses 
-} = require('../utils/scheduleHelpers');
 const router = express.Router();
+const pool = require('../db/pool');
 
-// GET /api/schedules - Show available schedule endpoints
-router.get('/', (req, res) => {
-    res.json({
-        message: 'Schedule endpoints',
-        endpoints: {
-            search: 'GET /api/schedules/search?from=CODE&to=CODE&date=YYYY-MM-DD',
-            detail: 'GET /api/schedules/:id',
-            all: 'GET /api/schedules/all'
-        }
-    });
-});
-
-// GET /api/schedules/search - Search for train schedules
-// Query params: from, to, date
+// GET /search
 router.get('/search', async (req, res) => {
     try {
-        const { from, to, date } = req.query;
+        const { from, to, date, class: trainClass } = req.query;
 
-        // Validation
-        if (!from || !to || !date) {
-            return res.status(400).json({
-                error: 'Missing required parameters: from, to, and date are required'
-            });
+        if (!from || !to) {
+            return res.status(400).json({ error: 'from and to stations are required' });
         }
 
-        const STATION_CODE_ALIASES = {
-            CMB: 'FOT',
-            KDY: 'KAN'
-        };
-        let fromCode = String(from).toUpperCase().trim();
-        let toCode = String(to).toUpperCase().trim();
-        if (STATION_CODE_ALIASES[fromCode]) fromCode = STATION_CODE_ALIASES[fromCode];
-        if (STATION_CODE_ALIASES[toCode]) toCode = STATION_CODE_ALIASES[toCode];
+        const tripDate = date || new Date().toISOString().split('T')[0];
 
-        let dateStr = String(date).trim();
-        if (dateStr.toLowerCase() === 'today') {
-            dateStr = new Date().toISOString().split('T')[0];
-        }
-
-        // Validate date format (YYYY-MM-DD)
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(dateStr)) {
-            return res.status(400).json({
-                error: 'Invalid date format. Please use YYYY-MM-DD or the keyword today'
-            });
-        }
-
-        // Get day of week (0=Sunday, 6=Saturday)
-        const searchDate = new Date(dateStr + 'T12:00:00');
-        const dayOfWeek = searchDate.getDay();
-
-        // Validate station codes
-        const stationCheck = await pool.query(
-            'SELECT code FROM Station WHERE code IN ($1, $2)',
-            [fromCode, toCode]
-        );
-
-        if (stationCheck.rows.length < 2) {
-            return res.status(404).json({
-                error: 'One or both station codes not found'
-            });
-        }
-
-        // Get schedules - match by ScheduleStationTiming only (most reliable)
-        const query = `
+        let query = `
             SELECT 
-                s.id as schedule_id,
-                t.id as train_id,
-                t.name as train_name,
-                t.number as train_number,
-                t.type as train_type,
-                r.name as route_name,
-                r.type as route_type,
-                st_from.name as from_station,
-                st_to.name as to_station,
-                sst_from.departure_time,
-                sst_to.arrival_time,
-                sst_from.day_offset as from_day_offset,
-                sst_to.day_offset as to_day_offset,
-                COALESCE(tsu.status, 'On Time') as current_status,
-                COALESCE(tsu.delay_minutes, 0) as delay_minutes,
-                ABS(rs_to.distance_from_origin - rs_from.distance_from_origin) as distance_km,
-                EXTRACT(EPOCH FROM (sst_to.arrival_time - sst_from.departure_time))/60 + 
-                    (sst_to.day_offset - sst_from.day_offset) * 1440 as duration_minutes,
-                (SELECT array_agg(DISTINCT class_type ORDER BY class_type) 
-                 FROM RouteFare 
-                 WHERE route_id = r.id) as available_classes,
-                CASE 
-                    WHEN tsu.status = 'Cancelled' THEN 'Cancelled'
-                    WHEN tsu.delay_minutes > 0 THEN 'Delayed'
-                    ELSE 'On Time'
-                END as display_status
-            FROM Schedule s
-            JOIN Train t ON s.train_id = t.id
-            JOIN Route r ON s.route_id = r.id
-            JOIN ScheduleStationTiming sst_from ON sst_from.schedule_id = s.id
-            JOIN ScheduleStationTiming sst_to ON sst_to.schedule_id = s.id
-            JOIN Station st_from ON st_from.id = sst_from.station_id AND st_from.code = $1
-            JOIN Station st_to ON st_to.id = sst_to.station_id AND st_to.code = $2
-            JOIN RouteStation rs_from ON rs_from.route_id = s.route_id AND rs_from.station_id = st_from.id
-            JOIN RouteStation rs_to ON rs_to.route_id = s.route_id AND rs_to.station_id = st_to.id
-            JOIN ScheduleDays sd ON sd.schedule_id = s.id AND sd.day_of_week = $3
-            LEFT JOIN TripStatusUpdate tsu ON tsu.schedule_id = s.id AND tsu.trip_date = $4
-            WHERE sst_from.stop_sequence < sst_to.stop_sequence
-            ORDER BY sst_from.departure_time
-            LIMIT 50
+                s.id,
+                s.train_number as "trainNumber",
+                s.train_name as "trainName",
+                sf.name as "fromStation",
+                st.name as "toStation",
+                s.departure_time as "departureTime",
+                s.arrival_time as "arrivalTime",
+                s.class,
+                COALESCE(u.status, 'ON_TIME') as "liveStatus",
+                COALESCE(u.delay_minutes, 0) as "delayMinutes",
+                rel.reliability_percent as "reliabilityPercent"
+            FROM schedules s
+            JOIN stations sf ON s.from_station_id = sf.id
+            JOIN stations st ON s.to_station_id = st.id
+            LEFT JOIN trip_status_updates u ON u.schedule_id = s.id AND u.trip_date = $1
+            LEFT JOIN (
+                SELECT 
+                    schedule_id, 
+                    ROUND(COUNT(CASE WHEN status = 'ON_TIME' THEN 1 END)::DECIMAL / COUNT(*)::DECIMAL * 100) as reliability_percent
+                FROM trip_status_updates
+                GROUP BY schedule_id
+            ) rel ON rel.schedule_id = s.id
+            WHERE sf.code ILIKE $2 AND st.code ILIKE $3
         `;
 
-        const result = await pool.query(query, [fromCode, toCode, dayOfWeek, dateStr]);
+        const params = [tripDate, from, to];
 
-        if (result.rows.length === 0) {
-            return res.json({
-                message: 'No schedules found for the selected route and date',
-                schedules: []
-            });
+        if (trainClass && trainClass !== 'all' && trainClass !== '') {
+            query += ` AND s.class = $4`;
+            params.push(trainClass);
         }
 
-        // Calculate reliability for each schedule
-        const scheduleIds = result.rows.map(row => row.schedule_id);
-        const reliabilityData = await calculateReliability(pool, scheduleIds);
+        const result = await pool.query(query, params);
 
-        // Format the response
         const schedules = result.rows.map(row => {
-            const timeAndDuration = formatScheduleTimeAndDuration(row);
-            const statusBadge = determineStatusBadge(row);
-            const availableClasses = getAvailableClasses(row.train_name, row.train_type);
+            const relPercent = row.reliabilityPercent === null ? null : Number(row.reliabilityPercent);
+            let reliability = 'NO_DATA';
+
+            if (relPercent !== null) {
+                if (relPercent >= 80) {
+                    reliability = 'USUALLY_ON_TIME';
+                } else if (relPercent >= 50) {
+                    reliability = 'SOMETIMES_DELAYED';
+                } else {
+                    reliability = 'OFTEN_LATE';
+                }
+            }
 
             return {
-                schedule_id: row.schedule_id,
-                train: {
-                    id: row.train_id,
-                    name: row.train_name,
-                    number: row.train_number,
-                    type: row.train_type
-                },
-                route: {
-                    name: row.route_name,
-                    type: row.route_type
-                },
-                from_station: row.from_station,
-                to_station: row.to_station,
-                departure_time: timeAndDuration.departureTimeStr,
-                arrival_time: timeAndDuration.newArrivalTimeStr,
-                duration: {
-                    minutes: timeAndDuration.durationMinutes,
-                    formatted: timeAndDuration.formattedDuration
-                },
-                distance_km: (parseFloat(row.distance_km) + (row.schedule_id % 4) * 0.25).toFixed(2),
-                status: {
-                    current: row.current_status,
-                    display: row.display_status,
-                    delay_minutes: parseInt(row.delay_minutes),
-                    badge: statusBadge.badge,
-                    badge_class: statusBadge.badgeClass
-                },
-                available_classes: availableClasses,
-                reliability: reliabilityData[row.schedule_id] || {
-                    reliability: 'no_data',
-                    punctuality_percent: 0,
-                    total_trips: 0
-                },
-                date: dateStr
+                id: row.id,
+                trainNumber: row.trainNumber,
+                trainName: row.trainName,
+                fromStation: row.fromStation,
+                toStation: row.toStation,
+                departureTime: row.departureTime,
+                arrivalTime: row.arrivalTime,
+                class: row.class,
+                liveStatus: row.liveStatus,
+                delayMinutes: Number(row.delayMinutes),
+                reliability,
+                reliabilityPercent: relPercent
             };
         });
 
-        res.json({
-            search_params: {
-                from: fromCode,
-                to: toCode,
-                date: dateStr,
-                day_of_week: dayOfWeek
-            },
-            count: schedules.length,
-            schedules: schedules
-        });
-
+        return res.status(200).json({ schedules, count: schedules.length });
     } catch (error) {
-        console.error('Schedule search error:', error);
-        console.error('Error details:', error.message);
-        console.error('Error stack:', error.stack);
-        res.status(500).json({
-            error: 'Internal server error during schedule search',
-            details: error.message
-        });
+        console.error('Search schedules error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// GET /api/schedules/:id - Get detailed schedule information
+// GET /:id/route
+router.get('/:id/route', async (req, res) => {
+    try {
+        const scheduleId = parseInt(req.params.id, 10);
+        if (isNaN(scheduleId)) {
+            return res.status(400).json({ error: 'Invalid schedule ID' });
+        }
+
+        const result = await pool.query(
+            `SELECT stop_sequence as sequence, station_name as "stationName", 
+             scheduled_time as "scheduledTime", platform 
+             FROM stop_times 
+             WHERE schedule_id = $1 
+             ORDER BY stop_sequence ASC`,
+            [scheduleId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Schedule not found or no route stops available' });
+        }
+
+        return res.status(200).json({
+            scheduleId,
+            stops: result.rows
+        });
+    } catch (error) {
+        console.error('Get route stops error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// GET /:id
 router.get('/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        const { date } = req.query;
+        const scheduleId = parseInt(req.params.id, 10);
+        if (isNaN(scheduleId)) {
+            return res.status(400).json({ error: 'Invalid schedule ID' });
+        }
 
-        const query = `
-            SELECT 
-                s.id,
-                t.name as train_name,
-                t.number as train_number,
-                t.capacity,
-                r.name as route_name,
-                r.type as route_type,
-                COALESCE(tsu.status, 'Not Started') as current_status,
-                COALESCE(tsu.delay_minutes, 0) as delay_minutes,
-                tsu.current_station_id,
-                tsu.last_updated
-            FROM Schedule s
-            JOIN Train t ON s.train_id = t.id
-            JOIN Route r ON s.route_id = r.id
-            LEFT JOIN TripStatusUpdate tsu ON tsu.schedule_id = s.id 
-                AND tsu.trip_date = COALESCE($2, CURRENT_DATE)
-            WHERE s.id = $1
-        `;
-
-        const result = await pool.query(query, [id, date]);
+        const result = await pool.query(
+            `SELECT s.id, s.train_number as "trainNumber", s.train_name as "trainName",
+             sf.name as "fromStation", st.name as "toStation",
+             s.departure_time as "departureTime", s.arrival_time as "arrivalTime",
+             s.class, s.days_of_week as "daysOfWeek", s.is_active as "isActive"
+             FROM schedules s
+             JOIN stations sf ON s.from_station_id = sf.id
+             JOIN stations st ON s.to_station_id = st.id
+             WHERE s.id = $1`,
+            [scheduleId]
+        );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Schedule not found' });
         }
 
-        const schedule = result.rows[0];
-
-        // Get full station timings
-        const timingsQuery = `
-            SELECT 
-                st.id as station_id,
-                st.name as station_name,
-                st.code as station_code,
-                sst.arrival_time,
-                sst.departure_time,
-                sst.stop_sequence,
-                sst.stop_duration_minutes
-            FROM ScheduleStationTiming sst
-            JOIN Station st ON sst.station_id = st.id
-            WHERE sst.schedule_id = $1
-            ORDER BY sst.stop_sequence
-        `;
-
-        const timingsResult = await pool.query(timingsQuery, [id]);
-        const stations = timingsResult.rows;
-
-        // Find current stop sequence
-        let currentSeq = 1;
-        if (schedule.current_station_id) {
-            const currentStation = stations.find(s => s.station_id === schedule.current_station_id);
-            if (currentStation) {
-                currentSeq = currentStation.stop_sequence;
-            }
-        }
-
-        function calculateETA(scheduledArrivalTime, currentDelayMinutes, stopsRemaining) {
-            if (currentDelayMinutes === 0) return scheduledArrivalTime;
-            if (!scheduledArrivalTime) return null;
-            
-            let addedMinutes = currentDelayMinutes;
-            if (currentDelayMinutes > 10) {
-                const recoveredDelay = currentDelayMinutes - (currentDelayMinutes * 0.20 * stopsRemaining);
-                addedMinutes = Math.max(Math.round(recoveredDelay), 0);
-            }
-            
-            if (addedMinutes === 0) return scheduledArrivalTime;
-            
-            const parts = scheduledArrivalTime.split(':');
-            let minutes = parseInt(parts[0]) * 60 + parseInt(parts[1]) + addedMinutes;
-            
-            const h = Math.floor(minutes / 60) % 24;
-            const m = minutes % 60;
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-        }
-
-        const enrichedStations = stations.map(st => {
-            let stopsRemaining = st.stop_sequence - currentSeq;
-            if (stopsRemaining < 0) stopsRemaining = 0; // Already passed
-            
-            return {
-                ...st,
-                predicted_eta: calculateETA(st.arrival_time || st.departure_time, schedule.delay_minutes, stopsRemaining)
-            };
-        });
-
-        res.json({
-            schedule: schedule,
-            stations: enrichedStations
-        });
-
+        return res.status(200).json(result.rows[0]);
     } catch (error) {
-        console.error('Schedule detail error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Get schedule error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 

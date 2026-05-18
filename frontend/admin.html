@@ -3,615 +3,718 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Ceylon Track</title>
+    <title>Staff Dashboard — Ceylon Track</title>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    
+    <!-- Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('ceylon_track_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <style>
-        .spinner-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
+        /* ============================================================
+           CEYLON TRACK GLOBAL DESIGN SYSTEM
+           ============================================================ */
+        :root {
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --surface-2: #F1F5F9;
+            --text: #0F172A;
+            --text-2: #475569;
+            --border: #E2E8F0;
+            --primary: #0F4C75;
+            --primary-2: #1B6CA8;
+            --accent: #00B4D8;
+            --accent-2: #0077B6;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(8px);
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Syne', sans-serif;
         }
-        .spinner-overlay.active { display: flex; }
-        .spinner-overlay .spinner-global {
-            width: 40px; height: 40px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            animation: spin-global 0.8s linear infinite;
+
+        [data-theme="dark"] {
+            --bg: #0A0F1E;
+            --surface: #111827;
+            --surface-2: #1F2937;
+            --text: #F9FAFB;
+            --text-2: #9CA3AF;
+            --border: #374151;
+            --primary: #1B6CA8;
+            --primary-2: #2196F3;
+            --accent: #00D4FF;
+            --accent-2: #00B4D8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-blur: blur(12px);
         }
-        @keyframes spin-global { to { transform: rotate(360deg); } }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #1a5f2a;
-            --primary-dark: #12401c;
-            --primary-light: #2d8a42;
-            --accent: #f59e0b;
-            --bg-light: #f8fafc;
-            --bg-white: #ffffff;
-            --text-dark: #1e293b;
-            --text-medium: #475569;
-            --text-light: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-family: var(--font-body);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-light);
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
             min-height: 100vh;
-            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Header */
-        .header {
-            background: var(--bg-white);
-            box-shadow: var(--shadow);
-            padding: 1rem 1.5rem;
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
         }
 
-        .header-content {
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: var(--accent-2);
+        }
+
+        /* Nav & Header */
+        header {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .logo {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--text);
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 10px;
+        .nav-links {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-email {
-            color: var(--text-medium);
-            font-size: 0.875rem;
-        }
-
-        .logout-btn {
-            padding: 0.5rem 1rem;
-            background: var(--bg-light);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-dark);
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-
-        .logout-btn:hover {
-            background: var(--border);
-        }
-
-        /* Main Content */
-        .main {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .welcome {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-        }
-
-        .welcome h1 {
-            font-size: 1.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .welcome p {
-            opacity: 0.9;
-        }
-
-        /* Dashboard Cards */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
         }
 
-        .card {
-            background: var(--bg-white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
+        .nav-links a {
+            color: var(--text-2);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
         }
 
-        .card h3 {
-            font-size: 1rem;
-            color: var(--text-medium);
-            margin-bottom: 0.5rem;
-        }
-
-        .card .value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        /* Actions */
-        .actions {
-            background: var(--bg-white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
-        .actions h2 {
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
-        }
-
-        .action-btn {
-            display: block;
-            width: 100%;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            background: var(--bg-light);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            text-align: left;
-            cursor: pointer;
-            font-size: 0.9375rem;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .unauthorized {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .unauthorized h1 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-
-        .unauthorized p {
-            color: var(--text-medium);
-            margin-bottom: 1.5rem;
-        }
-
-        .unauthorized a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 200;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--bg-white);
-            border-radius: 12px;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: var(--shadow);
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-
-        .modal-close {
+        .theme-btn, .menu-toggle-btn {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            color: var(--text);
             cursor: pointer;
-            color: var(--text-light);
+            font-size: 1.25rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-btn:hover {
+            background-color: var(--surface-2);
         }
 
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-medium);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.9375rem;
-            font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 0.875rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .submit-btn:hover {
-            background: var(--primary-dark);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .form-message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
+        .menu-toggle-btn {
             display: none;
         }
 
-        .form-message.success {
-            display: block;
-            background: #dcfce7;
-            color: #166534;
+        /* Mobile Dropdown Nav */
+        .mobile-nav {
+            display: none;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mobile-nav.open {
+            display: flex;
         }
 
-        .form-message.error {
-            display: block;
-            background: #fee2e2;
-            color: #991b1b;
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #FFFFFF;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-2);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+        }
+
+        /* Inputs & Selects */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-2);
+        }
+
+        .input, .select, .textarea {
+            width: 100%;
+            min-height: 48px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .input:focus, .select:focus, .textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+        }
+
+        .textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-success { background-color: rgba(5, 150, 105, 0.15); color: var(--success); }
+        .badge-warning { background-color: rgba(217, 119, 6, 0.15); color: var(--warning); }
+        .badge-danger { background-color: rgba(220, 38, 38, 0.15); color: var(--danger); }
+
+        /* Dashboard Specific Grid & Layout */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex: 1;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1.5rem;
+        }
+        .stat-val {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--primary-2);
+        }
+        .stat-lbl {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-2);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Core Work Area */
+        .work-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+        }
+
+        .left-col, .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Tables */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--surface-2);
+            color: var(--text-2);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            padding: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 0.85rem;
+            margin-top: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .work-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="spinner-overlay" id="spinner">
-        <div class="spinner-global"></div>
-    </div>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">🚆</div>
-                <span style="font-weight: 700; color: var(--primary);">Ceylon Track Admin</span>
+
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo-container">
+                <span>🚂</span> Ceylon Track
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="index.html">Search</a>
+                <a href="watch.html">My Watches</a>
+                <a href="gps-demo.html">GPS Demo 🛰</a>
+                <a href="#" class="active">Dashboard 📊</a>
+                <a href="#" onclick="window.api.logout(); return false;">Logout</a>
+                <button class="theme-btn" id="themeBtn">🌓</button>
             </div>
-            <div class="user-info">
-                <span class="user-email" id="userEmail"></span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
+            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
         </div>
     </header>
 
-    <main class="main" id="mainContent">
-        <!-- Content loaded by JavaScript -->
-    </main>
-
-    <!-- Update Delay Modal -->
-    <div class="modal-overlay" id="delayModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Update Train Delay</div>
-                <button class="modal-close" onclick="closeDelayModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="delayForm" onsubmit="submitDelayUpdate(event)">
-                    <div class="form-group">
-                        <label for="scheduleId">Schedule ID</label>
-                        <input type="number" id="scheduleId" required min="1" placeholder="e.g. 1">
-                    </div>
-                    <div class="form-group">
-                        <label for="delayMinutes">Delay (minutes)</label>
-                        <input type="number" id="delayMinutes" required min="0" placeholder="e.g. 15">
-                    </div>
-                    <div class="form-group">
-                        <label for="statusSelect">Status</label>
-                        <select id="statusSelect">
-                            <option value="Delayed">Delayed</option>
-                            <option value="On Time">On Time</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
-                    </div>
-                    <button type="submit" class="submit-btn" id="submitBtn">Update Status</button>
-                    <div class="form-message" id="formMessage"></div>
-                </form>
-            </div>
-        </div>
+    <div class="mobile-nav" id="mobileNav">
+        <a href="index.html">Search</a>
+        <a href="watch.html">My Watches</a>
+        <a href="gps-demo.html">GPS Demo 🛰</a>
+        <a href="#" class="active">Dashboard 📊</a>
+        <a href="#" onclick="window.api.logout(); return false;">Logout</a>
+        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
     </div>
 
-    <script>
-        const API_BASE_URL = 'http://localhost:3000/api';
+    <main class="dashboard-container">
+        
+        <div class="watch-header">
+            <div class="watch-title-block">
+                <h1 id="welcomeHeader">Staff Dashboard</h1>
+                <p>Monitor system alerts, update train statuses, and configure network nodes</p>
+            </div>
+        </div>
 
-        function showSpinner() {
-            document.getElementById('spinner').classList.add('active');
-        }
-        function hideSpinner() {
-            document.getElementById('spinner').classList.remove('active');
-        }
-        function showError(message) {
-            const existing = document.getElementById('error-banner');
-            if (existing) existing.remove();
-            const banner = document.createElement('div');
-            banner.id = 'error-banner';
-            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
-            banner.textContent = message;
-            document.body.insertBefore(banner, document.body.firstChild);
-            setTimeout(() => banner.remove(), 5000);
-        }
+        <!-- Stats Row -->
+        <div class="stats-grid">
+            <div class="card stat-card">
+                <span class="stat-val" id="statSchedules">0</span>
+                <span class="stat-lbl">Active Schedules</span>
+            </div>
+            <div class="card stat-card">
+                <span class="stat-val" id="statDelayed" style="color: var(--warning);">0</span>
+                <span class="stat-lbl">Delayed Today</span>
+            </div>
+            <div class="card stat-card">
+                <span class="stat-val" id="statCancelled" style="color: var(--danger);">0</span>
+                <span class="stat-lbl">Cancelled Today</span>
+            </div>
+            <div class="card stat-card">
+                <span class="stat-val" id="statWatchers">0</span>
+                <span class="stat-lbl">Active Watchers</span>
+            </div>
+        </div>
 
-        // Check if user is logged in and has proper role
-        function init() {
-            const token = localStorage.getItem('token');
-            const userStr = localStorage.getItem('user');
-
-            if (!token || !userStr) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const user = JSON.parse(userStr);
+        <!-- Main Work Area -->
+        <div class="work-grid">
             
-            // Only Admin and Staff allowed
-            if (user.role !== 'Admin' && user.role !== 'Staff') {
-                showUnauthorized();
-                return;
-            }
+            <!-- Left Side: Disruptions Log -->
+            <div class="left-col">
+                <div class="card" style="padding: 1.5rem;">
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        ⚠️ Network Disruption Risk Log
+                    </h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Train</th>
+                                    <th>Route</th>
+                                    <th>Reliability</th>
+                                    <th>Today Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="disruptionsTableBody">
+                                <!-- Disruptions logs will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-            // Show dashboard
-            document.getElementById('userEmail').textContent = user.email;
-            showDashboard(user);
-        }
-
-        async function fetchStats() {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            
-            showSpinner();
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/stats`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+            <!-- Right Side: Action Panel -->
+            <div class="right-col">
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('statStations').textContent = data.total_stations || 0;
-                    document.getElementById('statTrains').textContent = data.active_trains || 0;
-                    document.getElementById('statTrips').textContent = data.todays_trips || 0;
-                }
-            } catch (error) {
-                console.error('Failed to fetch stats:', error);
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        function showDashboard(user) {
-            const main = document.getElementById('mainContent');
-            main.innerHTML = `
-                <div class="welcome">
-                    <h1>Welcome, ${user.first_name || user.email}!</h1>
-                    <p>You are logged in as ${user.role}</p>
+                <!-- Card: Update Train Status -->
+                <div class="card">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; font-family: var(--font-display);">
+                        🔄 Update Train Status
+                    </h3>
+                    <form class="auth-form" id="statusForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="input-group">
+                            <label for="trainSelect">Select Train</label>
+                            <select id="trainSelect" class="select" required>
+                                <option value="" disabled selected>Choose a train schedule...</option>
+                                <option value="1">Train 1014 (Colombo Fort ➔ Kandy)</option>
+                                <option value="2">Train 1084 (Colombo Fort ➔ Galle)</option>
+                                <option value="3">Train 1086 (Colombo Fort ➔ Matara)</option>
+                                <option value="4">Train 1005 (Colombo Fort ➔ Badulla)</option>
+                                <option value="5">Train 1068 (Colombo Fort ➔ Anuradhapura)</option>
+                                <option value="6">Train 1015 (Kandy ➔ Colombo Fort)</option>
+                                <option value="7">Train 1083 (Galle ➔ Colombo Fort)</option>
+                                <option value="8">Train 1022 (Colombo Fort ➔ Kurunegala)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="statusSelect">Status</label>
+                            <select id="statusSelect" class="select" required>
+                                <option value="ON_TIME">ON TIME</option>
+                                <option value="DELAYED">DELAYED</option>
+                                <option value="CANCELLED">CANCELLED</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="delayGroup" style="display: none;">
+                            <label for="delayInput">Delay Minutes</label>
+                            <input type="number" id="delayInput" class="input" min="0" value="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="notesInput">Status Notes</label>
+                            <textarea id="notesInput" class="textarea" placeholder="e.g. Signal failure at Ragama"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Publish Status Update
+                        </button>
+                    </form>
                 </div>
 
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3>Total Stations</h3>
-                        <div class="value" id="statStations">--</div>
-                    </div>
-                    <div class="card">
-                        <h3>Active Trains</h3>
-                        <div class="value" id="statTrains">--</div>
-                    </div>
-                    <div class="card">
-                        <h3>Today's Trips</h3>
-                        <div class="value" id="statTrips">--</div>
-                    </div>
+                <!-- Card: Add New Station (Admin only) -->
+                <div class="card" id="adminAddStationCard" style="display: none;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; font-family: var(--font-display); color: var(--accent-2);">
+                        ➕ Add New Station Node
+                    </h3>
+                    <form class="auth-form" id="stationForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="input-group">
+                            <label for="stationNameInput">Station Name</label>
+                            <input type="text" id="stationNameInput" class="input" placeholder="e.g. Ragama" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="stationCodeInput">Station Code</label>
+                            <input type="text" id="stationCodeInput" class="input" placeholder="e.g. RAG" required>
+                        </div>
+                        <div class="name-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="input-group">
+                                <label for="latInput">Latitude</label>
+                                <input type="number" id="latInput" class="input" step="any" placeholder="e.g. 7.0311" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="lngInput">Longitude</label>
+                                <input type="number" id="lngInput" class="input" step="any" placeholder="e.g. 79.8925" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="width: 100%; font-weight: 700;">
+                            Create Station Node
+                        </button>
+                    </form>
                 </div>
 
-                <div class="actions">
-                    <h2>Quick Actions</h2>
-                    <button class="action-btn" onclick="window.location.href='public/delay-update.html'">
-                        ⏱️ Update Train Delay
-                    </button>
-                    <button class="action-btn" onclick="window.location.href='public/manage-schedules.html'">
-                        📅 Manage Schedules
-                    </button>
-                    <button class="action-btn" onclick="window.location.href='public/manage-stations.html'">
-                        🚉 Manage Stations
-                    </button>
-                    <button class="action-btn" onclick="window.location.href='index.html'">
-                        🔍 Go to Passenger Search
-                    </button>
-                </div>
-            `;
-        }
+            </div>
 
-        function showUnauthorized() {
-            const main = document.getElementById('mainContent');
-            main.innerHTML = `
-                <div class="unauthorized">
-                    <h1>🔒 Access Denied</h1>
-                    <p>You don't have permission to access this page.</p>
-                    <a href="index.html">Go to Home</a> | <a href="login.html">Login as Admin</a>
-                </div>
-            `;
-        }
+        </div>
 
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+    </main>
+
+    <footer>
+        <p>© 2026 Ceylon Track — Sri Lanka Railway Staff Portal</p>
+    </footer>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Role authorization check
+        const user = window.api.getUser();
+        if (!window.api.isLoggedIn()) {
             window.location.href = 'login.html';
         }
-
-        // Delay modal functions
-        function openDelayModal() {
-            document.getElementById('delayModal').classList.add('active');
-            document.getElementById('formMessage').className = 'form-message';
-            document.getElementById('formMessage').textContent = '';
+        if (!user || (user.role !== 'staff' && user.role !== 'admin')) {
+            window.api.showToast('Access denied', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
         }
 
-        function closeDelayModal() {
-            document.getElementById('delayModal').classList.remove('active');
+        // Welcome text & admin UI show/hide
+        if (user) {
+            document.getElementById('welcomeHeader').textContent = `${user.role === 'admin' ? 'Admin' : 'Staff'} Dashboard — Welcome, ${user.firstName}!`;
+            if (user.role === 'admin') {
+                document.getElementById('adminAddStationCard').style.display = 'block';
+            }
         }
 
-        // Close modal on outside click
-        document.getElementById('delayModal').addEventListener('click', (e) => {
-            if (e.target.id === 'delayModal') closeDelayModal();
+        // Mobile Nav & Theme logic
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
+
+        const themeBtn = document.getElementById('themeBtn');
+        const themeBtnMobile = document.getElementById('themeBtnMobile');
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('ceylon_track_theme', newTheme);
+        }
+        themeBtn.addEventListener('click', toggleTheme);
+        themeBtnMobile.addEventListener('click', toggleTheme);
+
+        // Status update delay-minutes field display logic
+        const statusSelect = document.getElementById('statusSelect');
+        const delayGroup = document.getElementById('delayGroup');
+        statusSelect.addEventListener('change', () => {
+            if (statusSelect.value === 'DELAYED') {
+                delayGroup.style.display = 'flex';
+            } else {
+                delayGroup.style.display = 'none';
+            }
         });
 
-        /**
-         * Submit delay update to the staff endpoint
-         */
-        async function submitDelayUpdate(event) {
-            event.preventDefault();
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const scheduleId = document.getElementById('scheduleId').value;
-            const delayMinutes = document.getElementById('delayMinutes').value;
-            const status = document.getElementById('statusSelect').value;
-            const notes = document.getElementById('notes').value;
-            const submitBtn = document.getElementById('submitBtn');
-            const formMessage = document.getElementById('formMessage');
-
-            // BUG-05: Reject negative delays on the frontend
-            if (parseInt(delayMinutes) < 0) {
-                formMessage.className = 'form-message error';
-                formMessage.textContent = 'Delay minutes cannot be negative.';
-                return;
-            }
-
-            submitBtn.disabled = true;
-            formMessage.className = 'form-message';
-            formMessage.textContent = '';
-
-            showSpinner();
+        // Load stats
+        async function loadStats() {
             try {
-                const response = await fetch(`${API_BASE_URL}/staff/trains/${scheduleId}/status`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        delay_minutes: parseInt(delayMinutes),
-                        status: status,
-                        notes: notes
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to update status');
-                }
-
-                formMessage.className = 'form-message success';
-                formMessage.textContent = 'Train status updated successfully!';
-
-                // Clear form after short delay
-                setTimeout(() => {
-                    document.getElementById('delayForm').reset();
-                    closeDelayModal();
-                }, 1500);
-
-            } catch (error) {
-                console.error('Update error:', error);
-                formMessage.className = 'form-message error';
-                formMessage.textContent = error.message || 'Failed to update train status. Please try again.';
-            } finally {
-                submitBtn.disabled = false;
-                hideSpinner();
+                const stats = await window.api.getStats();
+                document.getElementById('statSchedules').textContent = stats.activeSchedules;
+                document.getElementById('statDelayed').textContent = stats.delayedTrains;
+                document.getElementById('statCancelled').textContent = stats.cancelledTrains;
+                document.getElementById('statWatchers').textContent = stats.activeWatchers;
+            } catch (err) {
+                console.error('Failed to load stats:', err);
             }
         }
 
-        // Start
-        init();
-        
-        // Fetch dynamic stats after dashboard loads
-        fetchStats();
+        // Load Disruptions
+        async function loadDisruptions() {
+            try {
+                const res = await window.api.getDisruptions();
+                const list = res.disruptions || [];
+                const tbody = document.getElementById('disruptionsTableBody');
+                tbody.innerHTML = '';
+
+                if (list.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-2); padding: 2rem 0;">
+                                No disruptions logged. Network is operating smoothly.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                list.forEach(item => {
+                    let relBadge = 'badge-success';
+                    if (item.reliabilityPercent < 50) relBadge = 'badge-danger';
+                    else if (item.reliabilityPercent < 80) relBadge = 'badge-warning';
+
+                    let statusBadge = 'badge-success';
+                    if (item.todayStatus === 'DELAYED') statusBadge = 'badge-warning';
+                    else if (item.todayStatus === 'CANCELLED') statusBadge = 'badge-danger';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight: 700;">Train ${item.trainNumber}</td>
+                            <td>${item.fromStation} ➔ ${item.toStation}</td>
+                            <td><span class="badge ${relBadge}">${item.reliabilityPercent}%</span></td>
+                            <td><span class="badge ${statusBadge}">${item.todayStatus.replace('_', ' ')}</span></td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('Failed to load disruptions:', err);
+            }
+        }
+
+        // Handle train status submission
+        document.getElementById('statusForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const scheduleId = document.getElementById('trainSelect').value;
+            const status = document.getElementById('statusSelect').value;
+            const delayMinutes = document.getElementById('delayInput').value || 0;
+            const notes = document.getElementById('notesInput').value.trim();
+
+            window.api.showSpinner();
+            try {
+                const res = await window.api.updateTrainStatus(scheduleId, status, delayMinutes, notes);
+                window.api.showToast(`Status updated successfully! ${res.updatedCount} watchers notified.`, 'success');
+                
+                // Clear fields
+                document.getElementById('notesInput').value = '';
+                document.getElementById('delayInput').value = '0';
+                
+                // Reload dashboard state
+                loadStats();
+                loadDisruptions();
+            } catch (err) {
+                window.api.showToast(err.message || 'Status update failed', 'error');
+            } finally {
+                window.api.hideSpinner();
+            }
+        });
+
+        // Handle Add Station submission (Admin only)
+        document.getElementById('stationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('stationNameInput').value.trim();
+            const code = document.getElementById('stationCodeInput').value.trim().toUpperCase();
+            const lat = Number(document.getElementById('latInput').value);
+            const lng = Number(document.getElementById('lngInput').value);
+
+            window.api.showSpinner();
+            try {
+                // Call station creation endpoint (mapped in Express routes as POST /api/stations or via staff routes)
+                await window.api._fetch('/api/stations', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, code, lat, lng })
+                });
+
+                window.api.showToast(`Station node ${code} created successfully!`, 'success');
+                document.getElementById('stationForm').reset();
+            } catch (err) {
+                window.api.showToast(err.message || 'Station creation failed', 'error');
+            } finally {
+                window.api.hideSpinner();
+            }
+        });
+
+        // Initialize Page state
+        window.addEventListener('load', () => {
+            loadStats();
+            loadDisruptions();
+        });
     </script>
 </body>
 </html>

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="js/ticketing.js"></script>
     <style>
         * {
             margin: 0;
@@ -230,6 +231,7 @@
                 <a href="index.html">Search</a>
                 <a href="watch.html">Watch</a>
                 <a href="map.html" class="active">Live Map</a>
+                <a href="#" onclick="openPravesha(); return false;" title="Book tickets via Pravesha or SLR web portal">🎟️ Book Tickets</a>
             </nav>
         </div>
     </header>
@@ -254,133 +256,204 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-    <script>
-        const API_URL = 'http://localhost:3000/api';
-        
-        // Initialize Map
-        const map = L.map('map').setView([7.8731, 80.7718], 8);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Draw Railway Lines
-        const mainLineCoords = [[6.9271, 79.8612], [7.0, 80.0], [7.2906, 80.6337]];
-        const coastLineCoords = [[6.9271, 79.8612], [6.5, 80.0], [6.0535, 80.2210]];
-        
-        L.polyline(mainLineCoords, { color: '#6366f1', weight: 4, opacity: 0.7 }).addTo(map).bindPopup('Main Line');
-        L.polyline(coastLineCoords, { color: '#ec4899', weight: 4, opacity: 0.7 }).addTo(map).bindPopup('Coast Line');
-
-        const markers = {};
-        let activeTrains = [];
-
-        function getStatusColor(status) {
-            if (status === 'Delayed') return '#f59e0b';
-            if (status === 'Cancelled') return '#ef4444';
-            return '#22c55e';
+    <style>
+        /* ── Train marker: pulsing dot + name label ─────────── */
+        .custom-train-marker {
+            background: none;
+            border: none;
+        }
+        .train-dot {
+            width: 16px;
+            height: 16px;
+            background-color: #ef4444;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+            animation: pulse 1.5s infinite;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .train-label {
+            position: absolute;
+            left: 20px; /* Pushes the label to the right of the dot */
+            top: 50%;
+            transform: translateY(-50%); /* Centers label vertically with the dot */
+            background-color: white;
+            color: #1e293b;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            border: 1px solid #cbd5e1;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
-        function createCustomMarker(color) {
+        /* Rich popup */
+        .train-popup { font-family: 'Inter', sans-serif; min-width: 190px; }
+        .train-popup .popup-name { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
+        .train-popup .popup-number { font-size: 0.78rem; color: #64748b; margin-bottom: 8px; }
+        .train-popup .popup-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: #475569; margin-bottom: 4px; }
+        .train-popup .popup-row span:last-child { font-weight: 600; color: #1e293b; }
+        .train-popup .popup-status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-top: 6px; }
+        .train-popup .status-ontime    { background: #dcfce7; color: #166534; }
+        .train-popup .status-delayed   { background: #fef3c7; color: #92400e; }
+        .train-popup .status-cancelled { background: #fee2e2; color: #991b1b; }
+        .train-popup .popup-time { font-size: 0.72rem; color: #94a3b8; margin-top: 8px; }
+    </style>
+    <script>
+        const API_URL = `http://${window.location.hostname}:3000/api`;
+
+        // ── Map Init ────────────────────────────────────────────
+        const map = L.map('map', { zoomControl: true }).setView([7.8731, 80.7718], 8);
+
+        // Base OSM layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // OpenRailwayMap overlay — real physical Sri Lankan railway tracks
+        L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map style: &copy; OpenRailwayMap'
+        }).addTo(map);
+
+        // ── State ───────────────────────────────────────────────
+        const markers = {};
+        let initialZoomDone = false;
+
+        // Read target train from URL once
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetTrainId = urlParams.get('train_id');
+
+        // ── Helpers ─────────────────────────────────────────────
+        function statusClass(status) {
+            if (status === 'Delayed')   return 'delayed';
+            if (status === 'Cancelled') return 'cancelled';
+            return 'ontime';
+        }
+
+        function createTrainIcon(trainName, status, focused = false) {
+            const cls = statusClass(status);
             return L.divIcon({
-                className: 'custom-div-icon',
-                html: `<div style="background-color:${color};width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
+                className: 'custom-train-marker',
+                html: '<div class="train-dot ' + cls + (focused ? ' focused' : '') + '"></div><div class="train-label">' + trainName + '</div>',
+                iconSize: [16, 16], // The exact dimensions of the red dot
+                iconAnchor: [8, 8],  // The exact center point of the dot (Half of 16). THIS LOCKS IT TO THE TRACK.
+                popupAnchor: [0, -8]
             });
         }
 
-        async function fetchLiveTrains() {
-            try {
-                const res = await fetch(`${API_URL}/gps/trains/live`);
-                if (!res.ok) throw new Error('Failed to fetch');
-                const trains = await res.json();
-                
-                updateMapAndList(trains);
-                
-                const now = new Date();
-                document.getElementById('lastUpdated').textContent = `Last updated: ${now.toLocaleTimeString()}`;
-            } catch (err) {
-                console.error(err);
-                document.getElementById('lastUpdated').textContent = `Error connecting to server`;
-            }
+        function buildPopup(t) {
+            const cls   = statusClass(t.status);
+            const delay = t.delay_minutes > 0 ? ` (+${t.delay_minutes} min)` : '';
+            return `
+                <div class="train-popup">
+                    <div class="popup-name">${t.train_name}</div>
+                    <div class="popup-number">${t.train_number}</div>
+                    <div class="popup-row"><span>Speed</span><span>${t.speed_kmh} km/h</span></div>
+                    <div class="popup-row"><span>Status</span><span>${t.status}${delay}</span></div>
+                    <span class="popup-status status-${cls}">${t.status.toUpperCase()}</span>
+                    <div class="popup-time">Updated ${new Date(t.last_updated).toLocaleTimeString()}</div>
+                </div>`;
         }
 
+        // ── Core update — no flashing: update positions in-place ─
         function updateMapAndList(trains) {
             const trainList = document.getElementById('trainList');
             trainList.innerHTML = '';
-            
+
             if (trains.length === 0) {
-                trainList.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No active trains right now.</div>';
-                
-                // Clear existing markers
+                trainList.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:2rem;">No active trains right now.</div>';
                 Object.values(markers).forEach(m => map.removeLayer(m));
+                Object.keys(markers).forEach(k => delete markers[k]);
                 return;
             }
 
-            const currentIds = new Set(trains.map(t => t.train_id));
+            const currentIds = new Set(trains.map(t => String(t.train_id)));
 
-            // Remove old markers
+            // Remove stale markers
             Object.keys(markers).forEach(id => {
-                if (!currentIds.has(Number(id))) {
+                if (!currentIds.has(id)) {
                     map.removeLayer(markers[id]);
                     delete markers[id];
                 }
             });
 
             trains.forEach(t => {
-                const latlng = [t.current_lat, t.current_lng];
-                const color = getStatusColor(t.status);
-                const delayText = t.delay_minutes > 0 ? ` (+${t.delay_minutes} min)` : '';
+                const id     = String(t.train_id);
+                const latlng = [parseFloat(t.current_lat), parseFloat(t.current_lng)];
+                const isFocused = (targetTrainId && id === String(targetTrainId));
+                const icon   = createTrainIcon(t.train_name, t.status, isFocused);
 
-                // Update or create marker
-                if (markers[t.train_id]) {
-                    markers[t.train_id].setLatLng(latlng);
-                    markers[t.train_id].setIcon(createCustomMarker(color));
+                if (markers[id]) {
+                    // Smooth position update — no flicker
+                    markers[id].setLatLng(latlng);
+                    markers[id].setIcon(icon);
                 } else {
-                    markers[t.train_id] = L.marker(latlng, { icon: createCustomMarker(color) }).addTo(map);
+                    markers[id] = L.marker(latlng, { icon }).addTo(map);
                 }
 
-                // Update popup
-                const popupContent = `
-                    <div style="font-family:Inter,sans-serif;">
-                        <strong style="font-size:1.1em;">${t.train_name}</strong><br>
-                        <span style="color:#64748b;">${t.train_number}</span><br>
-                        Status: <b>${t.status}</b>${delayText}<br>
-                        Speed: ${t.speed_kmh} km/h<br>
-                        <small style="color:#94a3b8;">${new Date(t.last_updated).toLocaleTimeString()}</small>
-                    </div>
-                `;
-                markers[t.train_id].bindPopup(popupContent);
+                markers[id].bindPopup(buildPopup(t), { maxWidth: 240 });
 
-                // Add to list
-                const statusClass = t.status === 'Delayed' ? 'delayed' : t.status === 'Cancelled' ? 'cancelled' : 'ontime';
+                // Initial focus on targeted train (runs once)
+                if (!initialZoomDone && isFocused) {
+                    map.flyTo(latlng, 15, { animate: true, duration: 1.4 });
+                    setTimeout(() => markers[id].openPopup(), 1500);
+                }
+
+                // Side-panel list item
+                const cls  = statusClass(t.status);
+                const delayText = t.delay_minutes > 0 ? ` (+${t.delay_minutes} min)` : '';
                 const item = document.createElement('div');
-                item.className = 'train-item';
+                item.className = 'train-item' + (isFocused ? ' focused-item' : '');
                 item.onclick = () => {
-                    map.setView(latlng, 12);
-                    markers[t.train_id].openPopup();
+                    map.flyTo(latlng, 14, { animate: true, duration: 0.8 });
+                    markers[id].openPopup();
                 };
-                
                 item.innerHTML = `
                     <div class="train-item-header">
                         <div>
                             <div class="train-item-name">${t.train_name}</div>
                             <div class="train-item-number">${t.train_number}</div>
                         </div>
-                        <span class="status-dot ${statusClass}"></span>
+                        <span class="status-dot ${cls}"></span>
                     </div>
-                    <div style="font-size: 0.875rem; color: #475569;">
-                        ${t.status}${delayText}
-                    </div>
+                    <div style="font-size:0.875rem;color:#475569;">${t.status}${delayText} · ${t.speed_kmh} km/h</div>
                 `;
                 trainList.appendChild(item);
             });
+
+            if (!initialZoomDone) initialZoomDone = true;
         }
 
-        // Start polling
+        // ── Fetch ────────────────────────────────────────────────
+        async function fetchLiveTrains() {
+            try {
+                const res = await fetch(`${API_URL}/gps/trains/live`);
+                if (!res.ok) throw new Error('Failed to fetch');
+                const trains = await res.json();
+                updateMapAndList(trains);
+                document.getElementById('lastUpdated').textContent =
+                    `Last updated: ${new Date().toLocaleTimeString()}`;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('lastUpdated').textContent = 'Error connecting to server';
+            }
+        }
+
+        // Start polling every 8 seconds
         fetchLiveTrains();
-        setInterval(fetchLiveTrains, 15000);
+        setInterval(fetchLiveTrains, 8000);
 
     </script>
 </body>
 </html>
+

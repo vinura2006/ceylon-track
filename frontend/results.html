@@ -3,1543 +3,982 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Results - Ceylon Track</title>
+    <title>Search Results — Ceylon Track</title>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    
+    <!-- Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('ceylon_track_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <style>
-        .spinner-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
+        /* ============================================================
+           CEYLON TRACK GLOBAL DESIGN SYSTEM
+           ============================================================ */
+        :root {
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --surface-2: #F1F5F9;
+            --text: #0F172A;
+            --text-2: #475569;
+            --border: #E2E8F0;
+            --primary: #0F4C75;
+            --primary-2: #1B6CA8;
+            --accent: #00B4D8;
+            --accent-2: #0077B6;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(8px);
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Syne', sans-serif;
         }
-        .spinner-overlay.active { display: flex; }
-        .spinner-overlay .spinner-global {
-            width: 40px; height: 40px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            animation: spin-global 0.8s linear infinite;
+
+        [data-theme="dark"] {
+            --bg: #0A0F1E;
+            --surface: #111827;
+            --surface-2: #1F2937;
+            --text: #F9FAFB;
+            --text-2: #9CA3AF;
+            --border: #374151;
+            --primary: #1B6CA8;
+            --primary-2: #2196F3;
+            --accent: #00D4FF;
+            --accent-2: #00B4D8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-blur: blur(12px);
         }
-        @keyframes spin-global { to { transform: rotate(360deg); } }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            /* Purple/Blue Color Scheme - Feature 5 */
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --primary-light: #818cf8;
-            --secondary: #3b82f6;
-            --accent: #8b5cf6;
-            --accent-light: #fbbf24;
-            --bg-light: #f8fafc;
-            --bg-white: #ffffff;
-            --text-dark: #1e293b;
-            --text-medium: #475569;
-            --text-light: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-            --ontime: #22c55e;
-            --ontime-bg: #dcfce7;
-            --delayed: #f59e0b;
-            --delayed-bg: #fef3c7;
-            --cancelled: #ef4444;
-            --cancelled-bg: #fee2e2;
+            font-family: var(--font-body);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
             min-height: 100vh;
-            color: var(--text-dark);
-            padding-bottom: 80px; /* Space for bottom nav */
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Header */
-        .header {
-            background: var(--bg-white);
-            box-shadow: var(--shadow);
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: var(--accent-2);
+        }
+
+        /* Nav & Header */
+        header {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .header-content {
+        .header-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 1rem 1.5rem;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-        }
-
-        .logo {
-            display: flex;
             align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: -0.025em;
-        }
-
-        .back-btn {
+        .logo-container {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-light);
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--text);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
+        }
+
+        .theme-btn, .menu-toggle-btn {
+            background: none;
             border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.25rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-btn:hover {
+            background-color: var(--surface-2);
+        }
+
+        .menu-toggle-btn {
+            display: none;
+        }
+
+        /* Mobile Dropdown Nav */
+        .mobile-nav {
+            display: none;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mobile-nav a {
+            font-weight: 600;
+            color: var(--text-2);
+        }
+        .mobile-nav.open {
+            display: flex;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
             border-radius: 8px;
-            color: var(--text-medium);
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 700;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s;
-            text-decoration: none;
+            border: none;
+            min-height: 48px;
         }
 
-        .back-btn:hover {
-            background: var(--border);
-            color: var(--text-dark);
+        .btn-primary {
+            background-color: var(--primary);
+            color: #FFFFFF;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-2);
+            transform: translateY(-1px);
         }
 
-        /* Main Content */
-        .main-content {
+        .btn-secondary {
+            background-color: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: #FFFFFF;
+        }
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-ghost {
+            background: none;
+            color: var(--text-2);
+        }
+        .btn-ghost:hover {
+            background-color: var(--surface-2);
+            color: var(--text);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Inputs & Selects */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-2);
+        }
+
+        .input, .select {
+            width: 100%;
+            min-height: 48px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .input:focus, .select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-success { background-color: rgba(5, 150, 105, 0.15); color: var(--success); }
+        .badge-warning { background-color: rgba(217, 119, 6, 0.15); color: var(--warning); }
+        .badge-danger { background-color: rgba(220, 38, 38, 0.15); color: var(--danger); }
+        .badge-neutral { background-color: var(--surface-2); color: var(--text-2); }
+
+        /* ============================================================
+           RESULTS CONTENT ELEMENTS
+           ============================================================ */
+        .results-container {
             max-width: 900px;
             margin: 0 auto;
             padding: 2rem 1.5rem;
-        }
-
-        /* Search Summary */
-        .search-summary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 16px;
-            padding: 1.5rem;
-            color: white;
-            margin-bottom: 1.5rem;
-        }
-
-        .search-route {
+            width: 100%;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 0.75rem;
+            flex-direction: column;
+            gap: 1.5rem;
+            flex: 1;
         }
 
-        .station-name {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .route-arrow {
-            opacity: 0.8;
-            font-size: 1.5rem;
-        }
-
-        .search-date {
-            text-align: center;
-            opacity: 0.9;
-            font-size: 0.875rem;
-        }
-
-        /* Loading State */
-        .loading-container {
-            display: none;
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .loading-container.active {
-            display: block;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: var(--text-medium);
-            font-size: 1rem;
-        }
-
-        /* Error State */
-        .error-container {
-            display: none;
-            text-align: center;
-            padding: 4rem 2rem;
-            background: var(--bg-white);
-            border-radius: 16px;
+        .compact-search-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: 0.75rem;
+            align-items: flex-end;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
             box-shadow: var(--shadow);
         }
 
-        .error-container.active {
-            display: block;
-        }
-
-        .error-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .error-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-        }
-
-        .error-message {
-            color: var(--text-medium);
-            margin-bottom: 1.5rem;
-        }
-
-        /* Results Container */
-        .results-container {
-            display: none;
-        }
-
-        .results-container.active {
-            display: block;
-        }
-
-        .results-header {
+        .results-info {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.25rem;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .results-count {
-            font-size: 0.875rem;
-            color: var(--text-medium);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
         }
 
-        .results-count strong {
-            color: var(--text-dark);
-        }
-
-        .legend {
+        .sort-filter-row {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
             gap: 1rem;
-            font-size: 0.75rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-        }
-
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .legend-dot.ontime { background: var(--ontime); }
-        .legend-dot.delayed { background: var(--delayed); }
-        .legend-dot.cancelled { background: var(--cancelled); }
-
-        /* Reliability Badge */
-        .reliability-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.375rem 0.75rem;
-            background: var(--bg-light);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--text-medium);
-        }
-
-        .reliability-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .reliability-dot.high {
-            background: var(--ontime);
-        }
-
-        .reliability-dot.medium {
-            background: var(--delayed);
-        }
-
-        .reliability-dot.low {
-            background: var(--cancelled);
-        }
-
-        /* BUG-03 Sprint 3 fix: added grey dot for trains with no historical data */
-        .reliability-dot.no-data {
-            background: #94a3b8;
-        }
-
-        .reliability-percent {
-            font-weight: 600;
-        }
-
-        /* Class Filter */
-        .class-filter {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
             flex-wrap: wrap;
         }
 
-        .filter-btn {
-            padding: 0.5rem 1rem;
-            background: var(--bg-white);
+        .class-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background-color: var(--surface-2);
+            padding: 0.25rem;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-medium);
+        }
+
+        .class-tab {
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            background: none;
+            border: none;
+            color: var(--text-2);
             cursor: pointer;
             transition: all 0.2s;
         }
-
-        .filter-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .filter-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* Train Card - clickable cursor */
-        .train-card {
-            cursor: pointer;
-            background: var(--bg-white);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
+        .class-tab.active {
+            background-color: var(--surface);
+            color: var(--text);
             box-shadow: var(--shadow);
-            transition: all 0.2s;
-            border: 2px solid transparent;
         }
 
-        .train-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .train-card.cancelled {
-            border-color: var(--cancelled);
-            background: linear-gradient(to right, var(--bg-white) 0%, var(--cancelled-bg) 100%);
-        }
-
-        .train-header {
+        /* Train Card Specifics */
+        .train-grid {
             display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 1rem;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
-        .train-info {
-            flex: 1;
-        }
-
-        .train-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .train-number {
-            font-size: 0.875rem;
-            color: var(--text-light);
-            font-weight: 500;
-        }
-
-        .train-type {
-            display: inline-block;
-            padding: 0.25rem 0.625rem;
-            background: var(--bg-light);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: var(--text-medium);
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            padding: 0.5rem 0.875rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-
-        .status-badge.ontime {
-            background: var(--ontime-bg);
-            color: var(--ontime);
-        }
-
-        .status-badge.delayed {
-            background: var(--delayed-bg);
-            color: #92400e;
-        }
-
-        .status-badge.cancelled {
-            background: var(--cancelled-bg);
-            color: var(--cancelled);
-        }
-
-        /* Timeline */
-        .timeline {
+        .train-card {
+            border-left: 6px solid var(--success);
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 1rem;
-            padding: 1rem 0;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
+            padding: 1.5rem;
+        }
+        .train-card.ON_TIME { border-left-color: var(--success); }
+        .train-card.DELAYED { border-left-color: var(--warning); }
+        .train-card.CANCELLED { border-left-color: var(--danger); }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        .time-section {
-            text-align: center;
-        }
-
-        .time-label {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-
-        .time-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .time-value.delayed {
-            color: var(--delayed);
-        }
-
-        .time-value.cancelled {
-            color: var(--cancelled);
-            text-decoration: line-through;
-        }
-
-        .time-station {
-            font-size: 0.875rem;
-            color: var(--text-medium);
-            margin-top: 0.25rem;
-        }
-
-        .duration-section {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
-
-        .duration-line {
-            height: 2px;
-            background: var(--border);
-            position: relative;
-            margin: 0.5rem 0;
-        }
-
-        .duration-line::before,
-        .duration-line::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--primary);
-            border-radius: 50%;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .duration-line::before { left: 0; }
-        .duration-line::after { right: 0; }
-
-        .duration-text {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-medium);
-        }
-
-        .distance-text {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            margin-top: 0.25rem;
-        }
-
-        /* Delay Info */
-        .delay-info {
+        .train-title {
+            font-size: 1.25rem;
+            font-weight: 800;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-top: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            background: var(--delayed-bg);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            color: #92400e;
         }
 
-        .delay-info.hidden {
-            display: none;
-        }
-
-        /* No Results */
-        .no-results {
-            display: none;
-            text-align: center;
-            padding: 4rem 2rem;
-            background: var(--bg-white);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-        }
-
-        .no-results.active {
-            display: block;
-        }
-
-        .no-results-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-
-        .no-results-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-        }
-
-        .no-results-text {
-            color: var(--text-medium);
-            margin-bottom: 1.5rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-            .timeline {
-                flex-direction: column;
-                gap: 1.5rem;
-            }
-
-            .duration-section {
-                width: 100%;
-            }
-
-            .train-header {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-
-            .legend {
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-        }
-
-        /* Modal / Station Sequence */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 200;
-            justify-content: center;
+        .card-middle {
+            display: flex;
             align-items: center;
-            padding: 1rem;
+            gap: 1.5rem;
+            margin: 0.5rem 0;
         }
 
-        .modal-overlay.active {
+        .time-block {
+            display: flex;
+            flex-direction: column;
+        }
+        .time-large {
+            font-size: 1.75rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--primary-2);
+        }
+        .station-sub {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-2);
+        }
+
+        .route-path-line {
+            flex: 1;
+            height: 2px;
+            background-color: var(--border);
+            position: relative;
+            min-width: 50px;
+        }
+        .route-path-line::after {
+            content: '➔';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-2);
+            font-size: 0.75rem;
+            background-color: var(--surface);
+            padding: 0 0.25rem;
+        }
+
+        .metadata-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .delay-banner {
+            background-color: rgba(217, 119, 6, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .card-actions .btn {
+            flex: 1;
+        }
+
+        /* Stops Accordion */
+        .stops-accordion {
+            background-color: var(--surface-2);
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .stops-accordion.open {
             display: flex;
         }
 
-        .modal-content {
-            background: var(--bg-white);
-            border-radius: 16px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
+        .stop-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        .stop-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
         }
 
-        .modal-title {
-            font-size: 1.25rem;
+        .stop-time-label {
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--primary-2);
+            width: 80px;
         }
 
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-light);
-            padding: 0.25rem;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            color: var(--text-dark);
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .station-sequence {
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
             display: flex;
             flex-direction: column;
-            gap: 0;
-        }
-
-        .station-item {
-            display: grid;
-            grid-template-columns: 140px 1fr 60px;
             align-items: center;
             gap: 1rem;
-            padding: 0.75rem 0;
-            border-left: 2px solid var(--border);
-            padding-left: 1.5rem;
-            position: relative;
         }
 
-        .station-times {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        .empty-train-icon {
+            font-size: 4rem;
+            animation: bounce 2s infinite;
         }
 
-        .time-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
-        .time-col small {
-            font-size: 0.65rem;
-            color: var(--text-light);
-            text-transform: uppercase;
-        }
-
-        .time-col div {
-            font-weight: 600;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .time-col div.delayed-text {
-            color: var(--delayed);
-        }
-
-        .station-item::before {
-            content: '';
-            position: absolute;
-            left: -5px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--primary);
-        }
-
-        .station-item:first-child::before,
-        .station-item:last-child::before {
-            background: var(--primary-dark);
-            width: 12px;
-            height: 12px;
-            left: -7px;
-        }
-
-        .station-time {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--primary);
-            min-width: 60px;
-        }
-
-        .station-name {
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-dark);
-        }
-
-        .station-code {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            margin-left: auto;
-            background: var(--bg-light);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        /* Mobile specific (375px) */
-        @media (max-width: 375px) {
-            .train-header {
+        /* ============================================================
+           RESPONSIVE OVERRIDES
+           ============================================================ */
+        @media (max-width: 768px) {
+            .compact-search-bar {
+                grid-template-columns: 1fr;
+            }
+            .card-actions {
+                flex-direction: column;
+            }
+            .route-path-line {
+                display: none;
+            }
+            .card-middle {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.5rem;
             }
-
-            .train-header > div:last-child {
-                align-self: flex-end;
-                flex-direction: row;
-                gap: 0.5rem;
-            }
-
-            .reliability-badge {
-                font-size: 0.7rem;
-                padding: 0.25rem 0.5rem;
-            }
-
-            .reliability-dot {
-                width: 8px;
-                height: 8px;
-            }
-
-            .status-badge {
-                font-size: 0.7rem;
-                padding: 0.375rem 0.625rem;
-            }
         }
-
-        /* Watch button */
-        .watch-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            margin-top: 0.875rem;
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: 1.5px solid var(--primary);
-            border-radius: 8px;
-            color: var(--primary);
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .watch-btn:hover {
-            background: var(--primary);
-            color: white;
-        }
-        .watch-btn.watching {
-            background: #dcfce7;
-            border-color: #22c55e;
-            color: #166534;
-            cursor: default;
-        }
-        .watch-btn:disabled { opacity: 0.7; cursor: not-allowed; }
     </style>
 </head>
 <body>
-    <div class="spinner-overlay" id="spinner">
-        <div class="spinner-global"></div>
-    </div>
-    <div id="offlineResultsBanner" style="display:none;background:#fef9c3;color:#854d0e;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #fde047;"></div>
-    <header class="header">
-        <div class="header-content">
-            <a href="index.html" class="logo">
-                <div class="logo-icon">🚂</div>
-                <div class="logo-text">Ceylon Track</div>
+
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo-container">
+                <span>🚂</span> Ceylon Track
             </a>
-            <a href="index.html" class="back-btn">
-                <span>←</span>
-                <span>New Search</span>
-            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="index.html">Search</a>
+                <a href="live-map.html">🗺 Live Map</a>
+                <a href="watch.html">My Watches</a>
+                <a href="gps-demo.html">GPS Demo 🛰</a>
+                <a href="login.html" id="authLink">Login</a>
+                <button class="theme-btn" id="themeBtn">🌓</button>
+            </div>
+            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
         </div>
     </header>
 
-    <main class="main-content">
-        <!-- Search Summary -->
-        <div class="search-summary" id="searchSummary">
-            <div class="search-route">
-                <span class="station-name" id="fromStation">--</span>
-                <span class="route-arrow">→</span>
-                <span class="station-name" id="toStation">--</span>
+    <div class="mobile-nav" id="mobileNav">
+        <a href="index.html">Search</a>
+        <a href="live-map.html">🗺 Live Map</a>
+        <a href="watch.html">My Watches</a>
+        <a href="gps-demo.html">GPS Demo 🛰</a>
+        <a href="login.html" id="authLinkMobile">Login</a>
+        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
+    </div>
+
+    <main class="results-container">
+        
+        <!-- Compact Search Bar -->
+        <form class="compact-search-bar" id="compactSearchForm">
+            <div class="input-group">
+                <label for="fromInput">From</label>
+                <input type="text" id="fromInput" class="input" placeholder="From Station" required>
             </div>
-            <div class="search-date" id="searchDate">--</div>
-        </div>
+            <div class="input-group">
+                <label for="toInput">To</label>
+                <input type="text" id="toInput" class="input" placeholder="To Station" required>
+            </div>
+            <div class="input-group">
+                <label for="dateInput">Date</label>
+                <input type="date" id="dateInput" class="input" required>
+            </div>
+            <div class="input-group">
+                <label for="classSelect">Class</label>
+                <select id="classSelect" class="select">
+                    <option value="all">All Classes</option>
+                    <option value="1st">1st Class</option>
+                    <option value="2nd">2nd Class</option>
+                    <option value="3rd">3rd Class</option>
+                    <option value="mixed">Mixed</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
 
-        <!-- Loading -->
-        <div class="loading-container active" id="loadingContainer">
-            <div class="spinner"></div>
-            <p class="loading-text">Finding available trains...</p>
-        </div>
-
-        <!-- Error -->
-        <div class="error-container" id="errorContainer">
-            <div class="error-icon">⚠️</div>
-            <h2 class="error-title" id="errorTitle">Something went wrong</h2>
-            <p class="error-message" id="errorMessage">Unable to fetch train schedules</p>
-            <a href="index.html" class="back-btn">← Back to Search</a>
-        </div>
-
-        <!-- No Results -->
-        <div class="no-results" id="noResults">
-            <div class="no-results-icon">🚫</div>
-            <h2 class="no-results-title">No Trains Found</h2>
-            <p class="no-results-text">No trains available for this route on the selected date.</p>
-            <a href="index.html" class="back-btn">← Try Different Search</a>
-        </div>
-
-        <!-- Results -->
-        <div class="results-container" id="resultsContainer">
-            <div class="results-header">
-                <span class="results-count">Found <strong id="resultsCount">0</strong> train(s)</span>
-                <div class="legend">
-                    <div class="legend-item">
-                        <span class="legend-dot ontime"></span>
-                        <span>On Time</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot delayed"></span>
-                        <span>Delayed</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot cancelled"></span>
-                        <span>Cancelled</span>
-                    </div>
+        <!-- Results Info & Sort/Filter Header -->
+        <div id="errorBanner" style="color: var(--danger); background: rgba(220, 38, 38, 0.1); border: 1px solid var(--danger); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; text-align: center; font-weight: 700; display: none;"></div>
+        
+        <div class="results-info">
+            <div class="results-count" id="resultsCount">Searching for trains...</div>
+            
+            <div class="sort-filter-row">
+                <div class="input-group" style="flex-direction: row; align-items: center; gap: 0.5rem;">
+                    <label for="sortSelect" style="margin: 0; white-space: nowrap;">Sort By</label>
+                    <select id="sortSelect" class="select" style="min-height: 38px; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                        <option value="departure">Departure Time</option>
+                        <option value="reliability">Reliability</option>
+                    </select>
                 </div>
-            </div>
 
-            <div class="class-filter" id="classFilter">
-                <button class="filter-btn active" data-class="all">All Classes</button>
-                <button class="filter-btn" data-class="1">1st Class</button>
-                <button class="filter-btn" data-class="2">2nd Class</button>
-                <button class="filter-btn" data-class="3">3rd Class</button>
-            </div>
-
-            <div id="resultsList"></div>
-        </div>
-        <!-- Station Sequence Modal -->
-        <div class="modal-overlay" id="stationModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div class="modal-title" id="modalTitle">Train Details</div>
-                    <button class="modal-close" onclick="closeModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="station-sequence" id="stationSequence">
-                        <!-- Station items injected here -->
-                    </div>
+                <div class="class-tabs">
+                    <button class="class-tab active" data-tab="all">All</button>
+                    <button class="class-tab" data-tab="1st">1st</button>
+                    <button class="class-tab" data-tab="2nd">2nd</button>
+                    <button class="class-tab" data-tab="3rd">3rd</button>
                 </div>
             </div>
         </div>
+
+        <!-- Train Cards Container -->
+        <div class="train-grid" id="trainGrid">
+            <!-- Train cards injected here -->
+        </div>
+
     </main>
 
+    <footer>
+        <p>© 2026 Ceylon Track — Sri Lanka Railway Passenger Portal</p>
+    </footer>
+
+    <script src="/js/api.js"></script>
     <script>
-        // API Base URL
-        const API_BASE_URL = 'http://localhost:3000/api';
+        let allTrains = [];
+        let activeTab = 'all';
 
-        function showSpinner() {
-            document.getElementById('spinner').classList.add('active');
-        }
-        function hideSpinner() {
-            document.getElementById('spinner').classList.remove('active');
-        }
-        function showError(message) {
-            const existing = document.getElementById('error-banner');
-            if (existing) existing.remove();
-            const banner = document.createElement('div');
-            banner.id = 'error-banner';
-            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
-            banner.textContent = message;
-            document.body.insertBefore(banner, document.body.firstChild);
-            setTimeout(() => banner.remove(), 5000);
-        }
-
-        function resultsCacheKey(from, to, date) {
-            return `${encodeURIComponent(from)}_${encodeURIComponent(to)}_${encodeURIComponent(date)}`;
-        }
-
-        function cacheResults(searchKey, results) {
-            const payload = {
-                data: results,
-                timestamp: Date.now(),
-                from: currentSearchParams.from || document.getElementById('fromStation').textContent,
-                to: currentSearchParams.to || document.getElementById('toStation').textContent
-            };
-            try {
-                localStorage.setItem('ceylontrack_results_' + searchKey, JSON.stringify(payload));
-            } catch (e) {
-                console.warn('Could not cache results', e);
-            }
-        }
-
-        function loadCachedResults(searchKey) {
-            const raw = localStorage.getItem('ceylontrack_results_' + searchKey);
-            if (!raw) return null;
-            try {
-                const o = JSON.parse(raw);
-                const age = Date.now() - o.timestamp;
-                const TWO_H = 2 * 60 * 60 * 1000;
-                return {
-                    data: o.data,
-                    stale: age > TWO_H,
-                    timestamp: o.timestamp
-                };
-            } catch (e) {
-                return null;
-            }
-        }
-
-        // DOM Elements
-        const loadingContainer = document.getElementById('loadingContainer');
-        const errorContainer = document.getElementById('errorContainer');
-        const noResults = document.getElementById('noResults');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const resultsList = document.getElementById('resultsList');
-        const resultsCount = document.getElementById('resultsCount');
-        const fromStationEl = document.getElementById('fromStation');
-        const toStationEl = document.getElementById('toStation');
-        const searchDateEl = document.getElementById('searchDate');
-        const errorTitle = document.getElementById('errorTitle');
-        const errorMessage = document.getElementById('errorMessage');
-        const classFilter = document.getElementById('classFilter');
-        const stationModal = document.getElementById('stationModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const stationSequence = document.getElementById('stationSequence');
-
-        // Global state
-        let currentSchedules = [];
-        let currentFilter = 'all';
-        let pollInterval = null;
-        let currentSearchParams = {};
-        let watchedTrainIds = new Set(); // tracks which trains user has already watched
-
-        // Get URL parameters
-        function getQueryParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                from: params.get('from'),
-                to: params.get('to'),
-                date: params.get('date')
-            };
-        }
-
-        // Format date for display
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            return date.toLocaleDateString('en-US', options);
-        }
-
-        // Fetch schedules from API
-        async function fetchSchedules(from, to, date) {
-            const response = await fetch(
-                `${API_BASE_URL}/schedules/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`
-            );
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.error || 'Failed to fetch schedules');
-            }
-
-            return await response.json();
-        }
-
-        // Determine status badge properties based on delay and current status
-        function getBadgeInfo(delayMinutes, status) {
-            if (status === 'Cancelled') {
-                return {
-                    text: 'Cancelled',
-                    class: 'cancelled'
-                };
-            }
-
-            if (delayMinutes === 0) {
-                return {
-                    text: 'On Schedule',
-                    class: 'ontime'
-                };
-            }
-
-            if (delayMinutes <= 15) {
-                return {
-                    text: 'Slightly Delayed',
-                    class: 'delayed'
-                };
-            }
-
-            return {
-                text: 'Significantly Delayed',
-                class: 'delayed'
-            };
-        }
-
-        /**
-         * BUG-03 Sprint 3 fix — completes the resolution started in Sprint 2.
-         * Previously the reliability badge LABEL came from getBadgeInfo() (delay-based)
-         * while the dot colour came from the API's pre-computed 'reliability' field
-         * (punctuality-based). The two sources could contradict each other
-         * (e.g. green label "USUALLY ON TIME" alongside an orange/red dot at 0%).
-         *
-         * This function is now the single source of truth for BOTH the dot colour
-         * and the label text. The conditions for each tier are identical:
-         *   punctuality > 80            → high  (green)  → USUALLY ON TIME
-         *   punctuality 50–79           → medium (orange) → SOMETIMES DELAYED
-         *   punctuality < 50 and > 0    → low   (red)    → OFTEN LATE
-         *   punctuality 0, totalTrips 0 → no-data (grey) → NO DATA YET
-         *   punctuality 0, totalTrips>0 → low   (red)    → OFTEN LATE
-         */
-        function getReliabilityInfo(reliabilityData) {
-            const pct = (reliabilityData && reliabilityData.punctuality_percent != null)
-                                   ? parseFloat(reliabilityData.punctuality_percent)
-                                   : null;
-            const totalTrips = (reliabilityData && reliabilityData.total_trips != null)
-                                   ? parseInt(reliabilityData.total_trips)
-                                   : 0;
-
-            // No historical data at all
-            if (totalTrips === 0 || pct === null) {
-                return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
-            }
-
-            // Has data but always late
-            if (pct < 50 && totalTrips > 0) {
-                return { dotClass: 'low', label: 'OFTEN LATE', percent: pct };
-            }
-
-            // pct 50 to 80
-            if (pct >= 50 && pct <= 80) {
-                return { dotClass: 'medium', label: 'SOMETIMES DELAYED', percent: pct };
-            }
-
-            // pct > 80
-            if (pct > 80 && totalTrips > 0) {
-                return { dotClass: 'high', label: 'USUALLY ON TIME', percent: pct };
-            }
+        // Set Nav Active Auth Status
+        if (window.api.isLoggedIn()) {
+            const user = window.api.getUser();
+            const authLink = document.getElementById('authLink');
+            const authLinkMobile = document.getElementById('authLinkMobile');
+            authLink.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
+            authLinkMobile.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
             
-            return { dotClass: 'no-data', label: 'NO HISTORY YET', percent: 0 };
+            if (user && (user.role === 'staff' || user.role === 'admin')) {
+                const navLinks = document.getElementById('navLinks');
+                const adminNode = document.createElement('a');
+                adminNode.href = 'admin.html';
+                adminNode.textContent = 'Dashboard 📊';
+                navLinks.insertBefore(adminNode, document.getElementById('themeBtn'));
+            }
         }
 
-        // Render train card
-        function createTrainCard(schedule) {
-            const badge = getBadgeInfo(schedule.status.delay_minutes, schedule.status.current);
-            const isCancelled = badge.class === 'cancelled';
-            const hasDelay = schedule.status.delay_minutes > 0;
+        // Mobile Nav & Theme logic
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
 
-            const delayInfoHtml = hasDelay && !isCancelled ? `
-                <div class="delay-info">
-                    <span>⏱️</span>
-                    <span>Delayed by ${schedule.status.delay_minutes} minute${schedule.status.delay_minutes > 1 ? 's' : ''}</span>
-                </div>
-            ` : '';
-
-            // BUG-03 Sprint 3 fix: both dot colour and label now use getReliabilityInfo(),
-            // guaranteeing they can never contradict each other.
-            const rel = getReliabilityInfo(schedule.reliability);
-            const reliabilityBadgeHtml = `
-                <div class="reliability-badge">
-                    <span class="reliability-dot ${rel.dotClass}"></span>
-                    <span class="reliability-percent">${rel.percent}%</span>
-                    <span>${rel.label}</span>
-                </div>
-            `;
-
-            // Watch button
-            const isWatching = watchedTrainIds.has(schedule.train.id);
-            const watchBtnHtml = `
-                <button
-                    class="watch-btn ${isWatching ? 'watching' : ''}"
-                    id="watch-btn-${schedule.train.id}"
-                    onclick="handleWatch(event, ${schedule.train.id})"
-                    ${isWatching ? 'disabled' : ''}
-                    title="${!localStorage.getItem('token') ? 'Login to watch this train' : ''}"
-                >
-                    ${isWatching ? '✅ Watching' : '🔔 Watch this train'}
-                </button>
-            `;
-
-            return `
-                <div class="train-card ${badge.class}" data-schedule-id="${schedule.schedule_id}" data-classes="${(schedule.available_classes || [1,2,3]).join(',')}" onclick="openModal(${schedule.schedule_id})">
-                    <div class="train-header">
-                        <div class="train-info">
-                            <div class="train-name">${schedule.train.name}</div>
-                            <div class="train-number">Train No. ${schedule.train.number}</div>
-                            <span class="train-type">${schedule.train.type}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
-                            <span class="status-badge ${badge.class}">${badge.text}</span>
-                            ${reliabilityBadgeHtml}
-                        </div>
-                    </div>
-
-                    <div class="timeline">
-                        <div class="time-section">
-                            <div class="time-label">Departure</div>
-                            <div class="time-value ${isCancelled ? 'cancelled' : ''}">${schedule.departure_time}</div>
-                            <div class="time-station">${schedule.from_station}</div>
-                        </div>
-
-                        <div class="duration-section">
-                            <div class="duration-line"></div>
-                            <div class="duration-text">${schedule.duration.formatted}</div>
-                            <div class="distance-text">${schedule.distance_km} km</div>
-                        </div>
-
-                        <div class="time-section">
-                            <div class="time-label">Arrival</div>
-                            <div class="time-value ${hasDelay ? 'delayed' : ''} ${isCancelled ? 'cancelled' : ''}">
-                                ${schedule.arrival_time}
-                            </div>
-                            <div class="time-station">${schedule.to_station}</div>
-                        </div>
-                    </div>
-
-                    ${delayInfoHtml}
-                    ${watchBtnHtml}
-                </div>
-            `;
+        const themeBtn = document.getElementById('themeBtn');
+        const themeBtnMobile = document.getElementById('themeBtnMobile');
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('ceylon_track_theme', newTheme);
         }
+        themeBtn.addEventListener('click', toggleTheme);
+        themeBtnMobile.addEventListener('click', toggleTheme);
 
-        // Show error state
-        function showResultsPageError(title, message) {
-            loadingContainer.classList.remove('active');
-            resultsContainer.classList.remove('active');
-            noResults.classList.remove('active');
+        // Fetch stop details inside accordion
+        async function toggleStops(scheduleId, btn) {
+            const accordion = document.getElementById(`stops-${scheduleId}`);
+            const isOpen = accordion.classList.toggle('open');
             
-            errorTitle.textContent = title;
-            errorMessage.textContent = message;
-            errorContainer.classList.add('active');
-        }
+            if (isOpen) {
+                btn.textContent = 'Hide Stops ▴';
+                if (accordion.getAttribute('data-loaded') === 'true') return;
 
-        // Apply class filter and re-render cards
-        function applyClassFilter() {
-            const filtered = currentFilter === 'all'
-                ? currentSchedules
-                : currentSchedules.filter(s => {
-                    // Type-safe comparison: convert both sides to String (BUG: string vs int mismatch)
-                    const classes = (s.available_classes || [1, 2, 3]).map(c => String(c));
-                    return classes.includes(String(currentFilter));
-                });
+                accordion.innerHTML = '<div style="font-size: 0.9rem; color: var(--text-2);">Loading stops...</div>';
+                try {
+                    const res = await window.api.getRoute(scheduleId);
+                    const stops = res.stops || [];
+                    if (stops.length === 0) {
+                        accordion.innerHTML = '<div style="font-size: 0.9rem; color: var(--text-2);">No stop details available.</div>';
+                        return;
+                    }
 
-            resultsCount.textContent = filtered.length;
-            if (filtered.length === 0) {
-                resultsList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-medium)">No trains available for the selected class.</div>';
+                    accordion.innerHTML = stops.map(s => `
+                        <div class="stop-row">
+                            <span class="stop-time-label">${s.scheduledTime.slice(0, 5)}</span>
+                            <span style="flex: 1; font-weight: 600;">${s.stationName}</span>
+                            <span style="color: var(--text-2); font-size: 0.8rem;">Platform ${s.platform || 'N/A'}</span>
+                        </div>
+                    `).join('');
+                    accordion.setAttribute('data-loaded', 'true');
+                } catch (e) {
+                    accordion.innerHTML = '<div style="font-size: 0.9rem; color: var(--danger);">Failed to load stops.</div>';
+                }
             } else {
-                resultsList.innerHTML = filtered.map(createTrainCard).join('');
+                btn.textContent = 'View Stops ▾';
             }
         }
 
-        // Show results
-        async function showResults(data) {
-            loadingContainer.classList.remove('active');
-            errorContainer.classList.remove('active');
-            noResults.classList.remove('active');
-
-            currentSchedules = data.schedules || [];
-
-            if (currentSchedules.length === 0) {
-                noResults.classList.add('active');
+        // Add Train to Watch List
+        async function watchTrain(scheduleId, btn) {
+            if (!window.api.isLoggedIn()) {
+                window.api.showToast('Please log in to watch trains', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
                 return;
             }
 
-            const token = localStorage.getItem('token');
-            if (token) {
-                showSpinner();
-                try {
-                    for (const schedule of currentSchedules) {
-                        try {
-                            const res = await fetch(`${API_BASE_URL}/journeywatch/check?train_id=${schedule.train.id}`, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                            });
-                            if (res.ok) {
-                                const { watched } = await res.json();
-                                if (watched) {
-                                    watchedTrainIds.add(schedule.train.id);
-                                }
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Subscribing...';
+                await window.api.addWatch(scheduleId);
+                window.api.showToast('Train added to watch list!', 'success');
+                btn.textContent = 'Watching ✓';
+                btn.style.backgroundColor = 'var(--success)';
+                btn.style.borderColor = 'var(--success)';
+                btn.style.color = '#fff';
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Watch Train';
+                window.api.showToast(err.message || 'Subscription failed', 'error');
+            }
+        }
+
+        // Format times nicely
+        function formatTime(t) {
+            return t ? t.slice(0, 5) : '';
+        }
+
+        // Render card helpers
+        function renderTrains() {
+            const container = document.getElementById('trainGrid');
+            container.innerHTML = '';
+
+            let filtered = allTrains;
+            if (activeTab !== 'all') {
+                filtered = allTrains.filter(t => {
+                    const cls = t.class || '';
+                    return cls.toLowerCase() === activeTab.toLowerCase();
+                });
+            }
+
+            // Sort
+            const sortBy = document.getElementById('sortSelect').value;
+            if (sortBy === 'departure') {
+                filtered.sort((a, b) => {
+                    const timeA = a.departureTime || a.departure_time || '';
+                    const timeB = b.departureTime || b.departure_time || '';
+                    return timeA.localeCompare(timeB);
+                });
+            } else if (sortBy === 'reliability') {
+                filtered.sort((a, b) => {
+                    const relA = a.reliabilityPercent !== undefined ? a.reliabilityPercent : a.reliability_percent;
+                    const relB = b.reliabilityPercent !== undefined ? b.reliabilityPercent : b.reliability_percent;
+                    return (relB || 0) - (relA || 0);
+                });
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state card">
+                        <div class="empty-train-icon">🚂</div>
+                        <h3>No trains found for this route</h3>
+                        <p>No schedules match your current filter tabs or search query.</p>
+                        <a href="index.html" class="btn btn-secondary">Search Again</a>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(train => {
+                const card = document.createElement('div');
+                const liveStatus = train.liveStatus || train.live_status || 'ON_TIME';
+                card.className = `card train-card ${liveStatus}`;
+                card.id = `train-card-${train.id}`;
+
+                let relBadgeClass = 'badge-neutral';
+                let relBadgeEmoji = '⚪';
+                const reliability = train.reliability || 'NO_DATA';
+                if (reliability === 'USUALLY_ON_TIME') { relBadgeClass = 'badge-success'; relBadgeEmoji = '🟢'; }
+                else if (reliability === 'SOMETIMES_DELAYED') { relBadgeClass = 'badge-warning'; relBadgeEmoji = '🟡'; }
+                else if (reliability === 'OFTEN_LATE') { relBadgeClass = 'badge-danger'; relBadgeEmoji = '🔴'; }
+
+                let statusBadge = 'badge-success';
+                if (liveStatus === 'DELAYED') statusBadge = 'badge-warning';
+                if (liveStatus === 'CANCELLED') statusBadge = 'badge-danger';
+
+                const trainNumber = train.trainNumber || train.train_number || '';
+                const trainName = train.trainName || train.train_name || '';
+                const departureTime = train.departureTime || train.departure_time || '';
+                const arrivalTime = train.arrivalTime || train.arrival_time || '';
+                const fromStation = train.fromStation || train.from_station || '';
+                const toStation = train.toStation || train.to_station || '';
+                const delayMinutes = train.delayMinutes !== undefined ? train.delayMinutes : train.delay_minutes;
+                const reliabilityPercent = train.reliabilityPercent !== undefined ? train.reliabilityPercent : train.reliability_percent;
+
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="train-title">
+                            <span>Train ${trainNumber}</span>
+                            <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-2);">${trainName}</span>
+                        </div>
+                        <span class="badge ${statusBadge}" id="status-badge-${train.id}">${liveStatus.replace('_', ' ')}</span>
+                    </div>
+
+                    <div class="card-middle">
+                        <div class="time-block">
+                            <span class="time-large">${formatTime(departureTime)}</span>
+                            <span class="station-sub">${fromStation}</span>
+                        </div>
+                        <div class="route-path-line"></div>
+                        <div class="time-block">
+                            <span class="time-large">${formatTime(arrivalTime)}</span>
+                            <span class="station-sub">${toStation}</span>
+                        </div>
+                    </div>
+
+                    ${liveStatus === 'DELAYED' ? `
+                        <div class="delay-banner" id="delay-banner-${train.id}">
+                            ⚠️ Running ${delayMinutes} minutes late
+                        </div>
+                    ` : ''}
+
+                    <div class="metadata-row">
+                        <span class="badge badge-neutral">${train.class || ''} Class</span>
+                        <span class="badge ${relBadgeClass}">
+                            ${relBadgeEmoji} Reliability: ${reliabilityPercent !== null && reliabilityPercent !== undefined ? reliabilityPercent + '%' : 'No Data'}
+                        </span>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="toggleStops(${train.id}, this)">View Stops ▾</button>
+                        <button class="btn btn-primary" id="watch-btn-${train.id}" onclick="watchTrain(${train.id}, this)">Watch Train</button>
+                    </div>
+
+                    <div class="stops-accordion" id="stops-${train.id}"></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Search trigger
+        async function executeSearch() {
+            const from = document.getElementById('fromInput').value;
+            const to = document.getElementById('toInput').value;
+            const date = document.getElementById('dateInput').value;
+            const trainClass = document.getElementById('classSelect').value;
+            const errorBanner = document.getElementById('errorBanner');
+
+            errorBanner.style.display = 'none';
+            document.getElementById('resultsCount').textContent = 'Searching schedules...';
+            window.api.showSpinner();
+
+            try {
+                const res = await window.api.searchSchedules(from, to, date, trainClass);
+                console.log('Search result:', res);
+                allTrains = res.schedules || [];
+                document.getElementById('resultsCount').textContent = `${allTrains.length} train${allTrains.length === 1 ? '' : 's'} found for ${from} → ${to}`;
+                renderTrains();
+            } catch (err) {
+                console.error('Search failed:', err);
+                window.api.showToast(err.message || 'Search failed', 'error');
+                errorBanner.textContent = err.message || 'Search failed';
+                errorBanner.style.display = 'block';
+                document.getElementById('resultsCount').textContent = 'Failed to load schedules.';
+            } finally {
+                window.api.hideSpinner();
+            }
+        }
+
+        // Inline Updates Auto-Refresh
+        async function refreshSchedulesInPlace() {
+            const from = document.getElementById('fromInput').value;
+            const to = document.getElementById('toInput').value;
+            const date = document.getElementById('dateInput').value;
+            const trainClass = document.getElementById('classSelect').value;
+
+            try {
+                const res = await window.api.searchSchedules(from, to, date, trainClass);
+                const updatedTrains = res.schedules || [];
+                
+                updatedTrains.forEach(newTrain => {
+                    const existingTrain = allTrains.find(t => t.id === newTrain.id);
+                    if (existingTrain) {
+                        const newLiveStatus = newTrain.liveStatus || newTrain.live_status || 'ON_TIME';
+                        const newDelayMinutes = newTrain.delayMinutes !== undefined ? newTrain.delayMinutes : newTrain.delay_minutes;
+
+                        existingTrain.liveStatus = newLiveStatus;
+                        existingTrain.delayMinutes = newDelayMinutes;
+
+                        // Update DOM directly in place if element exists
+                        const statusBadge = document.getElementById(`status-badge-${newTrain.id}`);
+                        if (statusBadge) {
+                            statusBadge.textContent = newLiveStatus.replace('_', ' ');
+                            statusBadge.className = 'badge ' + 
+                                (newLiveStatus === 'ON_TIME' ? 'badge-success' : 
+                                 newLiveStatus === 'DELAYED' ? 'badge-warning' : 'badge-danger');
+                        }
+
+                        const card = document.getElementById(`train-card-${newTrain.id}`);
+                        if (card) {
+                            card.className = `card train-card ${newLiveStatus}`;
+                        }
+
+                        const delayBanner = document.getElementById(`delay-banner-${newTrain.id}`);
+                        if (newLiveStatus === 'DELAYED') {
+                            if (delayBanner) {
+                                delayBanner.textContent = `⚠️ Running ${newDelayMinutes} minutes late`;
+                            } else {
+                                // Re-render card to inject delay banner dynamically
+                                renderTrains();
                             }
-                        } catch (e) {
-                            console.error('Check watch error', e);
+                        } else {
+                            if (delayBanner) delayBanner.remove();
                         }
                     }
-                } finally {
-                    hideSpinner();
-                }
-            }
-
-            applyClassFilter();
-            resultsContainer.classList.add('active');
-        }
-
-        /**
-         * Poll train status every 30 seconds and update UI without full reload
-         */
-        async function pollStatus() {
-            if (!currentSearchParams.from || !currentSearchParams.to || !currentSearchParams.date) return;
-            try {
-                const data = await fetchSchedules(
-                    currentSearchParams.from,
-                    currentSearchParams.to,
-                    currentSearchParams.date
-                );
-                currentSchedules = data.schedules || [];
-                applyClassFilter();
-            } catch (error) {
-                console.error('Polling error:', error);
-            }
-        }
-
-        function startPolling() {
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(pollStatus, 30000);
-        }
-
-        function stopPolling() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        }
-
-        /**
-         * Fetch and display station sequence modal for a given schedule ID
-         */
-        async function fetchScheduleDetail(scheduleId) {
-            showSpinner();
-            try {
-                const response = await fetch(`${API_BASE_URL}/schedules/${scheduleId}?date=${currentSearchParams.date || ''}`);
-                if (!response.ok) throw new Error('Failed to fetch details');
-                const data = await response.json();
-
-                modalTitle.textContent = `${data.schedule.train_name} (${data.schedule.train_number})`;
-
-                stationSequence.innerHTML = data.stations.map((st, idx) => {
-                    const time = st.arrival_time
-                        ? st.arrival_time.substring(0, 5)
-                        : st.departure_time
-                            ? st.departure_time.substring(0, 5)
-                            : '--:--';
-                    
-                    const predicted = st.predicted_eta ? st.predicted_eta.substring(0, 5) : time;
-                    const isDelayed = predicted !== time && data.schedule.delay_minutes > 0;
-
-                    return `
-                        <div class="station-item">
-                            <div class="station-times">
-                                <div class="time-col">
-                                    <small>Scheduled</small>
-                                    <div>${time}</div>
-                                </div>
-                                <div class="time-col">
-                                    <small>Predicted</small>
-                                    <div class="${isDelayed ? 'delayed-text' : ''}">
-                                        ${predicted} ${isDelayed ? '⏰' : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="station-name">${st.station_name}</div>
-                            <div class="station-code">${st.station_code}</div>
-                        </div>
-                    `;
-                }).join('');
-
-                stationModal.classList.add('active');
-            } catch (error) {
-                console.error('Error fetching schedule detail:', error);
-                alert('Unable to load station sequence. Please try again.');
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        function openModal(scheduleId) {
-            fetchScheduleDetail(scheduleId);
-        }
-
-        function closeModal() {
-            stationModal.classList.remove('active');
-        }
-
-        // Close modal when clicking outside
-        stationModal.addEventListener('click', (e) => {
-            if (e.target === stationModal) closeModal();
-        });
-
-        // Class filter button listeners
-        classFilter.addEventListener('click', (e) => {
-            const btn = e.target.closest('.filter-btn');
-            if (!btn) return;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.class;
-            applyClassFilter();
-        });
-
-        // ── Watch helpers ─────────────────────────────────────────
-        /**
-         * Handle the Watch button click. Stops card click propagation,
-         * calls POST /api/journeywatch, and updates button state.
-         */
-        async function handleWatch(event, trainId) {
-            event.stopPropagation(); // Don't open station modal
-
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // Save params and redirect to login
-                sessionStorage.setItem('searchParams', JSON.stringify(currentSearchParams));
-                window.location.href = 'login.html?redirect=results';
-                return;
-            }
-
-            const btn = document.getElementById(`watch-btn-${trainId}`);
-            if (!btn || btn.disabled) return;
-
-            const { date } = currentSearchParams;
-
-            btn.textContent = '⏳ Watching...';
-            btn.disabled = true;
-
-            showSpinner();
-            try {
-                const res = await fetch(`${API_BASE_URL}/journeywatch`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        train_id: trainId,
-                        travel_date: date
-                    })
                 });
-
-                if (res.status === 401) {
-                    window.location.href = 'login.html?redirect=results';
-                    return;
-                }
-
-                if (res.status === 409) {
-                    btn.textContent = '✅ Watching';
-                    btn.classList.add('watching');
-                    watchedTrainIds.add(trainId);
-                    return;
-                }
-
-                if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.error || 'Failed to watch');
-                }
-
-                btn.textContent = '✅ Watching';
-                btn.classList.add('watching');
-                watchedTrainIds.add(trainId);
-
-            } catch (err) {
-                console.error('Watch error:', err);
-                btn.textContent = '🔔 Watch this train';
-                btn.disabled = false;
-                alert(err.message || 'Could not set watch. Please try again.');
-            } finally {
-                hideSpinner();
+            } catch (e) {
+                console.warn('Silent auto-refresh failed:', e);
             }
         }
 
-        /**
-         * Pre-load which trains the logged-in user is already watching
-         * so the buttons render in the correct state.
-         */
-        async function loadExistingWatches() {
-            // Replaced by individual check calls in showResults
-        }
+        // On Load
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const from = params.get('from') || '';
+            const to = params.get('to') || '';
+            const date = params.get('date') || '';
+            const trainClass = params.get('class') || 'all';
 
-        // Initialize
-        async function init() {
-            const { from, to, date } = getQueryParams();
+            document.getElementById('fromInput').value = from;
+            document.getElementById('toInput').value = to;
+            document.getElementById('dateInput').value = date || new Date().toISOString().split('T')[0];
+            document.getElementById('classSelect').value = trainClass;
 
-            if (!from || !to || !date) {
-                showResultsPageError('Invalid Search', 'Please provide departure station, destination station, and travel date.');
-                return;
+            if (from && to) {
+                executeSearch();
+            } else {
+                document.getElementById('resultsCount').textContent = 'Please specify stations to search.';
             }
 
-            currentSearchParams = { from, to, date };
-
-            // Reset class filter on every new search (BUG-04 fix)
-            currentFilter = 'all';
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.class === 'all');
+            // Tabs Setup
+            document.querySelectorAll('.class-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    activeTab = tab.dataset.tab;
+                    renderTrains();
+                });
             });
 
-            // Update summary
-            fromStationEl.textContent = from;
-            toStationEl.textContent   = to;
-            searchDateEl.textContent  = formatDate(date);
+            // Sort Selector Setup
+            document.getElementById('sortSelect').addEventListener('change', renderTrains);
 
-            await loadExistingWatches();
+            // Auto-Refresh Setup
+            setInterval(refreshSchedulesInPlace, 30000);
+        });
 
-            const searchKey = resultsCacheKey(from, to, date);
-            const offlineBanner = document.getElementById('offlineResultsBanner');
+        // Compact Search Bar handler
+        document.getElementById('compactSearchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Reset class tab filter to All when user executes new search
+            document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.class-tab[data-tab="all"]').classList.add('active');
+            activeTab = 'all';
 
-            showSpinner();
-            try {
-                const data = await fetchSchedules(from, to, date);
-                cacheResults(searchKey, data);
-                if (offlineBanner) offlineBanner.style.display = 'none';
-                await showResults(data);
-                startPolling();
-            } catch (error) {
-                console.error('Error fetching schedules:', error);
-                const cached = loadCachedResults(searchKey);
-                if (cached && cached.data) {
-                    if (offlineBanner) {
-                        offlineBanner.style.display = 'block';
-                        const d = new Date(cached.timestamp);
-                        offlineBanner.textContent =
-                            `You appear to be offline — showing cached results from ${d.toLocaleString()}`;
-                    }
-                    await showResults(cached.data);
-                    startPolling();
-                } else {
-                    if (offlineBanner) offlineBanner.style.display = 'none';
-                    showResultsPageError(
-                        'Cannot load results — please check your connection',
-                        ''
-                    );
-                }
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        // Stop polling when user leaves the page
-        window.addEventListener('beforeunload', stopPolling);
-
-        // Start
-        init();
+            executeSearch();
+        });
     </script>
-
-    <!-- Bottom Navigation - Feature 5 -->
-    <nav class="bottom-nav">
-        <div class="bottom-nav-content">
-            <a href="index.html" class="nav-item active">
-                <span class="nav-icon">🔍</span>
-                <span class="nav-label">Search</span>
-            </a>
-            <a href="track.html" class="nav-item">
-                <span class="nav-icon">📍</span>
-                <span class="nav-label">Track</span>
-            </a>
-            <a href="watch.html" class="nav-item">
-                <span class="nav-icon">🔔</span>
-                <span class="nav-label">Watch</span>
-            </a>
-        </div>
-    </nav>
-
-    <!-- Bottom Navigation Styles -->
-    <style>
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-white);
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-
-        .bottom-nav-content {
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-around;
-            padding: 0.75rem 0;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.5rem 1.5rem;
-            text-decoration: none;
-            color: var(--text-light);
-            transition: all 0.2s;
-            border-radius: 12px;
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-        }
-
-        .nav-item:hover {
-            color: var(--primary);
-        }
-
-        .nav-icon {
-            font-size: 1.5rem;
-        }
-
-        .nav-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-    </style>
 </body>
 </html>

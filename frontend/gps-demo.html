@@ -1,0 +1,727 @@
+<!--
+HOW TO TEST ON YOUR PHONE:
+1. Make sure your phone and computer are on the SAME WiFi network
+2. Find your computer's local IP: 
+   - Windows: run 'ipconfig' in Command Prompt → look for IPv4 Address (e.g. 192.168.1.105)
+   - Mac: run 'ifconfig' → look for inet under en0 (e.g. 192.168.1.105)
+3. On your phone browser, open: http://192.168.1.105:3000/gps-demo.html
+   (replace 192.168.1.105 with your actual computer IP)
+4. Log in with: passenger@ceylon.lk / Pass123!
+5. Select a train from the dropdown
+6. Tap "Start Broadcasting"
+7. Allow location permission when browser asks
+8. Open http://192.168.1.105:3000/live-map.html on a computer browser
+9. Select the same train
+10. Click "Track This Train"
+11. Walk around with your phone — the marker on the desktop map moves in real time!
+
+NOTE: GPS works in Chrome and Safari on real devices.
+      It does NOT work in Chrome DevTools phone simulation.
+      You need a real phone for real GPS coordinates.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GPS Broadcast Demo — Ceylon Track</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('ceylon_track_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
+    <style>
+        /* ============================================================
+           CEYLON TRACK GLOBAL DESIGN SYSTEM
+           ============================================================ */
+        :root {
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --surface-2: #F1F5F9;
+            --text: #0F172A;
+            --text-2: #475569;
+            --border: #E2E8F0;
+            --primary: #059669; /* Green for start broadcasting */
+            --primary-2: #047857;
+            --accent: #00B4D8;
+            --accent-2: #0077B6;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(8px);
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0A0F1E;
+            --surface: #111827;
+            --surface-2: #1F2937;
+            --text: #F9FAFB;
+            --text-2: #9CA3AF;
+            --border: #374151;
+            --primary: #10B981;
+            --primary-2: #059669;
+            --accent: #00D4FF;
+            --accent-2: #00B4D8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-body);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            transition: background 0.3s, color 0.3s;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Mobile specific layout - entire page fits on one screen */
+        .app-content {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 65px); /* Subtract Header height */
+            overflow: hidden;
+        }
+
+        /* Header Navigation */
+        header {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            height: 65px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.3rem;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-links a {
+            color: var(--text-2);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
+        }
+
+        .theme-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.1rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-btn:hover {
+            background-color: var(--surface-2);
+        }
+
+        /* Map styling - 55vh tall */
+        #map {
+            height: 55vh;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* Bottom controls section - fixed height, no overflow */
+        .controls-panel {
+            flex: 1;
+            background-color: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #94a3b8; /* idle grey */
+            display: inline-block;
+        }
+
+        .status-dot.broadcasting {
+            background-color: var(--success);
+            animation: pulse-green 1.5s infinite alternate;
+        }
+
+        .status-dot.error {
+            background-color: var(--danger);
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            100% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Selector & Inputs */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-2);
+        }
+
+        .select {
+            width: 100%;
+            min-height: 44px;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface-2);
+            color: var(--text);
+            font-size: 0.95rem;
+            outline: none;
+            font-weight: 700;
+        }
+
+        /* Buttons - Extra Large for Touch (min-height: 60px) */
+        .btn {
+            width: 100%;
+            min-height: 60px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-start {
+            background-color: var(--success);
+            color: #FFFFFF;
+        }
+
+        .btn-stop {
+            background-color: var(--danger);
+            color: #FFFFFF;
+            display: none;
+        }
+
+        /* Info Display Row */
+        .info-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.4rem;
+            text-align: center;
+        }
+
+        .info-card {
+            background-color: var(--surface-2);
+            border: 1px solid var(--border);
+            padding: 0.35rem 0.2rem;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .info-card-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-2);
+            text-transform: uppercase;
+        }
+
+        .info-card-value {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        /* Log console */
+        .log-console {
+            background-color: #0F172A;
+            color: #10B981;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            height: 70px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        /* Leaflet DivIcon Style */
+        .train-icon {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(220, 38, 38, 0.15);
+            border: 2px solid var(--danger);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--danger);
+        }
+
+        /* Auth Locked screen styling */
+        .auth-lock-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .auth-lock-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2.5rem 2rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        /* Font sizes check: minimum 15px for body / inputs / select */
+        .select, .btn, .status-row, label {
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Protection Overlay -->
+    <div id="authLockOverlay" class="auth-lock-panel" style="display: none;">
+        <div class="auth-lock-card">
+            <span style="font-size: 4rem;">🔒</span>
+            <h2 style="font-family: var(--font-display); margin: 1.5rem 0 0.5rem;">Please log in first</h2>
+            <p style="color: var(--text-2); margin-bottom: 2rem; font-size: 15px;">You need to sign in to access the GPS Broadcaster.</p>
+            <a href="/login.html" class="btn btn-start" style="text-decoration: none; min-height: 56px;">Go to Login Page</a>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo-container">
+                <span>🚂</span> Ceylon Track
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Search</a>
+                <a href="live-map.html">🗺 Live Map</a>
+                <a href="watch.html">My Watches</a>
+                <button class="theme-btn" id="themeBtn" aria-label="Toggle Theme">🌓</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-content" id="appContent">
+        <!-- Leaflet Map Section - 55vh -->
+        <div id="map"></div>
+
+        <!-- Controls Section - Fits bottom screen -->
+        <div class="controls-panel">
+            <div class="status-row">
+                <span>Simulator Connection:</span>
+                <span class="status-badge">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Idle</span>
+                </span>
+            </div>
+
+            <div class="input-group">
+                <label for="scheduleSelect">Select Train to Simulate</label>
+                <select id="scheduleSelect" class="select">
+                    <option value="1">🚂 Train 1014 — Colombo Fort → Kandy</option>
+                    <option value="2">🚂 Train 1084 — Colombo Fort → Galle</option>
+                    <option value="3">🚂 Train 1086 — Colombo Fort → Matara</option>
+                    <option value="4">🚂 Train 1005 — Colombo Fort → Badulla</option>
+                    <option value="5">🚂 Train 1068 — Colombo Fort → Anuradhapura</option>
+                    <option value="6">🚂 Train 1015 — Kandy → Colombo Fort</option>
+                    <option value="7">🚂 Train 1083 — Galle → Colombo Fort</option>
+                    <option value="8">🚂 Train 1022 — Colombo Fort → Kurunegala</option>
+                </select>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-start" id="startBtn" onclick="startBroadcasting()">▶ Start Broadcasting</button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopBroadcasting()">⏹ Stop Broadcasting</button>
+            </div>
+
+            <!-- Coordinate Real-Time displays -->
+            <div class="info-row">
+                <div class="info-card">
+                    <span class="info-card-label">Latitude</span>
+                    <span class="info-card-value" id="latDisplay">--.----°</span>
+                </div>
+                <div class="info-card">
+                    <span class="info-card-label">Longitude</span>
+                    <span class="info-card-value" id="lngDisplay">--.----°</span>
+                </div>
+                <div class="info-card">
+                    <span class="info-card-label">Accuracy</span>
+                    <span class="info-card-value" id="accuracyDisplay">--m</span>
+                </div>
+                <div class="info-card">
+                    <span class="info-card-label">Last Sent</span>
+                    <span class="info-card-value" id="lastSentDisplay">never</span>
+                </div>
+            </div>
+
+            <div class="log-console" id="logConsole">
+                [SYSTEM] Ready to broadcast. Select a train and start to track.
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Global variables required by the SPEC
+        let watchId = null;
+        let broadcastInterval = null;
+        let lastPosition = null;
+        let selectedScheduleId = null;
+        let trainMarker = null;
+        let lastSentTime = null;
+        let timerInterval = null;
+
+        function getToken() {
+            return localStorage.getItem('ceylon_track_jwt');
+        }
+
+        // Authentication guard check at the very top of script
+        (function() {
+            const token = getToken();
+            if (!token) {
+                document.getElementById('authLockOverlay').style.display = 'flex';
+                document.getElementById('appContent').style.display = 'none';
+            }
+        })();
+
+        // Station locations mapping
+        const STATIONS = [
+            { name: 'Colombo Fort', code: 'FOT', lat: 6.9344, lng: 79.8477 },
+            { name: 'Kandy', code: 'KAN', lat: 7.2906, lng: 80.6337 },
+            { name: 'Galle', code: 'GAL', lat: 6.0535, lng: 80.2170 },
+            { name: 'Matara', code: 'MAT', lat: 5.9549, lng: 80.5353 },
+            { name: 'Negombo', code: 'NEG', lat: 7.2096, lng: 79.8477 },
+            { name: 'Badulla', code: 'BAD', lat: 6.9934, lng: 81.0560 },
+            { name: 'Anuradhapura', code: 'ANP', lat: 8.3114, lng: 80.3864 },
+            { name: 'Jaffna', code: 'JAF', lat: 9.6615, lng: 80.0137 },
+            { name: 'Kurunegala', code: 'KUR', lat: 7.4868, lng: 80.3647 },
+            { name: 'Ratnapura', code: 'RAT', lat: 6.6828, lng: 80.4022 }
+        ];
+
+        // Map Setup
+        const map = L.map('map').setView([7.8731, 80.7718], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add 10 stations to map on load
+        STATIONS.forEach(station => {
+            L.circleMarker([station.lat, station.lng], {
+                radius: 6,
+                color: '#0077B6',
+                fillColor: '#00B4D8',
+                fillOpacity: 0.8,
+                weight: 2
+            }).addTo(map)
+              .bindPopup(`<b>🚉 ${station.name} (${station.code})</b>`);
+        });
+
+        // Theme management
+        const themeBtn = document.getElementById('themeBtn');
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('ceylon_track_theme', newTheme);
+        });
+
+        // Status Management Helper
+        function showStatus(type, message) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            statusDot.className = 'status-dot';
+            if (type === 'broadcasting') {
+                statusDot.classList.add('broadcasting');
+                statusText.style.color = 'var(--success)';
+            } else if (type === 'error') {
+                statusDot.classList.add('error');
+                statusText.style.color = 'var(--danger)';
+            } else {
+                statusText.style.color = 'var(--text)';
+            }
+            statusText.textContent = message;
+        }
+
+        // Update Coordinate displays
+        function updateCoordinateDisplay(lat, lng, accuracy) {
+            document.getElementById('latDisplay').textContent = lat.toFixed(4) + '°';
+            document.getElementById('lngDisplay').textContent = lng.toFixed(4) + '°';
+            document.getElementById('accuracyDisplay').textContent = '±' + Math.round(accuracy) + 'm';
+        }
+
+        // Timer to countdown last sent pushes
+        function startSentTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (lastSentTime) {
+                    const sec = Math.floor((new Date() - lastSentTime) / 1000);
+                    document.getElementById('lastSentDisplay').textContent = sec + 's ago';
+                }
+            }, 1000);
+        }
+
+        // Append log to bottom console
+        function addToLog(lat, lng, accuracy) {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const consoleEl = document.getElementById('logConsole');
+            const logEntry = `[${timeStr}] ✓ Sent → Train ${selectedScheduleId} | ${lat.toFixed(4)}°, ${lng.toFixed(4)}° | ±${Math.round(accuracy)}m`;
+            
+            consoleEl.innerHTML = logEntry + '<br>' + consoleEl.innerHTML;
+        }
+
+        function appendSystemLog(msg) {
+            const consoleEl = document.getElementById('logConsole');
+            consoleEl.innerHTML = `[SYSTEM] ${msg}<br>${consoleEl.innerHTML}`;
+        }
+
+        // API Push Telemetry handler
+        async function pushLocation(lat, lng) {
+            const token = getToken();
+            if (!token || !selectedScheduleId) return;
+            
+            try {
+                const response = await fetch('/api/gps/mobile-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        schedule_id: parseInt(selectedScheduleId),
+                        lat: lat,
+                        lng: lng
+                    })
+                });
+                
+                if (response.ok) {
+                    lastSentTime = new Date();
+                    document.getElementById('lastSentDisplay').textContent = '0s ago';
+                    addToLog(lat, lng, lastPosition?.coords?.accuracy || 0);
+                    showStatus('broadcasting', 'Broadcasting to Train ' + selectedScheduleId + '...');
+                } else {
+                    const err = await response.json();
+                    showStatus('error', 'Server error: ' + err.error);
+                    appendSystemLog('Server returned error: ' + err.error);
+                }
+            } catch (e) {
+                showStatus('error', 'Network error — check connection');
+                appendSystemLog('Connection check failed.');
+            }
+        }
+
+        // Start broadcasting
+        function startBroadcasting() {
+            selectedScheduleId = document.getElementById('scheduleSelect').value;
+            if (!selectedScheduleId) {
+                alert('Please select a train first');
+                return;
+            }
+            
+            if (!navigator.geolocation) {
+                showStatus('error', 'GPS not supported on this device');
+                return;
+            }
+            
+            appendSystemLog('Requesting device Geolocation permission...');
+            
+            // Start watching position
+            watchId = navigator.geolocation.watchPosition(
+                function(position) {
+                    lastPosition = position;
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    // Update coordinate display
+                    updateCoordinateDisplay(lat, lng, accuracy);
+                    
+                    // Move or create train marker on map
+                    if (trainMarker) {
+                        trainMarker.setLatLng([lat, lng]);
+                    } else {
+                        trainMarker = L.marker([lat, lng], { 
+                            icon: L.divIcon({ 
+                                html: '🚂', 
+                                className: 'train-icon',
+                                iconSize: [30, 30]
+                            })
+                        }).addTo(map);
+                        trainMarker.bindPopup('You are here (acting as train)');
+                    }
+                    
+                    // Pan map to follow
+                    map.panTo([lat, lng]);
+                },
+                function(error) {
+                    if (error.code === error.PERMISSION_DENIED) {
+                        showStatus('error', 'Location access denied. Enable in browser settings.');
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        showStatus('error', 'GPS signal unavailable. Go outside.');
+                    } else {
+                        showStatus('error', 'GPS timeout. Retrying...');
+                    }
+                    appendSystemLog('GPS Error code ' + error.code + ': ' + error.message);
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 10000, 
+                    maximumAge: 0 
+                }
+            );
+            
+            // Push location every 5 seconds
+            broadcastInterval = setInterval(function() {
+                if (lastPosition) {
+                    pushLocation(
+                        lastPosition.coords.latitude,
+                        lastPosition.coords.longitude
+                    );
+                } else {
+                    appendSystemLog('Waiting for valid GPS fix before sending data...');
+                }
+            }, 5000);
+            
+            showStatus('broadcasting', 'Broadcasting to Train ' + selectedScheduleId + '...');
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            
+            startSentTimer();
+        }
+
+        // Stop broadcasting
+        function stopBroadcasting() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (broadcastInterval !== null) {
+                clearInterval(broadcastInterval);
+                broadcastInterval = null;
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            showStatus('idle', 'Idle');
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            appendSystemLog('GPS telemetry stream stopped.');
+        }
+    </script>
+</body>
+</html>

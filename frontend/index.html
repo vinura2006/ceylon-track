@@ -3,1114 +3,658 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ceylon Track - Sri Lankan Railway Passenger Information</title>
+    <title>Ceylon Track — Sri Lanka Railway Real-Time Tracker</title>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    
+    <!-- Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('ceylon_track_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <style>
-        .spinner-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
+        /* ============================================================
+           CEYLON TRACK GLOBAL DESIGN SYSTEM
+           ============================================================ */
+        :root {
+            /* Light Theme Tokens */
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --surface-2: #F1F5F9;
+            --text: #0F172A;
+            --text-2: #475569;
+            --border: #E2E8F0;
+            --primary: #0F4C75;
+            --primary-2: #1B6CA8;
+            --accent: #00B4D8;
+            --accent-2: #0077B6;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-blur: blur(8px);
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Syne', sans-serif;
         }
-        .spinner-overlay.active { display: flex; }
-        #spinner > .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+
+        [data-theme="dark"] {
+            /* Dark Theme Tokens */
+            --bg: #0A0F1E;
+            --surface: #111827;
+            --surface-2: #1F2937;
+            --text: #F9FAFB;
+            --text-2: #9CA3AF;
+            --border: #374151;
+            --primary: #1B6CA8;
+            --primary-2: #2196F3;
+            --accent: #00D4FF;
+            --accent-2: #00B4D8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(17, 24, 39, 0.65);
+            --glass-blur: blur(12px);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            /* Green Theme (Default) */
-            --primary: #1a5f2a;
-            --primary-dark: #12401c;
-            --primary-light: #2d8a42;
-            --accent: #f59e0b;
-            --accent-light: #fbbf24;
-            --bg-light: #f8fafc;
-            --bg-white: #ffffff;
-            --text-dark: #1e293b;
-            --text-medium: #475569;
-            --text-light: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-            --body-bg: linear-gradient(135deg, #1a5f2a 0%, #0d3d16 100%);
-            --hero-text: white;
-            --info-card-bg: rgba(255, 255, 255, 0.1);
-            --footer-text: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Blue Theme */
-        [data-theme="blue"] {
-            --primary: #1e40af;
-            --primary-dark: #1e3a8a;
-            --primary-light: #3b82f6;
-            --accent: #f97316;
-            --accent-light: #fb923c;
-            --body-bg: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-        }
-
-        /* Purple Theme */
-        [data-theme="purple"] {
-            --primary: #7c3aed;
-            --primary-dark: #6d28d9;
-            --primary-light: #8b5cf6;
-            --accent: #10b981;
-            --accent-light: #34d399;
-            --body-bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        }
-
-        /* Pink Theme */
-        [data-theme="pink"] {
-            --primary: #ec4899;
-            --primary-dark: #db2777;
-            --primary-light: #f472b6;
-            --accent: #8b5cf6;
-            --accent-light: #a78bfa;
-            --body-bg: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
-        }
-
-        /* Dark Mode */
-        [data-theme="dark"] {
-            --primary: #10b981;
-            --primary-dark: #059669;
-            --primary-light: #34d399;
-            --accent: #f59e0b;
-            --accent-light: #fbbf24;
-            --bg-light: #1e293b;
-            --bg-white: #0f172a;
-            --text-dark: #f1f5f9;
-            --text-medium: #94a3b8;
-            --text-light: #64748b;
-            --border: #334155;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
-            --body-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --hero-text: #f1f5f9;
-            --info-card-bg: rgba(255, 255, 255, 0.05);
-            --footer-text: rgba(148, 163, 184, 0.7);
+            font-family: var(--font-body);
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--body-bg);
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
             min-height: 100vh;
-            color: var(--text-dark);
-            transition: background 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Header */
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: var(--shadow);
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 700;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: var(--accent-2);
+        }
+
+        /* Nav & Header */
+        header {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .header-content {
+        .header-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 1rem 1.5rem;
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
         }
 
-        .logo {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .logo-text {
+            gap: 0.5rem;
             font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: -0.025em;
-        }
-
-        .logo-tagline {
-            font-size: 0.75rem;
-            color: var(--text-medium);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--text);
         }
 
         .nav-links {
             display: flex;
+            align-items: center;
             gap: 1.5rem;
         }
 
         .nav-links a {
-            text-decoration: none;
-            color: var(--text-medium);
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        /* Main Content */
-        .main-content {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 3rem 1.5rem;
-        }
-
-        /* Hero Section */
-        .hero {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            color: var(--hero-text);
-        }
-
-        .hero h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .hero p {
-            font-size: 1.125rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-
-        /* Search Card */
-        .search-card {
-            background: var(--bg-white);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .search-title {
-            font-size: 1.25rem;
+            color: var(--text-2);
             font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
         }
 
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-medium);
-            margin-bottom: 0.5rem;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem 0.875rem 2.75rem;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 1rem;
-            font-family: inherit;
-            transition: all 0.2s;
-            background: var(--bg-white);
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(26, 95, 42, 0.1);
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-light);
-            font-size: 1.125rem;
-        }
-
-        /* Station Swap Button */
-        .swap-container {
-            display: flex;
-            justify-content: center;
-            margin: -0.5rem 0;
-            position: relative;
-            z-index: 10;
-        }
-
-        .swap-btn {
+        .theme-btn, .menu-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.25rem;
             width: 40px;
             height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            border: none;
-            color: white;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-btn:hover {
+            background-color: var(--surface-2);
+        }
+
+        .menu-toggle-btn {
+            display: none;
+        }
+
+        /* Mobile Dropdown Nav */
+        .mobile-nav {
+            display: none;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mobile-nav a {
+            font-weight: 600;
+            color: var(--text-2);
+        }
+        .mobile-nav.open {
+            display: flex;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
             transition: all 0.2s;
+            border: none;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #FFFFFF;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-2);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: #FFFFFF;
+        }
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-ghost {
+            background: none;
+            color: var(--text-2);
+        }
+        .btn-ghost:hover {
+            background-color: var(--surface-2);
+            color: var(--text);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 12px;
             box-shadow: var(--shadow);
+            padding: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .swap-btn:hover {
-            background: var(--primary-dark);
-            transform: rotate(180deg);
-        }
-
-        /* Autocomplete Dropdown */
-        .autocomplete-container {
+        /* Inputs & Selects */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
             position: relative;
         }
 
-        .autocomplete-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: var(--bg-white);
-            border: 2px solid var(--border);
-            border-top: none;
-            border-radius: 0 0 12px 12px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 50;
-            display: none;
-            box-shadow: var(--shadow-lg);
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-2);
         }
 
-        .autocomplete-dropdown.active {
-            display: block;
+        .input, .select {
+            width: 100%;
+            min-height: 48px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .input:focus, .select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-success { background-color: rgba(5, 150, 105, 0.15); color: var(--success); }
+        .badge-warning { background-color: rgba(217, 119, 6, 0.15); color: var(--warning); }
+        .badge-danger { background-color: rgba(220, 38, 38, 0.15); color: var(--danger); }
+        .badge-neutral { background-color: var(--surface-2); color: var(--text-2); }
+
+        /* Autocomplete dropdown styles */
+        .autocomplete-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: var(--shadow);
         }
 
         .autocomplete-item {
             padding: 0.75rem 1rem;
             cursor: pointer;
-            transition: background 0.15s;
-            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+        .autocomplete-item:hover {
+            background-color: var(--surface-2);
         }
 
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        .autocomplete-item:hover,
-        .autocomplete-item.selected {
-            background: var(--bg-light);
-        }
-
-        .autocomplete-item .station-name {
-            font-weight: 500;
-            color: var(--text-dark);
-        }
-
-        .autocomplete-item .station-code {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            margin-left: 0.5rem;
-        }
-
-        /* Date Input */
-        .date-input {
-            padding-left: 1rem;
-        }
-
-        /* Search Button */
-        .search-btn {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.125rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+        /* ============================================================
+           HERO & LANDING ELEMENTS (index.html)
+           ============================================================ */
+        .hero {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            padding: 4rem 1.5rem;
+            position: relative;
         }
 
-        .search-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+        /* Subtle animated background mesh */
+        .hero-bg-mesh {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+            background: linear-gradient(135deg, var(--accent) 25%, transparent 25%),
+                        linear-gradient(225deg, var(--accent) 25%, transparent 25%),
+                        linear-gradient(45deg, var(--accent) 25%, transparent 25%),
+                        linear-gradient(315deg, var(--accent) 25%, var(--bg) 25%);
+            background-size: 40px 40px;
         }
 
-        .search-btn:active {
-            transform: translateY(0);
+        .hero-container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 2.5rem;
         }
 
-        .search-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+        .hero-text h1 {
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text) 50%, var(--primary-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Info Section */
-        .info-section {
-            margin-top: 2rem;
+        .hero-text p {
+            font-size: 1.25rem;
+            color: var(--text-2);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .search-card {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .search-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
 
-        .info-card {
-            background: var(--info-card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 1.25rem;
-            color: var(--hero-text);
-            text-align: center;
-        }
-
-        .info-card-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .info-card-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .info-card-text {
-            font-size: 0.75rem;
-            opacity: 0.9;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: var(--footer-text);
-            font-size: 0.875rem;
-        }
-
-        /* Theme Customizer */
-        .theme-customizer {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 200;
-        }
-
-        .theme-toggle-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--bg-white);
-            border: 2px solid var(--border);
-            cursor: pointer;
+        .features-row {
             display: flex;
-            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
             justify-content: center;
-            font-size: 1.25rem;
-            box-shadow: var(--shadow-lg);
-            transition: all 0.2s;
+            margin-top: 1rem;
         }
 
-        .theme-toggle-btn:hover {
-            transform: scale(1.1);
-            box-shadow: var(--shadow);
-        }
-
-        .theme-panel {
-            position: absolute;
-            top: 55px;
-            right: 0;
-            background: var(--bg-white);
-            border-radius: 12px;
-            padding: 1rem;
-            box-shadow: var(--shadow-lg);
-            min-width: 180px;
-            display: none;
+        .feature-chip {
+            background-color: var(--surface-2);
             border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-2);
         }
 
-        .theme-panel.active {
-            display: block;
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 0.85rem;
         }
 
-        .theme-panel-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .theme-option {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: background 0.15s;
-            font-size: 0.875rem;
-            color: var(--text-medium);
-        }
-
-        .theme-option:hover {
-            background: var(--bg-light);
-        }
-
-        .theme-option.active {
-            background: var(--bg-light);
-            color: var(--primary);
-            font-weight: 500;
-        }
-
-        .theme-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-        }
-
-        .theme-color.green { background: linear-gradient(135deg, #1a5f2a, #2d8a42); }
-        .theme-color.blue { background: linear-gradient(135deg, #1e40af, #3b82f6); }
-        .theme-color.purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
-        .theme-color.pink { background: linear-gradient(135deg, #ec4899, #f472b6); }
-        .theme-color.dark { background: linear-gradient(135deg, #0f172a, #1e293b); border-color: #334155; }
-
-        /* Error Message */
-        .error-message {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .error-message.visible {
-            display: block;
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-            .hero h1 {
-                font-size: 1.75rem;
-            }
-
-            .search-card {
-                padding: 1.5rem;
-            }
-
+        /* ============================================================
+           RESPONSIVE OVERRIDES
+           ============================================================ */
+        @media (max-width: 768px) {
             .nav-links {
                 display: none;
             }
-
-            .info-section {
+            .menu-toggle-btn {
+                display: flex;
+            }
+            .search-row {
                 grid-template-columns: 1fr;
             }
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid transparent;
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="spinner-overlay" id="spinner">
-        <div class="spinner"></div>
-    </div>
-    <div id="offlineStationsBanner" style="display:none;background:#fef9c3;color:#854d0e;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #fde047;"></div>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">🚂</div>
-                <div>
-                    <div class="logo-text">Ceylon Track</div>
-                    <div class="logo-tagline">Sri Lankan Railway</div>
-                </div>
-            </div>
-            <nav class="nav-links">
-                <a href="index.html">Home</a>
-                <a href="#">Schedules</a>
+
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo-container">
+                <span>🚂</span> Ceylon Track
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="index.html" class="active">Search</a>
+                <a href="live-map.html">🗺 Live Map</a>
+                <a href="watch.html">My Watches</a>
+                <a href="gps-demo.html">GPS Demo 🛰</a>
                 <a href="login.html" id="authLink">Login</a>
-            </nav>
+                <button class="theme-btn" id="themeBtn" aria-label="Toggle Theme">🌓</button>
+            </div>
+            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
         </div>
     </header>
 
-    <!-- Theme Customizer -->
-    <div class="theme-customizer">
-        <button class="theme-toggle-btn" id="themeToggle" title="Customize Theme">
-            🎨
-        </button>
-        <div class="theme-panel" id="themePanel">
-            <div class="theme-panel-title">Choose Theme</div>
-            <div class="theme-option active" data-theme="green">
-                <div class="theme-color green"></div>
-                <span>Green</span>
-            </div>
-            <div class="theme-option" data-theme="blue">
-                <div class="theme-color blue"></div>
-                <span>Blue</span>
-            </div>
-            <div class="theme-option" data-theme="purple">
-                <div class="theme-color purple"></div>
-                <span>Purple</span>
-            </div>
-            <div class="theme-option" data-theme="pink">
-                <div class="theme-color pink"></div>
-                <span>Pink</span>
-            </div>
-            <div class="theme-option" data-theme="dark">
-                <div class="theme-color dark"></div>
-                <span>Dark Mode</span>
-            </div>
-        </div>
+    <div class="mobile-nav" id="mobileNav">
+        <a href="index.html" class="active">Search</a>
+        <a href="live-map.html">🗺 Live Map</a>
+        <a href="watch.html">My Watches</a>
+        <a href="gps-demo.html">GPS Demo 🛰</a>
+        <a href="login.html" id="authLinkMobile">Login</a>
+        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
     </div>
 
-    <main class="main-content">
-        <section class="hero">
-            <h1>Plan Your Journey</h1>
-            <p>Real-time train schedules and passenger information</p>
-        </section>
+    <main class="hero">
+        <div class="hero-bg-mesh"></div>
+        <div class="hero-container">
+            <div class="hero-text">
+                <h1>Ceylon Track</h1>
+                <p>Real-time passenger information and live GPS train tracking for Sri Lanka Railway</p>
+            </div>
 
-        <div class="search-card">
-            <h2 class="search-title">
-                <span>🔍</span>
-                Find Your Train
-            </h2>
-
-            <div class="error-message" id="errorMessage"></div>
-
-            <form id="searchForm">
-                <div class="form-group">
-                    <label class="form-label" for="fromStation">From Station</label>
-                    <div class="input-wrapper autocomplete-container">
-                        <span class="input-icon">📍</span>
-                        <input 
-                            type="text" 
-                            id="fromStation" 
-                            class="form-input" 
-                            placeholder="Enter station name or code"
-                            autocomplete="off"
-                        >
-                        <div class="autocomplete-dropdown" id="fromDropdown"></div>
+            <div class="card search-card">
+                <form class="search-form" id="searchForm">
+                    <div class="search-row">
+                        <div class="input-group">
+                            <label for="fromInput">From Station</label>
+                            <input type="text" id="fromInput" class="input" placeholder="e.g. Colombo Fort" autocomplete="off" required>
+                            <div class="autocomplete-dropdown" id="fromDropdown" style="display: none;"></div>
+                        </div>
+                        <div class="input-group">
+                            <label for="toInput">To Station</label>
+                            <input type="text" id="toInput" class="input" placeholder="e.g. Kandy" autocomplete="off" required>
+                            <div class="autocomplete-dropdown" id="toDropdown" style="display: none;"></div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="swap-container">
-                    <button type="button" class="swap-btn" id="swapBtn" title="Swap stations">
-                        ⇅
+                    <div class="search-row">
+                        <div class="input-group">
+                            <label for="dateInput">Journey Date</label>
+                            <input type="date" id="dateInput" class="input" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="classSelect">Train Class</label>
+                            <select id="classSelect" class="select">
+                                <option value="all">All Classes</option>
+                                <option value="1st">1st Class</option>
+                                <option value="2nd">2nd Class</option>
+                                <option value="3rd">3rd Class</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="errorMsg" style="color: var(--danger); font-weight: 700; text-align: center; display: none; margin-bottom: 0.5rem;"></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Search Trains <span>➔</span>
                     </button>
-                </div>
+                </form>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="toStation">To Station</label>
-                    <div class="input-wrapper autocomplete-container">
-                        <span class="input-icon">🎯</span>
-                        <input 
-                            type="text" 
-                            id="toStation" 
-                            class="form-input" 
-                            placeholder="Enter station name or code"
-                            autocomplete="off"
-                        >
-                        <div class="autocomplete-dropdown" id="toDropdown"></div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="travelDate">Travel Date</label>
-                    <div class="input-wrapper">
-                        <input 
-                            type="date" 
-                            id="travelDate" 
-                            class="form-input date-input"
-                            required
-                        >
-                    </div>
-                </div>
-
-                <button type="submit" class="search-btn" id="searchBtn">
-                    <span>Search Trains</span>
-                    <span>→</span>
-                </button>
-            </form>
+            <div class="features-row">
+                <div class="feature-chip">📶 Live Status</div>
+                <div class="feature-chip">👁️ Journey Watch</div>
+                <div class="feature-chip">🛰️ GPS Tracking</div>
+            </div>
         </div>
-
-        <section class="info-section">
-            <div class="info-card">
-                <div class="info-card-icon">🕐</div>
-                <div class="info-card-title">Real-time Updates</div>
-                <div class="info-card-text">Live train status and delays</div>
-            </div>
-            <div class="info-card">
-                <div class="info-card-icon">🎫</div>
-                <div class="info-card-title">Fare Information</div>
-                <div class="info-card-text">All class pricing details</div>
-            </div>
-            <div class="info-card">
-                <div class="info-card-icon">📱</div>
-                <div class="info-card-title">Mobile Friendly</div>
-                <div class="info-card-text">Access anywhere, anytime</div>
-            </div>
-        </section>
     </main>
 
-    <footer class="footer">
-        <p>&copy; 2024 Ceylon Track. Sri Lankan Railway Passenger Information System.</p>
+    <footer>
+        <p>© 2026 Ceylon Track — Sri Lanka Railway Passenger Portal</p>
     </footer>
 
+    <script src="/js/api.js"></script>
     <script>
-        // API Base URL
-        const API_BASE_URL = 'http://localhost:3000/api';
-
-        // Station data - will be loaded from API
-        let stations = [];
-
-        const STATIONS_CACHE_KEY = 'ceylontrack_stations';
-        const STATIONS_TTL_MS = 24 * 60 * 60 * 1000;
-
-        function showSpinner() {
-            document.getElementById('spinner').classList.add('active');
-        }
-        function hideSpinner() {
-            document.getElementById('spinner').classList.remove('active');
-        }
-        function showError(message) {
-            const existing = document.getElementById('error-banner');
-            if (existing) existing.remove();
-            const banner = document.createElement('div');
-            banner.id = 'error-banner';
-            banner.style.cssText = 'background:#fee2e2;color:#991b1b;padding:12px 20px;text-align:center;font-size:14px;';
-            banner.textContent = message;
-            document.body.insertBefore(banner, document.body.firstChild);
-            setTimeout(() => banner.remove(), 5000);
-        }
-        function showOfflineStationsBanner() {
-            const el = document.getElementById('offlineStationsBanner');
-            el.style.display = 'block';
-            el.textContent = 'Using offline station data — some stations may be outdated';
-        }
-        function hideOfflineStationsBanner() {
-            const el = document.getElementById('offlineStationsBanner');
-            el.style.display = 'none';
-        }
-
-        /**
-         * Fetch stations from API (with 24h localStorage cache and offline fallback)
-         */
-        async function fetchStations() {
-            const cachedRaw = localStorage.getItem(STATIONS_CACHE_KEY);
-            if (cachedRaw) {
-                try {
-                    const parsed = JSON.parse(cachedRaw);
-                    if (parsed.data && parsed.timestamp && Date.now() - parsed.timestamp < STATIONS_TTL_MS) {
-                        stations = parsed.data;
-                        hideOfflineStationsBanner();
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Invalid stations cache', e);
-                }
-            }
-
-            showSpinner();
-            try {
-                const response = await fetch(`${API_BASE_URL}/stations`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch stations');
-                }
-                const data = await response.json();
-                stations = data.stations.map(s => ({
-                    name: s.name,
-                    code: s.code
-                }));
-                localStorage.setItem(STATIONS_CACHE_KEY, JSON.stringify({
-                    data: stations,
-                    timestamp: Date.now()
-                }));
-                hideOfflineStationsBanner();
-            } catch (error) {
-                console.error('Error loading stations:', error);
-                if (cachedRaw) {
-                    try {
-                        const parsed = JSON.parse(cachedRaw);
-                        if (parsed.data) {
-                            stations = parsed.data;
-                            showOfflineStationsBanner();
-                            return;
-                        }
-                    } catch (e) { /* fall through */ }
-                }
-                stations = [
-                    { name: 'Colombo Fort', code: 'FOT' },
-                    { name: 'Kandy', code: 'KAN' },
-                    { name: 'Galle', code: 'GAL' },
-                    { name: 'Matara', code: 'MAT' },
-                    { name: 'Badulla', code: 'BAD' },
-                    { name: 'Vavuniya', code: 'VAV' },
-                    { name: 'Anuradhapura', code: 'ANU' },
-                    { name: 'Jaffna', code: 'JAF' }
-                ];
-            } finally {
-                hideSpinner();
-            }
-        }
-
-        // DOM elements
-        const fromInput = document.getElementById('fromStation');
-        const toInput = document.getElementById('toStation');
-        const fromDropdown = document.getElementById('fromDropdown');
-        const toDropdown = document.getElementById('toDropdown');
-        const swapBtn = document.getElementById('swapBtn');
-        const searchForm = document.getElementById('searchForm');
-        const travelDateInput = document.getElementById('travelDate');
-        const errorMessage = document.getElementById('errorMessage');
-        const searchBtn = document.getElementById('searchBtn');
-        const themeToggle = document.getElementById('themeToggle');
-        const themePanel = document.getElementById('themePanel');
-
-        // Theme Management
-        function initTheme() {
-            const savedTheme = localStorage.getItem('ceylonTrackTheme') || 'green';
-            setTheme(savedTheme);
-        }
-
-        function setTheme(themeName) {
-            document.documentElement.setAttribute('data-theme', themeName);
-            localStorage.setItem('ceylonTrackTheme', themeName);
-
-            // Update active state in panel
-            document.querySelectorAll('.theme-option').forEach(option => {
-                option.classList.toggle('active', option.dataset.theme === themeName);
-            });
-        }
-
-        // Theme toggle button
-        themeToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            themePanel.classList.toggle('active');
-        });
-
-        // Theme selection
-        document.querySelectorAll('.theme-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const theme = option.dataset.theme;
-                setTheme(theme);
-                themePanel.classList.remove('active');
-            });
-        });
-
-        // Close theme panel when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!themeToggle.contains(e.target) && !themePanel.contains(e.target)) {
-                themePanel.classList.remove('active');
-            }
-        });
-
-        // Initialize theme on load
-        initTheme();
-
-        // Auth State Management
-        function updateAuthUI() {
-            const token = localStorage.getItem('token');
-            const authLink = document.getElementById('authLink');
-
-            if (token) {
-                // User is logged in - show Logout
-                authLink.textContent = 'Logout';
-                authLink.href = '#';
-                authLink.onclick = (e) => {
-                    e.preventDefault();
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('ceylonTrackTheme');
-                    localStorage.removeItem('ceylonTrackLogoIcon');
-                    localStorage.removeItem('ceylonTrackAllIcons');
-                    window.location.href = 'index.html';
-                };
-            } else {
-                // User is not logged in - show Login
-                authLink.textContent = 'Login';
-                authLink.href = 'login.html';
-                authLink.onclick = null;
-            }
-        }
-
-        // Check auth state on page load
-        updateAuthUI();
-
-        // Load stations from API on page load
-        fetchStations();
+        // Autocomplete JS and Search handler logic
+        let stationsList = [];
 
         // Set default date to today
-        const today = new Date().toISOString().split('T')[0];
-        travelDateInput.value = today;
-        travelDateInput.min = today;
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
 
-        // Selected station codes
-        let selectedFromCode = '';
-        let selectedToCode = '';
+        // Mobile Nav Toggle
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        menuToggleBtn.addEventListener('click', () => {
+            mobileNav.classList.toggle('open');
+        });
 
-        // Autocomplete function
-        function setupAutocomplete(input, dropdown, isFrom) {
-            input.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
+        // Theme Toggle Logic
+        const themeBtn = document.getElementById('themeBtn');
+        const themeBtnMobile = document.getElementById('themeBtnMobile');
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('ceylon_track_theme', newTheme);
+        }
+        themeBtn.addEventListener('click', toggleTheme);
+        themeBtnMobile.addEventListener('click', toggleTheme);
+
+        // Load Stations & Set Auth Nav
+        window.addEventListener('load', async () => {
+            // Auth Links Update
+            if (window.api.isLoggedIn()) {
+                const user = window.api.getUser();
+                const authLink = document.getElementById('authLink');
+                const authLinkMobile = document.getElementById('authLinkMobile');
                 
-                if (query.length < 1) {
-                    dropdown.classList.remove('active');
+                authLink.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
+                authLinkMobile.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
+                
+                // Add Admin Dashboard if staff or admin
+                if (user && (user.role === 'staff' || user.role === 'admin')) {
+                    const navLinks = document.getElementById('navLinks');
+                    const adminNode = document.createElement('a');
+                    adminNode.href = 'admin.html';
+                    adminNode.textContent = 'Dashboard 📊';
+                    navLinks.insertBefore(adminNode, themeBtn);
+                    
+                    const mobileNav = document.getElementById('mobileNav');
+                    const adminNodeMobile = document.createElement('a');
+                    adminNodeMobile.href = 'admin.html';
+                    adminNodeMobile.textContent = 'Dashboard 📊';
+                    mobileNav.insertBefore(adminNodeMobile, themeBtnMobile);
+                }
+            }
+
+            // Fetch Stations
+            try {
+                const res = await window.api.getStations();
+                stationsList = res.stations || [];
+                console.log('Stations loaded:', stationsList.length);
+            } catch (err) {
+                console.error('Failed to load stations:', err);
+            }
+        });
+
+        // Setup Autocomplete inputs
+        function setupAutocomplete(inputEl, dropdownEl) {
+            inputEl.addEventListener('input', () => {
+                const val = inputEl.value.trim().toLowerCase();
+                dropdownEl.innerHTML = '';
+                if (val.length < 1) {
+                    dropdownEl.style.display = 'none';
                     return;
                 }
 
-                const matches = stations.filter(station => 
-                    station.name.toLowerCase().includes(query) ||
-                    station.code.toLowerCase().includes(query)
+                const filtered = stationsList.filter(s => 
+                    s.name.toLowerCase().includes(val) || 
+                    s.code.toLowerCase().includes(val)
                 );
 
-                if (matches.length > 0) {
-                    dropdown.innerHTML = matches.map((station, index) => `
-                        <div class="autocomplete-item ${index === 0 ? 'selected' : ''}" 
-                             data-code="${station.code}" 
-                             data-name="${station.name}">
-                            <span class="station-name">${station.name}</span>
-                            <span class="station-code">(${station.code})</span>
-                        </div>
-                    `).join('');
-                    
-                    dropdown.classList.add('active');
+                if (filtered.length === 0) {
+                    dropdownEl.style.display = 'none';
+                    return;
+                }
 
-                    // Add click handlers
-                    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
-                        item.addEventListener('click', function() {
-                            input.value = this.dataset.name;
-                            if (isFrom) {
-                                selectedFromCode = this.dataset.code;
-                            } else {
-                                selectedToCode = this.dataset.code;
-                            }
-                            dropdown.classList.remove('active');
-                        });
+                filtered.forEach(station => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = `${station.name} (${station.code})`;
+                    item.addEventListener('click', () => {
+                        inputEl.value = `${station.name} (${station.code})`;
+                        dropdownEl.style.display = 'none';
+                        document.getElementById('errorMsg').style.display = 'none';
                     });
-                } else {
-                    dropdown.classList.remove('active');
-                }
-            });
+                    dropdownEl.appendChild(item);
+                });
 
-            // Keyboard navigation
-            input.addEventListener('keydown', function(e) {
-                const items = dropdown.querySelectorAll('.autocomplete-item');
-                const selected = dropdown.querySelector('.autocomplete-item.selected');
-                let nextSelected = null;
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    if (selected) {
-                        const next = selected.nextElementSibling;
-                        if (next) {
-                            selected.classList.remove('selected');
-                            next.classList.add('selected');
-                            nextSelected = next;
-                        }
-                    } else if (items.length > 0) {
-                        items[0].classList.add('selected');
-                        nextSelected = items[0];
-                    }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    if (selected) {
-                        const prev = selected.previousElementSibling;
-                        if (prev) {
-                            selected.classList.remove('selected');
-                            prev.classList.add('selected');
-                            nextSelected = prev;
-                        }
-                    }
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (selected) {
-                        input.value = selected.dataset.name;
-                        if (isFrom) {
-                            selectedFromCode = selected.dataset.code;
-                        } else {
-                            selectedToCode = selected.dataset.code;
-                        }
-                        dropdown.classList.remove('active');
-                    }
-                } else if (e.key === 'Escape') {
-                    dropdown.classList.remove('active');
-                }
+                dropdownEl.style.display = 'block';
             });
 
             // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.classList.remove('active');
+            document.addEventListener('click', (e) => {
+                if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+                    dropdownEl.style.display = 'none';
                 }
             });
         }
 
-        // Setup autocomplete for both inputs
-        setupAutocomplete(fromInput, fromDropdown, true);
-        setupAutocomplete(toInput, toDropdown, false);
+        setupAutocomplete(document.getElementById('fromInput'), document.getElementById('fromDropdown'));
+        setupAutocomplete(document.getElementById('toInput'), document.getElementById('toDropdown'));
 
-        // Update selected codes on blur
-        fromInput.addEventListener('blur', function() {
-            const match = stations.find(s => s.name === this.value);
-            if (match) {
-                selectedFromCode = match.code;
-            }
-        });
-
-        toInput.addEventListener('blur', function() {
-            const match = stations.find(s => s.name === this.value);
-            if (match) {
-                selectedToCode = match.code;
-            }
-        });
-
-        // Swap button functionality
-        swapBtn.addEventListener('click', function() {
-            const tempValue = fromInput.value;
-            const tempCode = selectedFromCode;
-            
-            fromInput.value = toInput.value;
-            selectedFromCode = selectedToCode;
-            
-            toInput.value = tempValue;
-            selectedToCode = tempCode;
-        });
-
-        function showFormError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('visible');
-            setTimeout(() => {
-                errorMessage.classList.remove('visible');
-            }, 5000);
-        }
-
-        // Form submission
-        searchForm.addEventListener('submit', function(e) {
+        // Form Submit Handler
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Validate
-            if (!fromInput.value.trim()) {
-                showFormError('Please enter a departure station');
-                fromInput.focus();
+            const rawFrom = document.getElementById('fromInput').value;
+            const rawTo = document.getElementById('toInput').value;
+            const date = document.getElementById('dateInput').value;
+            const trainClass = document.getElementById('classSelect').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            // Extract codes from "(CODE)"
+            const fromMatch = rawFrom.match(/\(([^)]+)\)$/);
+            const toMatch = rawTo.match(/\(([^)]+)\)$/);
+
+            if (!fromMatch || !toMatch) {
+                errorMsg.textContent = 'Please select a station from the dropdown';
+                errorMsg.style.display = 'block';
                 return;
             }
 
-            if (!toInput.value.trim()) {
-                showFormError('Please enter a destination station');
-                toInput.focus();
-                return;
-            }
+            const fromCode = fromMatch[1];
+            const toCode = toMatch[1];
 
-            if (!travelDateInput.value) {
-                showFormError('Please select a travel date');
-                travelDateInput.focus();
-                return;
-            }
-
-            // Ensure we have codes
-            if (!selectedFromCode) {
-                const match = stations.find(s => 
-                    s.name.toLowerCase() === fromInput.value.toLowerCase() ||
-                    s.code.toLowerCase() === fromInput.value.toLowerCase()
-                );
-                if (match) {
-                    selectedFromCode = match.code;
-                } else {
-                    showFormError('Please select a valid departure station from the dropdown');
-                    return;
-                }
-            }
-
-            if (!selectedToCode) {
-                const match = stations.find(s => 
-                    s.name.toLowerCase() === toInput.value.toLowerCase() ||
-                    s.code.toLowerCase() === toInput.value.toLowerCase()
-                );
-                if (match) {
-                    selectedToCode = match.code;
-                } else {
-                    showFormError('Please select a valid destination station from the dropdown');
-                    return;
-                }
-            }
-
-            if (selectedFromCode === selectedToCode) {
-                showFormError('Departure and destination stations cannot be the same');
-                return;
-            }
-
-            // Disable button and show loading
-            searchBtn.disabled = true;
-            searchBtn.innerHTML = '<div class="spinner"></div><span>Searching...</span>';
-
-            // Redirect to results page with query parameters
-            const params = new URLSearchParams({
-                from: selectedFromCode,
-                to: selectedToCode,
-                date: travelDateInput.value
-            });
-
-            window.location.href = `results.html?${params.toString()}`;
+            errorMsg.style.display = 'none';
+            window.location.href = `results.html?from=${encodeURIComponent(fromCode)}&to=${encodeURIComponent(toCode)}&date=${encodeURIComponent(date)}&class=${encodeURIComponent(trainClass)}`;
         });
     </script>
 </body>
