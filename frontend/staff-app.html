@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Ceylon Track</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --surface-dark: #1e293b;
+            --surface-hover: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.75rem;
+            font-size: 1.25rem;
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-main);
+        }
+
+        .hidden { display: none !important; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        #activeAssignmentPanel {
+            border: 2px solid var(--success);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1><i class="fa-solid fa-train"></i> Staff Dashboard</h1>
+        <ul class="nav-links" id="nav-links">
+            <!-- Nav populated by api.js -->
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Assign To Train Card -->
+        <div class="card" id="assignmentSetupCard">
+            <h2><i class="fa-solid fa-clipboard-user"></i> Assignment Setup</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Select the train you are boarding to broadcast your live GPS location to passengers.</p>
+            <div class="form-group">
+                <label>Select Train Schedule</label>
+                <select id="scheduleSelect" class="form-control">
+                    <option value="">Loading schedules...</option>
+                </select>
+            </div>
+            <button id="btnAssign" class="btn btn-primary"><i class="fa-solid fa-play"></i> Start Assignment</button>
+        </div>
+
+        <!-- Active Assignment Panel -->
+        <div class="card hidden" id="activeAssignmentPanel">
+            <h2><i class="fa-solid fa-satellite-dish"></i> Active Broadcast</h2>
+            <div style="margin-bottom: 1.5rem;">
+                <span class="status-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--success);">
+                    <i class="fa-solid fa-circle pulse" style="font-size: 0.5rem; vertical-align: middle; margin-right: 0.25rem;"></i> Live GPS Active
+                </span>
+            </div>
+            <p><strong>Assigned Train:</strong> <span id="lblActiveTrain"></span></p>
+            <p><strong>Started At:</strong> <span id="lblActiveTime"></span></p>
+            <p><strong>Last Sent Location:</strong> <span id="lblGpsStatus">Waiting for GPS...</span></p>
+            
+            <button id="btnStopAssignment" class="btn btn-danger" style="margin-top: 1rem;"><i class="fa-solid fa-stop"></i> Stop Broadcasting</button>
+        </div>
+
+        <!-- Status & Delays -->
+        <div class="card hidden" id="statusUpdateCard">
+            <h2><i class="fa-solid fa-clock-rotate-left"></i> Train Status & Delays</h2>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="statusSelect" class="form-control">
+                    <option value="ON_TIME">On Time</option>
+                    <option value="DELAYED">Delayed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Delay Minutes (if applicable)</label>
+                <input type="number" id="delayInput" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>Notes (Optional)</label>
+                <input type="text" id="notesInput" class="form-control" placeholder="e.g., Signal failure">
+            </div>
+            <button id="btnUpdateStatus" class="btn btn-success"><i class="fa-solid fa-upload"></i> Update Status</button>
+        </div>
+
+        <!-- Last Stop Update (Station Master Only) -->
+        <div class="card hidden" id="lastStopCard">
+            <h2><i class="fa-solid fa-location-dot"></i> Update Last Stop (Station Master)</h2>
+            <div class="form-group">
+                <label>Train Schedule</label>
+                <select id="lsScheduleSelect" class="form-control">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Station Reached</label>
+                <select id="lsStationSelect" class="form-control">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <button id="btnUpdateLastStop" class="btn btn-warning" style="color: #000;"><i class="fa-solid fa-check-double"></i> Mark Arrived</button>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        let gpsWatchId = null;
+        let lastGpsSentTime = 0;
+        let activeScheduleId = null;
+
+        async function init() {
+            if (!api.requireRole('staff') && !api.requireRole('admin')) return;
+            api.updateNav();
+
+            // Load user to check subrole
+            const user = api.getUser();
+            if (user && (user.sub_role === 'station_master' || user.role === 'admin')) {
+                document.getElementById('lastStopCard').classList.remove('hidden');
+                loadLastStopDropdowns();
+            }
+
+            await checkActiveAssignment();
+            if (!activeScheduleId) {
+                loadSchedules();
+            }
+        }
+
+        async function loadSchedules() {
+            try {
+                // We reuse searchSchedules with empty params to get today's schedules
+                const data = await api.searchSchedules('', '', '', 'all');
+                const sel = document.getElementById('scheduleSelect');
+                sel.innerHTML = '<option value="">-- Select a Train --</option>';
+                if(data.schedules) {
+                    data.schedules.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = `${s.trainNumber} - ${s.trainName} (${s.fromStation} to ${s.toStation}) - ${s.departureTime}`;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                api.showToast('Failed to load schedules', 'error');
+            }
+        }
+
+        async function checkActiveAssignment() {
+            try {
+                const data = await api.getMyAssignment();
+                if (data.assignment) {
+                    activeScheduleId = data.assignment.scheduleId;
+                    showActivePanel(data.assignment);
+                    startGpsBroadcast();
+                } else {
+                    document.getElementById('assignmentSetupCard').classList.remove('hidden');
+                    document.getElementById('activeAssignmentPanel').classList.add('hidden');
+                    document.getElementById('statusUpdateCard').classList.add('hidden');
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function showActivePanel(assignment) {
+            document.getElementById('assignmentSetupCard').classList.add('hidden');
+            document.getElementById('activeAssignmentPanel').classList.remove('hidden');
+            document.getElementById('statusUpdateCard').classList.remove('hidden');
+            
+            document.getElementById('lblActiveTrain').textContent = `${assignment.trainNumber} - ${assignment.trainName}`;
+            document.getElementById('lblActiveTime').textContent = new Date(assignment.assignedAt).toLocaleString();
+        }
+
+        document.getElementById('btnAssign').addEventListener('click', async () => {
+            const sid = document.getElementById('scheduleSelect').value;
+            if(!sid) return api.showToast('Select a schedule', 'error');
+
+            api.showSpinner();
+            try {
+                const data = await api.startAssignment(sid);
+                api.showToast('Assignment started. Broadcasting GPS.', 'success');
+                activeScheduleId = sid;
+                showActivePanel(data.assignment);
+                startGpsBroadcast();
+            } catch(e) {
+                api.showToast(e.message, 'error');
+            }
+            api.hideSpinner();
+        });
+
+        document.getElementById('btnStopAssignment').addEventListener('click', async () => {
+            api.showSpinner();
+            try {
+                await api.stopAssignment();
+                api.showToast('Stopped broadcasting', 'info');
+                stopGpsBroadcast();
+                activeScheduleId = null;
+                document.getElementById('assignmentSetupCard').classList.remove('hidden');
+                document.getElementById('activeAssignmentPanel').classList.add('hidden');
+                document.getElementById('statusUpdateCard').classList.add('hidden');
+                loadSchedules();
+            } catch(e) {
+                api.showToast(e.message, 'error');
+            }
+            api.hideSpinner();
+        });
+
+        document.getElementById('btnUpdateStatus').addEventListener('click', async () => {
+            if(!activeScheduleId) return;
+            const status = document.getElementById('statusSelect').value;
+            const delay = document.getElementById('delayInput').value;
+            const notes = document.getElementById('notesInput').value;
+
+            api.showSpinner();
+            try {
+                await api.updateTrainStatus(activeScheduleId, status, delay, notes);
+                api.showToast('Status updated successfully', 'success');
+            } catch (e) {
+                api.showToast(e.message, 'error');
+            }
+            api.hideSpinner();
+        });
+
+        function startGpsBroadcast() {
+            if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+            
+            if (!navigator.geolocation) {
+                document.getElementById('lblGpsStatus').textContent = 'Geolocation not supported by browser.';
+                return;
+            }
+
+            gpsWatchId = navigator.geolocation.watchPosition(async (pos) => {
+                const now = Date.now();
+                if (now - lastGpsSentTime < 5000) return; // Throttle to 5 seconds
+                lastGpsSentTime = now;
+
+                const { latitude, longitude } = pos.coords;
+                try {
+                    await api.pushMobileLocation(activeScheduleId, latitude, longitude);
+                    document.getElementById('lblGpsStatus').textContent = `Sent at ${new Date().toLocaleTimeString()} (Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)})`;
+                } catch(e) {
+                    document.getElementById('lblGpsStatus').textContent = `Failed to send: ${e.message}`;
+                }
+            }, (err) => {
+                document.getElementById('lblGpsStatus').textContent = `GPS Error: ${err.message}`;
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        }
+
+        function stopGpsBroadcast() {
+            if (gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(gpsWatchId);
+                gpsWatchId = null;
+            }
+            document.getElementById('lblGpsStatus').textContent = 'Broadcast stopped';
+        }
+
+        async function loadLastStopDropdowns() {
+            try {
+                const [schedulesRes, stationsRes] = await Promise.all([
+                    api.searchSchedules('', '', '', 'all'),
+                    api.getStations()
+                ]);
+
+                const schedSel = document.getElementById('lsScheduleSelect');
+                const statSel = document.getElementById('lsStationSelect');
+
+                if(schedulesRes.schedules) {
+                    schedulesRes.schedules.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = `${s.trainNumber} - ${s.trainName}`;
+                        schedSel.appendChild(opt);
+                    });
+                }
+                if(stationsRes.stations) {
+                    stationsRes.stations.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = `${s.name}`;
+                        statSel.appendChild(opt);
+                    });
+                }
+            } catch(e) {
+                console.error("Failed to load dropdowns", e);
+            }
+        }
+
+        document.getElementById('btnUpdateLastStop').addEventListener('click', async () => {
+            const sid = document.getElementById('lsScheduleSelect').value;
+            const stid = document.getElementById('lsStationSelect').value;
+            if(!sid || !stid) return api.showToast('Please select train and station', 'error');
+
+            api.showSpinner();
+            try {
+                const res = await api.updateLastStop(sid, stid);
+                api.showToast(`Updated last stop to ${res.stationName}`, 'success');
+            } catch(e) {
+                api.showToast(e.message, 'error');
+            }
+            api.hideSpinner();
+        });
+
+        init();
+    </script>
+</body>
+</html>

@@ -47,6 +47,7 @@ router.get('/', authenticate, async (req, res) => {
 
         return res.status(200).json({
             disruptions,
+            trains: disruptions,
             count: disruptions.length
         });
     } catch (error) {

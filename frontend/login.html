@@ -280,6 +280,35 @@
             gap: 1.25rem;
         }
 
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            background-color: var(--surface-2);
+            padding: 0.25rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background-color: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
         footer {
             text-align: center;
             padding: 1.5rem;
@@ -334,9 +363,14 @@
             </div>
 
             <form class="auth-form" id="loginForm">
+                <div class="auth-tabs">
+                    <button type="button" class="auth-tab active" data-role="passenger">🚆 Passenger</button>
+                    <button type="button" class="auth-tab" data-role="staff">👷 Staff</button>
+                </div>
+
                 <div class="input-group">
-                    <label for="emailInput">Email Address</label>
-                    <input type="email" id="emailInput" class="input" placeholder="e.g. passenger@ceylon.lk" required>
+                    <label id="identifierLabel" for="identifierInput">Email Address</label>
+                    <input type="text" id="identifierInput" class="input" placeholder="e.g. passenger@ceylon.lk" required>
                 </div>
                 <div class="input-group">
                     <label for="passwordInput">Password</label>
@@ -387,23 +421,48 @@
         themeBtn.addEventListener('click', toggleTheme);
         themeBtnMobile.addEventListener('click', toggleTheme);
 
+        let activeRole = 'passenger';
+
+        // Tab Switching Logic
+        const tabs = document.querySelectorAll('.auth-tab');
+        const identifierLabel = document.getElementById('identifierLabel');
+        const identifierInput = document.getElementById('identifierInput');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeRole = tab.getAttribute('data-role');
+
+                if (activeRole === 'staff') {
+                    identifierLabel.textContent = 'Employee ID';
+                    identifierInput.type = 'text';
+                    identifierInput.placeholder = 'e.g. EMP-001';
+                } else {
+                    identifierLabel.textContent = 'Email Address';
+                    identifierInput.type = 'email';
+                    identifierInput.placeholder = 'e.g. passenger@ceylon.lk';
+                }
+            });
+        });
+
         // Login Handler
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('emailInput').value.trim();
+            const identifier = document.getElementById('identifierInput').value.trim();
             const password = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('errorMsg');
 
             errorMsg.style.display = 'none';
             window.api.showSpinner();
             try {
-                const res = await window.api.login(email, password);
+                const res = await window.api.login(activeRole, identifier, password);
                 window.api.setAuth(res.token, res.user);
                 window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
                 
                 setTimeout(() => {
                     if (res.user.role === 'staff' || res.user.role === 'admin') {
-                        window.location.href = '/admin.html';
+                        window.location.href = '/staff-app.html';
                     } else {
                         window.location.href = '/index.html';
                     }

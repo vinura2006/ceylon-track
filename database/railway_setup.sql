@@ -1,23 +1,8 @@
--- ============================================
--- Ceylon Track - Database Schema
--- ============================================
-
+-- Step 1: Enable PostGIS
 CREATE EXTENSION IF NOT EXISTS postgis;
 
-DROP TABLE IF EXISTS ticket_bookings CASCADE;
-DROP TABLE IF EXISTS timetable_stops CASCADE;
-DROP TABLE IF EXISTS sri_lanka_timetable CASCADE;
-DROP TABLE IF EXISTS train_last_stops CASCADE;
-DROP TABLE IF EXISTS train_assignments CASCADE;
-DROP TABLE IF EXISTS journey_watches CASCADE;
-DROP TABLE IF EXISTS trip_status_updates CASCADE;
-DROP TABLE IF EXISTS stop_times CASCADE;
-DROP TABLE IF EXISTS schedules CASCADE;
-DROP TABLE IF EXISTS stations CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
--- TABLE: users
-CREATE TABLE users (
+-- Step 2: Create all tables (copy from schema.sql with IF NOT EXISTS)
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -26,12 +11,10 @@ CREATE TABLE users (
     role VARCHAR(20) NOT NULL DEFAULT 'passenger' CHECK (role IN ('passenger','staff','admin')),
     sub_role VARCHAR(50),
     assigned_station_id INTEGER,
-    employee_id VARCHAR(50) UNIQUE DEFAULT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- TABLE: stations
-CREATE TABLE stations (
+CREATE TABLE IF NOT EXISTS stations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     code VARCHAR(10) UNIQUE NOT NULL,
@@ -40,10 +23,14 @@ CREATE TABLE stations (
 );
 
 -- update users FK now that stations exists
-ALTER TABLE users ADD CONSTRAINT fk_users_station FOREIGN KEY (assigned_station_id) REFERENCES stations(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_users_station') THEN
+        ALTER TABLE users ADD CONSTRAINT fk_users_station FOREIGN KEY (assigned_station_id) REFERENCES stations(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
--- TABLE: schedules
-CREATE TABLE schedules (
+CREATE TABLE IF NOT EXISTS schedules (
     id SERIAL PRIMARY KEY,
     train_number VARCHAR(20) NOT NULL,
     train_name VARCHAR(150),
@@ -57,8 +44,7 @@ CREATE TABLE schedules (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- TABLE: stop_times
-CREATE TABLE stop_times (
+CREATE TABLE IF NOT EXISTS stop_times (
     id SERIAL PRIMARY KEY,
     schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
     station_id INTEGER REFERENCES stations(id) ON DELETE CASCADE,
@@ -68,8 +54,7 @@ CREATE TABLE stop_times (
     platform VARCHAR(10)
 );
 
--- TABLE: trip_status_updates
-CREATE TABLE trip_status_updates (
+CREATE TABLE IF NOT EXISTS trip_status_updates (
     id SERIAL PRIMARY KEY,
     schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
     trip_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -85,8 +70,7 @@ CREATE TABLE trip_status_updates (
     UNIQUE(schedule_id, trip_date)
 );
 
--- TABLE: journey_watches
-CREATE TABLE journey_watches (
+CREATE TABLE IF NOT EXISTS journey_watches (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
@@ -97,8 +81,7 @@ CREATE TABLE journey_watches (
     UNIQUE(user_id, schedule_id)
 );
 
--- TABLE: train_assignments
-CREATE TABLE train_assignments (
+CREATE TABLE IF NOT EXISTS train_assignments (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
@@ -106,10 +89,9 @@ CREATE TABLE train_assignments (
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT true
 );
-CREATE UNIQUE INDEX idx_unique_active_assignment ON train_assignments(schedule_id, assignment_date) WHERE is_active = true;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_assignment ON train_assignments(schedule_id, assignment_date) WHERE is_active = true;
 
--- TABLE: train_last_stops
-CREATE TABLE train_last_stops (
+CREATE TABLE IF NOT EXISTS train_last_stops (
     id SERIAL PRIMARY KEY,
     schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
     trip_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -123,8 +105,7 @@ CREATE TABLE train_last_stops (
     UNIQUE(schedule_id, trip_date)
 );
 
--- TABLE: sri_lanka_timetable
-CREATE TABLE sri_lanka_timetable (
+CREATE TABLE IF NOT EXISTS sri_lanka_timetable (
     id SERIAL PRIMARY KEY,
     train_no VARCHAR(20) UNIQUE NOT NULL,
     train_name VARCHAR(100),
@@ -137,8 +118,7 @@ CREATE TABLE sri_lanka_timetable (
     frequency VARCHAR(50) DEFAULT 'Daily'
 );
 
--- TABLE: timetable_stops
-CREATE TABLE timetable_stops (
+CREATE TABLE IF NOT EXISTS timetable_stops (
     id SERIAL PRIMARY KEY,
     timetable_id INTEGER REFERENCES sri_lanka_timetable(id) ON DELETE CASCADE,
     station_id INTEGER REFERENCES stations(id) ON DELETE CASCADE,
@@ -147,8 +127,7 @@ CREATE TABLE timetable_stops (
     stop_sequence INTEGER NOT NULL
 );
 
--- TABLE: ticket_bookings
-CREATE TABLE ticket_bookings (
+CREATE TABLE IF NOT EXISTS ticket_bookings (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     timetable_id INTEGER REFERENCES sri_lanka_timetable(id) ON DELETE CASCADE,
@@ -156,9 +135,19 @@ CREATE TABLE ticket_bookings (
     status VARCHAR(50) DEFAULT 'Redirected'
 );
 
--- Performance Indexes
-CREATE INDEX idx_schedules_from ON schedules(from_station_id);
-CREATE INDEX idx_schedules_to ON schedules(to_station_id);
-CREATE INDEX idx_trip_status_schedule_date ON trip_status_updates(schedule_id, trip_date);
-CREATE INDEX idx_journey_watches_user ON journey_watches(user_id);
-CREATE INDEX idx_stop_times_schedule ON stop_times(schedule_id, stop_sequence);
+CREATE INDEX IF NOT EXISTS idx_schedules_from ON schedules(from_station_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_to ON schedules(to_station_id);
+CREATE INDEX IF NOT EXISTS idx_trip_status_schedule_date ON trip_status_updates(schedule_id, trip_date);
+CREATE INDEX IF NOT EXISTS idx_journey_watches_user ON journey_watches(user_id);
+CREATE INDEX IF NOT EXISTS idx_stop_times_schedule ON stop_times(schedule_id, stop_sequence);
+
+-- Step 3: Seed only if empty
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM stations LIMIT 1) THEN
+    -- In actual environment, run seed.sql here or leave empty and let Railway dashboard handle seed script
+    RAISE NOTICE 'Stations table is empty, data needs seeding.';
+  ELSE
+    RAISE NOTICE 'Data already exists — skipping seed';
+  END IF;
+END $$;

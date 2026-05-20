@@ -298,14 +298,7 @@
 
             <div class="controls-row">
                 <select id="scheduleSelect" class="select">
-                    <option value="1">🚂 Train 1014 — Colombo Fort → Kandy</option>
-                    <option value="2">🚂 Train 1084 — Colombo Fort → Galle</option>
-                    <option value="3">🚂 Train 1086 — Colombo Fort → Matara</option>
-                    <option value="4">🚂 Train 1005 — Colombo Fort → Badulla</option>
-                    <option value="5">🚂 Train 1068 — Colombo Fort → Anuradhapura</option>
-                    <option value="6">🚂 Train 1015 — Kandy → Colombo Fort</option>
-                    <option value="7">🚂 Train 1083 — Galle → Colombo Fort</option>
-                    <option value="8">🚂 Train 1022 — Colombo Fort → Kurunegala</option>
+                    <option value="">Loading active trains...</option>
                 </select>
                 <button class="btn" id="trackBtn" onclick="trackTrain()">Track This Train</button>
             </div>
@@ -357,6 +350,106 @@
               .bindPopup(`<b>🚉 ${station.name} (${station.code})</b>`);
         });
 
+        // Railway Lines GeoJSON loading & Snapping Logic
+        let railwayGeoJSON = null;
+
+        async function loadRailwayLines() {
+            try {
+                const response = await fetch('/js/srilanka_railway.geojson');
+                if (!response.ok) throw new Error('Failed to load railway lines');
+                railwayGeoJSON = await response.json();
+
+                // Sleepers (wider dark gray line)
+                L.geoJSON(railwayGeoJSON, {
+                    style: {
+                        color: '#475569',
+                        weight: 4,
+                        opacity: 0.65
+                    }
+                }).addTo(map);
+
+                // Rails (thinner dashed white/light gray line)
+                L.geoJSON(railwayGeoJSON, {
+                    style: {
+                        color: '#f8fafc',
+                        weight: 1.5,
+                        dashArray: '5, 5',
+                        opacity: 0.9
+                    }
+                }).addTo(map);
+
+                console.log('Successfully loaded and rendered Sri Lanka railway network.');
+            } catch (err) {
+                console.error('Error loading railway lines GeoJSON:', err);
+            }
+        }
+
+        loadRailwayLines();
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const dy = lat1 - lat2;
+            const dx = lon1 - lon2;
+            return dy * dy + dx * dx; // Squared distance is fine for comparing closeness
+        }
+
+        function projectPointOnSegment(p, a, b) {
+            const py = p[0], px = p[1];
+            const ay = a[0], ax = a[1];
+            const by = b[0], bx = b[1];
+
+            const dx = bx - ax;
+            const dy = by - ay;
+            const len2 = dx * dx + dy * dy;
+
+            if (len2 === 0) return [ay, ax];
+
+            let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+            t = Math.max(0, Math.min(1, t));
+
+            return [ay + t * dy, ax + t * dx];
+        }
+
+        function snapToRailway(lat, lng) {
+            if (!railwayGeoJSON) return [lat, lng];
+
+            let minDistance = Infinity;
+            let snappedPoint = [lat, lng];
+
+            railwayGeoJSON.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.type === 'LineString') {
+                    const coords = feature.geometry.coordinates; // [lon, lat]
+                    for (let i = 0; i < coords.length - 1; i++) {
+                        const a = [coords[i][1], coords[i][0]]; // [lat, lon]
+                        const b = [coords[i+1][1], coords[i+1][0]]; // [lat, lon]
+
+                        // Bounding box filter (approx 5km buffer) to skip calculations for far away segments
+                        const minLat = Math.min(a[0], b[0]) - 0.05;
+                        const maxLat = Math.max(a[0], b[0]) + 0.05;
+                        const minLng = Math.min(a[1], b[1]) - 0.05;
+                        const maxLng = Math.max(a[1], b[1]) + 0.05;
+                        
+                        if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) {
+                            continue;
+                        }
+
+                        const projected = projectPointOnSegment([lat, lng], a, b);
+                        const dist = getDistance(lat, lng, projected[0], projected[1]);
+
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            snappedPoint = projected;
+                        }
+                    }
+                }
+            });
+
+            // Snap if within roughly 8-10km (0.08 degrees) to prevent snapping bad coordinates
+            if (minDistance < 0.08 * 0.08) {
+                return snappedPoint;
+            }
+            return [lat, lng];
+        }
+
         // Theme management
         const themeBtn = document.getElementById('themeBtn');
         themeBtn.addEventListener('click', () => {
@@ -401,14 +494,50 @@
                 const response = await fetch(`/api/gps/${selectedScheduleId}`);
                 
                 if (response.status === 404) {
-                    showInfo("No live GPS data for this train yet. Ask staff to start broadcasting.");
-                    showWarning(null);
-                    if (trainMarker) {
-                        map.removeLayer(trainMarker);
-                        trainMarker = null;
+                    try {
+                        const lsData = await api.getLastStop(selectedScheduleId);
+                        showInfo(`No live GPS. Showing last reported manual stop: ${lsData.station_name}`);
+                        showWarning(null);
+
+                        const lat = parseFloat(lsData.lat);
+                        const lng = parseFloat(lsData.lng);
+                        const [snappedLat, snappedLng] = snapToRailway(lat, lng);
+
+                        if (trainMarker) {
+                            trainMarker.setLatLng([snappedLat, snappedLng]);
+                        } else {
+                            const lastStopIcon = L.divIcon({
+                                html: '🚉',
+                                className: 'live-train-icon',
+                                iconSize: [36, 36],
+                                iconAnchor: [18, 18],
+                                style: 'border-color: #f59e0b; box-shadow: 0 0 16px #f59e0b;'
+                            });
+                            trainMarker = L.marker([snappedLat, snappedLng], { icon: lastStopIcon }).addTo(map);
+                        }
+
+                        trainMarker.bindPopup(`
+                            <div style="font-family: var(--font-body); font-size: 14px;">
+                                <strong>🚂 Train ${selectedScheduleId}</strong><br>
+                                Status: Offline<br>
+                                Last Stop: <b>${lsData.station_name}</b><br>
+                                Arrival: ${new Date(lsData.arrival_time).toLocaleString()}
+                            </div>
+                        `).openPopup();
+                        
+                        map.panTo([snappedLat, snappedLng]);
+                        document.getElementById('liveStatusText').textContent = "Offline (Showing Last Stop)";
+                        document.getElementById('countdownDisplay').textContent = "Last updated: --";
+                    } catch (e) {
+                        showInfo("No live GPS data and no last stop data available. Ask staff to start broadcasting.");
+                        showWarning(null);
+                        if (trainMarker) {
+                            map.removeLayer(trainMarker);
+                            trainMarker = null;
+                        }
+                        document.getElementById('liveStatusText').textContent = "Waiting for live broadcast...";
+                        document.getElementById('countdownDisplay').textContent = "Last updated: --";
                     }
-                    document.getElementById('liveStatusText').textContent = "Waiting for live broadcast...";
-                    document.getElementById('countdownDisplay').textContent = "Last updated: --";
                     return;
                 }
 
@@ -426,11 +555,13 @@
                 const status = data.status || 'ON_TIME';
                 const delayMinutes = data.delayMinutes || 0;
                 
+                const [snappedLat, snappedLng] = snapToRailway(lat, lng);
+
                 document.getElementById('liveStatusText').textContent = `Train ${selectedScheduleId} is Live (${status})`;
 
                 // Render or update train marker
                 if (trainMarker) {
-                    trainMarker.setLatLng([lat, lng]);
+                    trainMarker.setLatLng([snappedLat, snappedLng]);
                 } else {
                     const pulsingIcon = L.divIcon({
                         html: '🚂',
@@ -439,22 +570,24 @@
                         iconAnchor: [18, 18]
                     });
 
-                    trainMarker = L.marker([lat, lng], { icon: pulsingIcon }).addTo(map);
+                    trainMarker = L.marker([snappedLat, snappedLng], { icon: pulsingIcon }).addTo(map);
                 }
 
                 // Update popup content dynamically
                 const secondsAgo = data.secondsAgo;
                 const delayText = status === 'DELAYED' ? ` | Delay: ${delayMinutes} mins` : '';
+                const lastStopText = data.lastStopName ? `<br>Last Stop: <b>${data.lastStopName}</b>` : '';
+                
                 trainMarker.bindPopup(`
                     <div style="font-family: var(--font-body); font-size: 14px;">
                         <strong>🚂 Train ${selectedScheduleId}</strong><br>
-                        Status: ${status}${delayText}<br>
+                        Status: ${status}${delayText}${lastStopText}<br>
                         Last seen: ${secondsAgo} seconds ago
                     </div>
                 `).openPopup();
 
                 // Pan map to follow
-                map.panTo([lat, lng]);
+                map.panTo([snappedLat, snappedLng]);
 
             } catch (err) {
                 console.error("Fetch GPS error:", err);
@@ -505,6 +638,25 @@
 
             startLiveTimer();
         }
+
+        async function loadActiveSchedules() {
+            try {
+                const res = await api.getAllActiveTrains();
+                const sel = document.getElementById('scheduleSelect');
+                sel.innerHTML = '<option value="">Select a Train to Track...</option>';
+                if(res.trains) {
+                    res.trains.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.scheduleId;
+                        opt.textContent = `🚂 Train ${t.trainNumber} - ${t.trainName} (${t.fromStation} → ${t.toStation})`;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        loadActiveSchedules();
     </script>
 </body>
 </html>

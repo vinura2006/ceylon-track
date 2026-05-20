@@ -353,15 +353,15 @@
 
         function buildPopup(t) {
             const cls   = statusClass(t.status);
-            const delay = t.delay_minutes > 0 ? ` (+${t.delay_minutes} min)` : '';
+            const lastStop = t.lastStopName ? `<div class="popup-row"><span>Last Stop</span><span>${t.lastStopName}</span></div>` : '';
             return `
                 <div class="train-popup">
-                    <div class="popup-name">${t.train_name}</div>
-                    <div class="popup-number">${t.train_number}</div>
-                    <div class="popup-row"><span>Speed</span><span>${t.speed_kmh} km/h</span></div>
-                    <div class="popup-row"><span>Status</span><span>${t.status}${delay}</span></div>
+                    <div class="popup-name">${t.trainName}</div>
+                    <div class="popup-number">${t.trainNumber}</div>
+                    <div class="popup-row"><span>Status</span><span>${t.status}</span></div>
+                    ${lastStop}
                     <span class="popup-status status-${cls}">${t.status.toUpperCase()}</span>
-                    <div class="popup-time">Updated ${new Date(t.last_updated).toLocaleTimeString()}</div>
+                    <div class="popup-time">Updated ${new Date(t.updatedAt).toLocaleTimeString()}</div>
                 </div>`;
         }
 
@@ -377,7 +377,7 @@
                 return;
             }
 
-            const currentIds = new Set(trains.map(t => String(t.train_id)));
+            const currentIds = new Set(trains.map(t => String(t.scheduleId)));
 
             // Remove stale markers
             Object.keys(markers).forEach(id => {
@@ -388,10 +388,10 @@
             });
 
             trains.forEach(t => {
-                const id     = String(t.train_id);
-                const latlng = [parseFloat(t.current_lat), parseFloat(t.current_lng)];
+                const id     = String(t.scheduleId);
+                const latlng = [parseFloat(t.lat), parseFloat(t.lng)];
                 const isFocused = (targetTrainId && id === String(targetTrainId));
-                const icon   = createTrainIcon(t.train_name, t.status, isFocused);
+                const icon   = createTrainIcon(t.trainName, t.status, isFocused);
 
                 if (markers[id]) {
                     // Smooth position update — no flicker
@@ -411,7 +411,6 @@
 
                 // Side-panel list item
                 const cls  = statusClass(t.status);
-                const delayText = t.delay_minutes > 0 ? ` (+${t.delay_minutes} min)` : '';
                 const item = document.createElement('div');
                 item.className = 'train-item' + (isFocused ? ' focused-item' : '');
                 item.onclick = () => {
@@ -421,12 +420,12 @@
                 item.innerHTML = `
                     <div class="train-item-header">
                         <div>
-                            <div class="train-item-name">${t.train_name}</div>
-                            <div class="train-item-number">${t.train_number}</div>
+                            <div class="train-item-name">${t.trainName}</div>
+                            <div class="train-item-number">${t.trainNumber}</div>
                         </div>
                         <span class="status-dot ${cls}"></span>
                     </div>
-                    <div style="font-size:0.875rem;color:#475569;">${t.status}${delayText} · ${t.speed_kmh} km/h</div>
+                    <div style="font-size:0.875rem;color:#475569;">${t.status}</div>
                 `;
                 trainList.appendChild(item);
             });
@@ -437,10 +436,10 @@
         // ── Fetch ────────────────────────────────────────────────
         async function fetchLiveTrains() {
             try {
-                const res = await fetch(`${API_URL}/gps/trains/live`);
+                const res = await fetch(`${API_URL}/gps/all-active`);
                 if (!res.ok) throw new Error('Failed to fetch');
-                const trains = await res.json();
-                updateMapAndList(trains);
+                const data = await res.json();
+                updateMapAndList(data.trains);
                 document.getElementById('lastUpdated').textContent =
                     `Last updated: ${new Date().toLocaleTimeString()}`;
             } catch (err) {

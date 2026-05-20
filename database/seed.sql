@@ -85,10 +85,10 @@ INSERT INTO stop_times (schedule_id, station_id, station_name, scheduled_time, s
   (4, (SELECT id FROM stations WHERE code = 'BAD'), 'Badulla', '11:30:00', 7, '1');
 
 -- SECTION 4 — Insert 3 users with verified bcrypt hashed passwords
-INSERT INTO users (id, email, password_hash, first_name, last_name, role) VALUES
-  (1, 'passenger@ceylon.lk', '$2a$10$k7kpxcUcOPx6dG4Kpnryz.ZBgJIl25dZBdUBeJz6T8zA.ubEiRAJa', 'Test', 'Passenger', 'passenger'),
-  (2, 'staff@ceylon.lk', '$2a$10$qxCL1TIQWP.jjDg4ocHro.l6x.56WMoZlC00lAeucQsc.2vRRaCoy', 'Station', 'Master', 'staff'),
-  (3, 'admin@ceylon.lk', '$2a$10$f2eAt1UuqwYXBlTutavpye3A3En490Zef8g1Tdrz4UKPU93gyR.s6', 'System', 'Admin', 'admin');
+INSERT INTO users (id, email, password_hash, first_name, last_name, role, sub_role) VALUES
+  (1, 'passenger@ceylon.lk', '$2a$10$k7kpxcUcOPx6dG4Kpnryz.ZBgJIl25dZBdUBeJz6T8zA.ubEiRAJa', 'Test', 'Passenger', 'passenger', NULL),
+  (2, 'staff@ceylon.lk', '$2a$10$qxCL1TIQWP.jjDg4ocHro.l6x.56WMoZlC00lAeucQsc.2vRRaCoy', 'Station', 'Master', 'staff', 'station_master'),
+  (3, 'admin@ceylon.lk', '$2a$10$f2eAt1UuqwYXBlTutavpye3A3En490Zef8g1Tdrz4UKPU93gyR.s6', 'System', 'Admin', 'admin', NULL);
 
 SELECT setval('users_id_seq', 3);
 
@@ -128,3 +128,29 @@ INSERT INTO trip_status_updates (schedule_id, trip_date, status, delay_minutes, 
   (3, CURRENT_DATE - 2, 'ON_TIME', 0, 5.9549, 80.5353, 'On time'),
   (3, CURRENT_DATE - 3, 'CANCELLED', 0, NULL, NULL, 'Strike disruption'),
   (3, CURRENT_DATE - 4, 'ON_TIME', 0, 5.9549, 80.5353, 'On time');
+
+-- SECTION 6 — Seed sri_lanka_timetable
+INSERT INTO sri_lanka_timetable (id, train_no, train_name, route_name, start_station_id, end_station_id, departure_time, arrival_time, train_class, frequency) VALUES
+  (1, '1001', 'Udarata Menike', 'Main Line', 1, 6, '05:55:00', '16:07:00', '1st, 2nd, 3rd Class', 'Daily'),
+  (2, '1005', 'Podi Menike', 'Main Line', 1, 6, '08:30:00', '19:02:00', '1st, 2nd, 3rd Class', 'Daily'),
+  (3, '4077', 'Yal Devi', 'Northern Line', 1, 8, '06:35:00', '13:58:00', '1st, 2nd, 3rd Class', 'Daily'),
+  (4, '8039', 'Ruhunu Kumari', 'Coastal Line', 3, 1, '06:05:00', '09:00:00', '2nd, 3rd Class', 'Daily'),
+  (5, '8056', 'Galu Kumari', 'Coastal Line', 1, 4, '14:05:00', '17:25:00', '1st, 2nd, 3rd Class', 'Daily'),
+  (6, '1015', 'Tikiri Menike', 'Main Line', 6, 1, '06:10:00', '16:00:00', '2nd, 3rd Class', 'Daily'),
+  (7, '4003', 'Uttara Devi', 'Northern Line', 1, 8, '11:50:00', '18:30:00', '1st, 2nd Class', 'Daily'),
+  (8, '8050', 'Sagarika', 'Coastal Line', 4, 1, '04:55:00', '08:15:00', '2nd, 3rd Class', 'Daily'),
+  (9, '1030', 'Kandy Express', 'Main Line', 1, 2, '17:30:00', '20:00:00', '1st, 2nd Class', 'Daily'),
+  (10, '1045', 'Night Mail', 'Main Line', 1, 6, '20:00:00', '06:15:00', '2nd, 3rd Class', 'Daily');
+
+SELECT setval('sri_lanka_timetable_id_seq', 10);
+
+-- SECTION 7 — Seed timetable_stops
+INSERT INTO timetable_stops (timetable_id, station_id, arrival_time, departure_time, stop_sequence) VALUES
+  -- Stops for Udarata Menike (id 1)
+  (1, 1, '05:55:00', '05:55:00', 1),
+  (1, 11, '06:20:00', '06:22:00', 2),
+  (1, 12, '06:50:00', '06:51:00', 3),
+  (1, 13, '07:25:00', '07:30:00', 4),
+  (1, 14, '08:10:00', '08:12:00', 5),
+  (1, 2, '08:25:00', '08:35:00', 6),
+  (1, 6, '16:07:00', '16:07:00', 7);

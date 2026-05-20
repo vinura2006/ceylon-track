@@ -10,6 +10,9 @@ const watchRoutes = require('./routes/watch');
 const staffRoutes = require('./routes/staff');
 const gpsRoutes = require('./routes/gps');
 const disruptionsRoutes = require('./routes/disruptions');
+const assignmentsRoutes = require('./routes/assignments');
+const laststopRoutes = require('./routes/laststop');
+const timetableRoutes = require('./routes/timetable');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +40,9 @@ app.use('/api/watch', watchRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/gps', gpsRoutes);
 app.use('/api/disruptions', disruptionsRoutes);
+app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/laststop', laststopRoutes);
+app.use('/api/timetable', timetableRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

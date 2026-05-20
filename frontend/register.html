@@ -280,6 +280,47 @@
             gap: 1.25rem;
         }
 
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            background-color: var(--surface-2);
+            padding: 0.25rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background-color: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        .staff-fields {
+            display: none;
+            background-color: rgba(15, 76, 117, 0.05);
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
         .name-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -343,6 +384,11 @@
             </div>
 
             <form class="auth-form" id="registerForm">
+                <div class="auth-tabs">
+                    <button type="button" class="auth-tab active" data-role="passenger">🚆 Passenger</button>
+                    <button type="button" class="auth-tab" data-role="staff">👷 Staff</button>
+                </div>
+
                 <div class="name-row">
                     <div class="input-group">
                         <label for="firstNameInput">First Name</label>
@@ -357,6 +403,18 @@
                     <label for="emailInput">Email Address</label>
                     <input type="email" id="emailInput" class="input" placeholder="e.g. ruwan@ceylon.lk" required>
                 </div>
+
+                <div class="staff-fields" id="staffFields" style="display: none;">
+                    <div class="input-group">
+                        <label for="employeeIdInput">Employee ID</label>
+                        <input type="text" id="employeeIdInput" class="input" placeholder="e.g. EMP-001">
+                    </div>
+                    <div class="input-group">
+                        <label for="accessCodeInput">Staff Access Code</label>
+                        <input type="password" id="accessCodeInput" class="input" placeholder="Secret code from HR">
+                    </div>
+                </div>
+
                 <div class="input-group">
                     <label for="passwordInput">Password</label>
                     <input type="password" id="passwordInput" class="input" placeholder="At least 6 characters" required>
@@ -410,6 +468,32 @@
         themeBtn.addEventListener('click', toggleTheme);
         themeBtnMobile.addEventListener('click', toggleTheme);
 
+        let activeRole = 'passenger';
+
+        // Tab Switching Logic
+        const tabs = document.querySelectorAll('.auth-tab');
+        const staffFields = document.getElementById('staffFields');
+        const empIdInput = document.getElementById('employeeIdInput');
+        const accessCodeInput = document.getElementById('accessCodeInput');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeRole = tab.getAttribute('data-role');
+
+                if (activeRole === 'staff') {
+                    staffFields.style.display = 'flex';
+                    empIdInput.required = true;
+                    accessCodeInput.required = true;
+                } else {
+                    staffFields.style.display = 'none';
+                    empIdInput.required = false;
+                    accessCodeInput.required = false;
+                }
+            });
+        });
+
         // Register Handler
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -418,22 +502,14 @@
             const email = document.getElementById('emailInput').value.trim();
             const password = document.getElementById('passwordInput').value;
             const confirmPassword = document.getElementById('confirmPasswordInput').value;
+            const empId = empIdInput.value.trim();
+            const accessCode = accessCodeInput.value.trim();
             const errorMsg = document.getElementById('errorMsg');
 
             errorMsg.style.display = 'none';
 
-            if (!firstName) {
-                errorMsg.textContent = 'First name is required';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            if (!lastName) {
-                errorMsg.textContent = 'Last name is required';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            if (!email) {
-                errorMsg.textContent = 'Email address is required';
+            if (!firstName || !lastName || !email) {
+                errorMsg.textContent = 'Please fill all required fields';
                 errorMsg.style.display = 'block';
                 return;
             }
@@ -449,15 +525,24 @@
                 window.api.showToast('Passwords do not match', 'error');
                 return;
             }
+            if (activeRole === 'staff' && (!empId || !accessCode)) {
+                errorMsg.textContent = 'Employee ID and Access Code are required for staff';
+                errorMsg.style.display = 'block';
+                return;
+            }
 
             window.api.showSpinner();
             try {
-                const res = await window.api.register(firstName, lastName, email, password);
+                const res = await window.api.register(firstName, lastName, email, password, activeRole, empId, accessCode);
                 window.api.setAuth(res.token, res.user);
                 window.api.showToast(`Account created successfully! Welcome, ${res.user.firstName}!`, 'success');
                 
                 setTimeout(() => {
-                    window.location.href = '/index.html';
+                    if (res.user.role === 'staff' || res.user.role === 'admin') {
+                        window.location.href = '/staff-app.html';
+                    } else {
+                        window.location.href = '/index.html';
+                    }
                 }, 1500);
             } catch (err) {
                 console.error('Registration failed:', err);

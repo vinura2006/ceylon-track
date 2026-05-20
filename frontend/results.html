@@ -870,6 +870,7 @@
                 allTrains = res.schedules || [];
                 document.getElementById('resultsCount').textContent = `${allTrains.length} train${allTrains.length === 1 ? '' : 's'} found for ${from} → ${to}`;
                 renderTrains();
+                loadTrackingStatus();
             } catch (err) {
                 console.error('Search failed:', err);
                 window.api.showToast(err.message || 'Search failed', 'error');
@@ -878,6 +879,38 @@
                 document.getElementById('resultsCount').textContent = 'Failed to load schedules.';
             } finally {
                 window.api.hideSpinner();
+            }
+        }
+
+        async function loadTrackingStatus() {
+            for (const train of allTrains) {
+                try {
+                    const [gpsRes, lsRes] = await Promise.allSettled([
+                        window.api.getTrainLocation(train.id),
+                        window.api.getLastStop(train.id)
+                    ]);
+                    
+                    const cardTop = document.querySelector(`#train-card-${train.id} .card-top`);
+                    if (!cardTop) continue;
+
+                    // Remove existing tags
+                    const existingTags = cardTop.querySelectorAll('.tracking-tag');
+                    existingTags.forEach(t => t.remove());
+
+                    let tagHtml = '';
+                    if (gpsRes.status === 'fulfilled' && gpsRes.value && !gpsRes.value.error) {
+                        tagHtml = `<span class="badge tracking-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">🛰 Live GPS</span>`;
+                    } else if (lsRes.status === 'fulfilled' && lsRes.value && !lsRes.value.error) {
+                        tagHtml = `<span class="badge tracking-tag" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">🚉 Last Stop: ${lsRes.value.station_name}</span>`;
+                    } else {
+                        tagHtml = `<span class="badge tracking-tag badge-neutral">Offline</span>`;
+                    }
+
+                    const title = cardTop.querySelector('.train-title');
+                    title.insertAdjacentHTML('afterend', tagHtml);
+                } catch (e) {
+                    console.error("Tracking status error", e);
+                }
             }
         }
 
@@ -922,12 +955,15 @@
                             } else {
                                 // Re-render card to inject delay banner dynamically
                                 renderTrains();
+                                loadTrackingStatus();
                             }
                         } else {
                             if (delayBanner) delayBanner.remove();
                         }
                     }
                 });
+                // Also refresh tracking status for all cards
+                loadTrackingStatus();
             } catch (e) {
                 console.warn('Silent auto-refresh failed:', e);
             }
@@ -959,6 +995,7 @@
                     tab.classList.add('active');
                     activeTab = tab.dataset.tab;
                     renderTrains();
+                    loadTrackingStatus();
                 });
             });
 

@@ -75,21 +75,33 @@
         },
 
         // PUBLIC API METHODS
-        register(firstName, lastName, email, password) {
+        register(firstName, lastName, email, password, role = 'passenger', employeeId = null, staffAccessCode = null) {
+            const body = {
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                password,
+                role
+            };
+            if (role === 'staff') {
+                body.employee_id = employeeId;
+                body.staff_access_code = staffAccessCode;
+            }
             return this._fetch('/api/auth/register', {
                 method: 'POST',
-                body: JSON.stringify({
-                    first_name: firstName,
-                    last_name: lastName,
-                    email,
-                    password
-                })
+                body: JSON.stringify(body)
             });
         },
-        login(email, password) {
+        login(loginType, emailOrEmployeeId, password) {
+            const body = { login_type: loginType, password };
+            if (loginType === 'staff') {
+                body.employee_id = emailOrEmployeeId;
+            } else {
+                body.email = emailOrEmployeeId;
+            }
             return this._fetch('/api/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify(body)
             });
         },
         getMe() {
@@ -154,6 +166,37 @@
         },
         getDisruptions() {
             return this._fetch('/api/disruptions');
+        },
+        getTimetables() {
+            return this._fetch('/api/timetable');
+        },
+        bookTicket(timetableId) {
+            return this._fetch(`/api/timetable/book/${timetableId}`, {
+                method: 'POST'
+            });
+        },
+        getMyAssignment() {
+            return this._fetch('/api/assignments/my-active');
+        },
+        startAssignment(scheduleId) {
+            return this._fetch('/api/assignments/start', {
+                method: 'POST',
+                body: JSON.stringify({ schedule_id: scheduleId })
+            });
+        },
+        stopAssignment() {
+            return this._fetch('/api/assignments/stop', {
+                method: 'POST'
+            });
+        },
+        updateLastStop(scheduleId, stationId) {
+            return this._fetch('/api/laststop/update', {
+                method: 'POST',
+                body: JSON.stringify({ schedule_id: scheduleId, station_id: stationId })
+            });
+        },
+        getLastStop(scheduleId) {
+            return this._fetch(`/api/laststop/${scheduleId}`);
         },
 
         // UI HELPERS
@@ -290,6 +333,40 @@
                 return false;
             }
             return true;
+        },
+
+        updateNav() {
+            const user = this.getUser();
+            const navLinks = document.getElementById('nav-links');
+            if (!navLinks) return;
+            
+            let linksHTML = `
+                <li><a href="index.html">Home</a></li>
+                <li><a href="live-map.html">Live Map</a></li>
+                <li><a href="timetable.html">Timetable</a></li>
+                <li><a href="schedules.html">Search</a></li>
+            `;
+
+            if (user) {
+                if (user.role === 'admin') {
+                    linksHTML += `<li><a href="admin.html">Admin</a></li>`;
+                }
+                if (user.role === 'admin' || user.role === 'staff') {
+                    linksHTML += `<li><a href="staff-app.html">Staff App</a></li>`;
+                    linksHTML += `<li><a href="disruptions.html">Disruptions</a></li>`;
+                }
+                linksHTML += `
+                    <li><a href="watch.html">My Watches</a></li>
+                    <li><a href="#" onclick="api.logout(); return false;">Logout</a></li>
+                `;
+            } else {
+                linksHTML += `
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="register.html">Register</a></li>
+                `;
+            }
+            
+            navLinks.innerHTML = linksHTML;
         }
     };
 

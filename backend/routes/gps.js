@@ -37,6 +37,8 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
                 u.current_lat as "lat",
                 u.current_lng as "lng",
                 u.status,
+                u.last_stop_name as "lastStopName",
+                u.last_stop_time as "lastStopTime",
                 u.updated_at as "updatedAt"
             FROM trip_status_updates u
             JOIN schedules s ON u.schedule_id = s.id
@@ -59,6 +61,8 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
             lat: Number(row.lat),
             lng: Number(row.lng),
             status: row.status,
+            lastStopName: row.lastStopName,
+            lastStopTime: row.lastStopTime,
             updatedAt: row.updatedAt,
             secondsAgo: Math.floor((Date.now() - new Date(row.updatedAt)) / 1000)
         }));
@@ -79,7 +83,7 @@ router.get('/:scheduleId', optionalAuthenticate, async (req, res) => {
         }
 
         const query = `
-            SELECT current_lat, current_lng, status, delay_minutes, updated_at
+            SELECT current_lat, current_lng, status, delay_minutes, last_stop_name, last_stop_time, updated_at
             FROM trip_status_updates
             WHERE schedule_id = $1 AND trip_date = CURRENT_DATE
             ORDER BY updated_at DESC
@@ -102,6 +106,8 @@ router.get('/:scheduleId', optionalAuthenticate, async (req, res) => {
             lat: Number(row.current_lat),
             lng: Number(row.current_lng),
             status: row.status,
+            lastStopName: row.last_stop_name,
+            lastStopTime: row.last_stop_time,
             delayMinutes: Number(row.delay_minutes || 0),
             updatedAt: row.updated_at,
             secondsAgo: Math.floor((Date.now() - new Date(row.updated_at)) / 1000)
@@ -131,6 +137,12 @@ router.post('/mobile-update', authenticate, async (req, res) => {
             isNaN(scheduleId) || !Number.isInteger(scheduleId) || scheduleId <= 0
         ) {
             return res.status(400).json({ error: 'Invalid coordinates or schedule_id' });
+        }
+
+        // Enforce assignment check
+        const assignmentCheck = await pool.query('SELECT id FROM train_assignments WHERE schedule_id = $1 AND user_id = $2 AND is_active = true', [scheduleId, req.user.userId]);
+        if (assignmentCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Not authorized to broadcast for this train' });
         }
 
         // UPSERT into trip_status_updates
