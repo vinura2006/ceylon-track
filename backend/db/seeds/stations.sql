@@ -1,0 +1,27 @@
+-- Seed: Real Sri Lanka Railway stations with PostGIS coordinates
+INSERT INTO stations (name, code, location) VALUES
+  ('Colombo Fort',     'FOT', ST_SetSRID(ST_MakePoint(79.8508, 6.9344), 4326)::geography),
+  ('Maradana',         'MRD', ST_SetSRID(ST_MakePoint(79.8617, 6.9271), 4326)::geography),
+  ('Ragama',           'RGM', ST_SetSRID(ST_MakePoint(79.9249, 7.0272), 4326)::geography),
+  ('Gampaha',          'GPH', ST_SetSRID(ST_MakePoint(79.9995, 7.0911), 4326)::geography),
+  ('Veyangoda',        'VYG', ST_SetSRID(ST_MakePoint(80.0194, 7.1463), 4326)::geography),
+  ('Polgahawela',      'PLG', ST_SetSRID(ST_MakePoint(80.2769, 7.3356), 4326)::geography),
+  ('Rambukkana',       'RBK', ST_SetSRID(ST_MakePoint(80.3867, 7.3347), 4326)::geography),
+  ('Peradeniya',       'PDN', ST_SetSRID(ST_MakePoint(80.5973, 7.2693), 4326)::geography),
+  ('Kandy',            'KDY', ST_SetSRID(ST_MakePoint(80.6337, 7.2906), 4326)::geography),
+  ('Galle',            'GLE', ST_SetSRID(ST_MakePoint(80.2168, 6.0329), 4326)::geography),
+  ('Matara',           'MTR', ST_SetSRID(ST_MakePoint(80.5550, 5.9549), 4326)::geography),
+  ('Kalutara',         'KLT', ST_SetSRID(ST_MakePoint(79.9607, 6.5854), 4326)::geography),
+  ('Panadura',         'PND', ST_SetSRID(ST_MakePoint(79.9032, 6.7135), 4326)::geography),
+  ('Negombo',          'NGO', ST_SetSRID(ST_MakePoint(79.8380, 7.2094), 4326)::geography),
+  ('Kurunegala',       'KNE', ST_SetSRID(ST_MakePoint(80.3647, 7.4863), 4326)::geography),
+  ('Anuradhapura',     'APR', ST_SetSRID(ST_MakePoint(80.4037, 8.3114), 4326)::geography),
+  ('Badulla',          'BDL', ST_SetSRID(ST_MakePoint(81.0550, 6.9934), 4326)::geography),
+  ('Haputale',         'HPT', ST_SetSRID(ST_MakePoint(80.9587, 6.7672), 4326)::geography),
+  ('Ella',             'ELA', ST_SetSRID(ST_MakePoint(81.0462, 6.8667), 4326)::geography),
+  ('Nanu Oya',         'NNO', ST_SetSRID(ST_MakePoint(80.7832, 6.9147), 4326)::geography),
+  ('Hatton',           'HTN', ST_SetSRID(ST_MakePoint(80.5954, 6.8903), 4326)::geography),
+  ('Avissawella',      'AVS', ST_SetSRID(ST_MakePoint(80.2136, 6.9486), 4326)::geography),
+  ('Batticaloa',       'BTC', ST_SetSRID(ST_MakePoint(81.6924, 7.7170), 4326)::geography),
+  ('Jaffna',           'JAF', ST_SetSRID(ST_MakePoint(80.0137, 9.6615), 4326)::geography)
+ON CONFLICT (code) DO NOTHING;

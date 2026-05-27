@@ -87,7 +87,7 @@ INSERT INTO stop_times (schedule_id, station_id, station_name, scheduled_time, s
 -- SECTION 4 — Insert 3 users with verified bcrypt hashed passwords
 INSERT INTO users (id, email, password_hash, first_name, last_name, role, sub_role) VALUES
   (1, 'passenger@ceylon.lk', '$2a$10$k7kpxcUcOPx6dG4Kpnryz.ZBgJIl25dZBdUBeJz6T8zA.ubEiRAJa', 'Test', 'Passenger', 'passenger', NULL),
-  (2, 'staff@ceylon.lk', '$2a$10$qxCL1TIQWP.jjDg4ocHro.l6x.56WMoZlC00lAeucQsc.2vRRaCoy', 'Station', 'Master', 'staff', 'station_master'),
+  (2, 'staff@ceylon.lk', '$2a$10$qxCL1TIQWP.jjDg4ocHro.l6x.56WMoZlC00lAeucQsc.2vRRaCoy', 'Station', 'Master', 'staff', NULL),
   (3, 'admin@ceylon.lk', '$2a$10$f2eAt1UuqwYXBlTutavpye3A3En490Zef8g1Tdrz4UKPU93gyR.s6', 'System', 'Admin', 'admin', NULL);
 
 SELECT setval('users_id_seq', 3);

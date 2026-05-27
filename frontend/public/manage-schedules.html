@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Schedules - Ceylon Track Admin</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
     <style>
         * {
             margin: 0;
@@ -11,45 +13,21 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --primary: #2D6A4F;
-            --primary-dark: #1B4332;
-            --primary-light: #40916C;
-            --orange: #E67E22;
-            --orange-light: #F39C12;
-            --red: #C0392B;
-            --red-light: #E74C3C;
-            --blue: #2980B9;
-            --blue-light: #3498DB;
-            --grey: #7F8C8D;
-            --grey-light: #95A5A6;
-            --green-light: #10b981;
-            --bg-light: #f8fafc;
-            --bg-white: #ffffff;
-            --text-dark: #1e293b;
-            --text-medium: #475569;
-            --text-light: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 2px 8px rgba(0,0,0,0.1);
-            --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-light);
-            color: var(--text-dark);
+            background: var(--bg-app);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
         /* Navbar */
         .navbar {
-            background: var(--primary);
+            background: var(--accent);
             color: white;
             padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
         }
 
         .navbar-brand {
@@ -105,11 +83,11 @@
         .page-title {
             font-size: 1.75rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--text-primary);
         }
 
         .back-link {
-            color: var(--primary);
+            color: var(--accent);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -123,7 +101,7 @@
         }
 
         .btn-add {
-            background: var(--primary);
+            background: var(--accent);
             color: white;
             border: none;
             padding: 0.75rem 1.5rem;
@@ -137,7 +115,7 @@
         }
 
         .btn-add:hover {
-            background: var(--primary-dark);
+            background: var(--accent);
         }
 
         /* Filter Bar */
@@ -158,9 +136,9 @@
 
         /* Table */
         .table-container {
-            background: var(--bg-white);
+            background: var(--bg-surface);
             border-radius: 12px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
         }
 
@@ -174,12 +152,12 @@
         }
 
         th {
-            background: var(--bg-light);
+            background: var(--bg-app);
             padding: 1rem;
             text-align: left;
             font-weight: 600;
             font-size: 0.875rem;
-            color: var(--text-medium);
+            color: var(--text-secondary);
             border-bottom: 1px solid var(--border);
         }
 
@@ -217,7 +195,7 @@
         }
 
         .day-pill.active {
-            background: var(--primary);
+            background: var(--accent);
         }
 
         /* Buttons */
@@ -316,7 +294,7 @@
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-md);
         }
 
         .modal-header {
@@ -337,7 +315,7 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--text-light);
+            color: var(--text-muted);
         }
 
         .modal-body {
@@ -352,7 +330,7 @@
             display: block;
             font-size: 0.875rem;
             font-weight: 500;
-            color: var(--text-medium);
+            color: var(--text-secondary);
             margin-bottom: 0.375rem;
         }
 
@@ -368,7 +346,7 @@
         .form-group select:focus,
         .form-group input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--accent);
         }
 
         .form-row {
@@ -379,7 +357,7 @@
 
         .helper-text {
             font-size: 0.75rem;
-            color: var(--text-light);
+            color: var(--text-muted);
             margin-top: 0.25rem;
         }
 
@@ -406,7 +384,7 @@
         }
 
         .btn-submit {
-            background: var(--primary);
+            background: var(--accent);
             color: white;
             padding: 0.625rem 1.25rem;
             border: none;
@@ -416,7 +394,7 @@
         }
 
         .btn-submit:hover {
-            background: var(--primary-dark);
+            background: var(--accent);
         }
 
         .btn-cancel {
@@ -453,7 +431,7 @@
             align-items: center;
             gap: 0.5rem;
             animation: slideIn 0.3s ease;
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-md);
         }
 
         @keyframes slideIn {
@@ -462,7 +440,7 @@
         }
 
         .toast-success {
-            background: var(--primary);
+            background: var(--accent);
         }
 
         .toast-error {
@@ -473,7 +451,7 @@
         .loading, .empty-state {
             text-align: center;
             padding: 3rem;
-            color: var(--text-medium);
+            color: var(--text-secondary);
         }
 
         /* Responsive */
@@ -636,8 +614,8 @@
 
         // Auth check
         function checkAuth() {
-            const token = localStorage.getItem('token');
-            const userStr = localStorage.getItem('user');
+            const token = localStorage.getItem('ceylon_track_jwt');
+            const userStr = localStorage.getItem('ceylon_track_user');
             
             if (!token || !userStr) {
                 window.location.href = '/admin.html';
@@ -671,7 +649,7 @@
 
         // Fetch data
         async function fetchData() {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('ceylon_track_jwt');
             
             try {
                 const [schedulesRes, routesRes, trainsRes] = await Promise.all([
@@ -803,7 +781,7 @@
             expandedRows.add(scheduleId);
             renderSchedules();
             
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('ceylon_track_jwt');
             try {
                 const response = await fetch(`${API_BASE_URL}/admin/schedules/${scheduleId}/stations`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -880,7 +858,7 @@
 
         // Save schedule
         async function saveSchedule() {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('ceylon_track_jwt');
             const trainId = document.getElementById('trainSelect').value;
             const routeId = document.getElementById('routeSelect').value;
             const departureTime = document.getElementById('departureTime').value;
@@ -950,7 +928,7 @@
         async function deleteSchedule(id) {
             if (!confirm('Are you sure you want to delete this schedule?')) return;
             
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('ceylon_track_jwt');
             
             try {
                 const response = await fetch(`${API_BASE_URL}/admin/schedules/${id}`, {

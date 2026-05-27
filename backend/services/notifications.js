@@ -6,10 +6,42 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
 });
 
+function isEmailConfigured() {
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    const placeholders = [
+        'your_gmail@gmail.com',
+        'your_gmail_app_password'
+    ];
+    if (!user || !pass || user.trim() === '' || pass.trim() === '') {
+        return false;
+    }
+    if (placeholders.includes(user.trim().toLowerCase())) {
+        return false;
+    }
+    if (placeholders.includes(pass.trim())) {
+        return false;
+    }
+    return true;
+}
+
+let warnedMissingCredentials = false;
+
 async function sendDelayAlert(recipientEmail, passengerName, trainName, trainNumber, delayMinutes, currentStation, predictedArrival) {
+    if (!isEmailConfigured()) {
+        if (!warnedMissingCredentials) {
+            console.warn('Email credentials not configured — skipping alert notification');
+            warnedMissingCredentials = true;
+        }
+        return;
+    }
+
     const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: recipientEmail,
@@ -48,6 +80,14 @@ async function sendDelayAlert(recipientEmail, passengerName, trainName, trainNum
 }
 
 async function sendDepartureReminder(recipientEmail, passengerName, trainName, trainNumber, departureTime, platform) {
+    if (!isEmailConfigured()) {
+        if (!warnedMissingCredentials) {
+            console.warn('Email credentials not configured — skipping alert notification');
+            warnedMissingCredentials = true;
+        }
+        return;
+    }
+
     const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: recipientEmail,

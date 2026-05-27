@@ -10,12 +10,13 @@ router.get('/', async (req, res) => {
         const routeFilter = req.query.route;
         let query = `
             SELECT t.id, t.train_no as "trainNo", t.train_name as "trainName", 
-                   sf.name as "fromStation", st.name as "toStation", 
+                   COALESCE(sf.name, 'Unknown') as "fromStation", 
+                   COALESCE(st.name, 'Unknown') as "toStation", 
                    t.departure_time as "departureTime", t.arrival_time as "arrivalTime",
                    t.train_class as "trainClass", t.frequency, t.route_name as "routeName"
             FROM sri_lanka_timetable t
-            JOIN stations sf ON t.start_station_id = sf.id
-            JOIN stations st ON t.end_station_id = st.id
+            LEFT JOIN stations sf ON t.start_station_id = sf.id
+            LEFT JOIN stations st ON t.end_station_id = st.id
         `;
         const params = [];
         if (routeFilter) {

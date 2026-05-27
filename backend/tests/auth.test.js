@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../index');
+const { app } = require('../index');
 
 describe('Auth API', () => {
     const unique = () => `auth_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -9,10 +9,8 @@ describe('Auth API', () => {
         const res = await request(app)
             .post('/api/auth/register')
             .send({
-                name: 'Test User',
-                email,
-                password: 'secret12',
-                role: 'passenger',
+                first_name: 'Test', last_name: 'User',
+                email, password: 'secret12', role: 'passenger',
             });
 
         expect(res.status).toBe(201);
@@ -22,12 +20,7 @@ describe('Auth API', () => {
 
     test('Test 2 — Register with duplicate email returns 409', async () => {
         const email = `${unique()}@example.com`;
-        const body = {
-            name: 'Dup One',
-            email,
-            password: 'secret12',
-            role: 'passenger',
-        };
+        const body = { first_name: 'Dup', last_name: 'One', email, password: 'secret12', role: 'passenger' };
         const first = await request(app).post('/api/auth/register').send(body);
         expect(first.status).toBe(201);
 
@@ -39,13 +32,10 @@ describe('Auth API', () => {
         const email = `${unique()}@example.com`;
         const password = 'correctpass1';
         await request(app).post('/api/auth/register').send({
-            name: 'Login User',
-            email,
-            password,
-            role: 'passenger',
+            first_name: 'Login', last_name: 'User', email, password, role: 'passenger',
         });
 
-        const res = await request(app).post('/api/auth/login').send({ email, password });
+        const res = await request(app).post('/api/auth/login').send({ email, password, login_type: 'passenger' });
         expect(res.status).toBe(200);
         expect(res.body.token).toBeDefined();
     });
@@ -53,15 +43,12 @@ describe('Auth API', () => {
     test('Test 4 — Login with wrong password returns 401', async () => {
         const email = `${unique()}@example.com`;
         await request(app).post('/api/auth/register').send({
-            name: 'Wrong Pass',
-            email,
-            password: 'rightpass1',
-            role: 'passenger',
+            first_name: 'Wrong', last_name: 'Pass', email, password: 'rightpass1', role: 'passenger',
         });
 
         const res = await request(app)
             .post('/api/auth/login')
-            .send({ email, password: 'wrongpassword' });
+            .send({ email, password: 'wrongpassword', login_type: 'passenger' });
         expect(res.status).toBe(401);
     });
 
@@ -74,6 +61,6 @@ describe('Auth API', () => {
         const res = await request(app)
             .get('/api/journeywatch')
             .set('Authorization', 'Bearer invalidtoken');
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401);
     });
 });

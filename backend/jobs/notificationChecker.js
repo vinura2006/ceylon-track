@@ -1,6 +1,8 @@
 const pool = require('../db/pool');
 const { sendDelayAlert } = require('../services/notifications');
 
+let running = false;
+
 async function checkNotifications() {
     try {
         console.log(`[${new Date().toISOString()}] Running notification checker...`);
@@ -78,10 +80,31 @@ async function checkNotifications() {
     }
 }
 
+function scheduleNextRun() {
+    setTimeout(() => {
+        if (running) {
+            console.warn(`[${new Date().toISOString()}] Skipping notification check — previous run still in progress.`);
+            scheduleNextRun(); // keep retrying
+        } else {
+            startNotificationJob();
+        }
+    }, 300000);
+}
+
 function startNotificationJob() {
-    console.log("Notification checker started — running every 5 minutes.");
-    checkNotifications(); // run immediately once
-    setInterval(checkNotifications, 300000); // 5 minutes
+    if (running) {
+        console.warn(`[${new Date().toISOString()}] Skipping notification check — previous run still in progress.`);
+        return;
+    }
+
+    running = true;
+    console.log(`[${new Date().toISOString()}] Notification checker started — running every 5 minutes.`);
+
+    checkNotifications().finally(() => {
+        console.log(`[${new Date().toISOString()}] Notification checker cycle completed. Next run in 5 minutes.`);
+        running = false;
+        scheduleNextRun();
+    });
 }
 
 module.exports = { startNotificationJob };

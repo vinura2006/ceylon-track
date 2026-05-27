@@ -1,11 +1,11 @@
 const express = require('express');
 const pool = require('../db/pool');
-const { authenticateToken } = require('../middleware/authenticate');
+const authenticate = require('../middleware/authenticate');
 const { calculateReliability } = require('../utils/scheduleHelpers');
 const router = express.Router();
 
 // POST /api/journeywatch
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
     try {
         const { train_id, travel_date } = req.body;
 
@@ -65,7 +65,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/journeywatch
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
     try {
         const query = `
             SELECT 
@@ -115,7 +115,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/journeywatch/:id
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -138,7 +138,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // PATCH /api/journeywatch/:id/notifications
-router.patch('/:id/notifications', authenticateToken, async (req, res) => {
+router.patch('/:id/notifications', authenticate, async (req, res) => {
     try {
         const { id } = req.params;
         const { notify_delays, notify_departure, notify_cancellations } = req.body;
@@ -167,7 +167,7 @@ router.patch('/:id/notifications', authenticateToken, async (req, res) => {
 });
 
 // GET /api/journeywatch/check
-router.get('/check', authenticateToken, async (req, res) => {
+router.get('/check', authenticate, async (req, res) => {
     try {
         const { train_id } = req.query;
         if (!train_id) {

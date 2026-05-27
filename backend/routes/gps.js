@@ -3,6 +3,17 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
+const authorize = require('../middleware/authorize');
+
+// WebSocket broadcast — lazily loaded to avoid circular require at startup
+function broadcastTrainUpdate(data) {
+    try {
+        const { ws } = require('../index');
+        if (ws && typeof ws.broadcastToAll === 'function') {
+            ws.broadcastToAll(data);
+        }
+    } catch (e) { /* ignore if not available */ }
+}
 
 // Optional authentication middleware for GET endpoints
 // Allows public access to the live map while registering user if token present
@@ -25,7 +36,7 @@ const optionalAuthenticate = (req, res, next) => {
 };
 
 // GET /api/gps/all-active
-router.get('/all-active', optionalAuthenticate, async (req, res) => {
+router.get('/all-active', optionalAuthenticate, async (req, res, next) => {
     try {
         const query = `
             SELECT 
@@ -37,6 +48,7 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
                 u.current_lat as "lat",
                 u.current_lng as "lng",
                 u.status,
+                u.delay_minutes as "delayMinutes",
                 u.last_stop_name as "lastStopName",
                 u.last_stop_time as "lastStopTime",
                 u.updated_at as "updatedAt"
@@ -47,12 +59,50 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
             WHERE u.trip_date = CURRENT_DATE 
               AND u.current_lat IS NOT NULL 
               AND u.current_lng IS NOT NULL
+              AND u.updated_at > NOW() - INTERVAL '15 minutes'
             ORDER BY u.updated_at DESC
         `;
 
-        const result = await pool.query(query);
+        let result = await pool.query(query);
+
+        // Fallback: If no live GPS records exist for today, fall back to the most recent date with coordinates
+        if (result.rows.length === 0) {
+            const dateRes = await pool.query(
+                `SELECT MAX(trip_date) as max_date 
+                 FROM trip_status_updates 
+                 WHERE current_lat IS NOT NULL AND current_lng IS NOT NULL`
+            );
+            if (dateRes.rows.length > 0 && dateRes.rows[0].max_date) {
+                const maxDate = dateRes.rows[0].max_date;
+                const fallbackQuery = `
+                    SELECT 
+                        s.id as "scheduleId",
+                        s.train_number as "trainNumber",
+                        s.train_name as "trainName",
+                        sf.name as "fromStation",
+                        st.name as "toStation",
+                        u.current_lat as "lat",
+                        u.current_lng as "lng",
+                        u.status,
+                        u.delay_minutes as "delayMinutes",
+                        u.last_stop_name as "lastStopName",
+                        u.last_stop_time as "lastStopTime",
+                        u.updated_at as "updatedAt"
+                    FROM trip_status_updates u
+                    JOIN schedules s ON u.schedule_id = s.id
+                    JOIN stations sf ON s.from_station_id = sf.id
+                    JOIN stations st ON s.to_station_id = st.id
+                    WHERE u.trip_date = $1
+                      AND u.current_lat IS NOT NULL 
+                      AND u.current_lng IS NOT NULL
+                    ORDER BY u.updated_at DESC
+                `;
+                result = await pool.query(fallbackQuery, [maxDate]);
+            }
+        }
 
         const trains = result.rows.map(row => ({
+            schedule_id: Number(row.scheduleId),
             scheduleId: Number(row.scheduleId),
             trainNumber: row.trainNumber,
             trainName: row.trainName,
@@ -61,6 +111,7 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
             lat: Number(row.lat),
             lng: Number(row.lng),
             status: row.status,
+            delayMinutes: Number(row.delayMinutes || 0),
             lastStopName: row.lastStopName,
             lastStopTime: row.lastStopTime,
             updatedAt: row.updatedAt,
@@ -69,13 +120,12 @@ router.get('/all-active', optionalAuthenticate, async (req, res) => {
 
         return res.status(200).json({ trains });
     } catch (error) {
-        console.error('Get all active GPS error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // GET /api/gps/:scheduleId
-router.get('/:scheduleId', optionalAuthenticate, async (req, res) => {
+router.get('/:scheduleId', optionalAuthenticate, async (req, res, next) => {
     try {
         const scheduleId = parseInt(req.params.scheduleId, 10);
         if (isNaN(scheduleId)) {
@@ -113,53 +163,89 @@ router.get('/:scheduleId', optionalAuthenticate, async (req, res) => {
             secondsAgo: Math.floor((Date.now() - new Date(row.updated_at)) / 1000)
         });
     } catch (error) {
-        console.error('Get GPS by scheduleId error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // POST /api/gps/mobile-update
-router.post('/mobile-update', authenticate, async (req, res) => {
+router.post('/mobile-update', authenticate, authorize(['staff', 'admin']), async (req, res, next) => {
     try {
-        const { schedule_id, lat, lng } = req.body;
+        const user = req.user;
+
+        if (user.sub_role === 'station_master') {
+            return res.status(403).json({ error: 'Station masters cannot broadcast GPS location' });
+        }
+
+        const { schedule_id, lat, lng, accuracy, heading, speed } = req.body;
 
         const scheduleId = Number(schedule_id);
         const latitude = Number(lat);
         const longitude = Number(lng);
 
-        // Validation bounds:
-        // lat must be between 5.0 and 10.0
-        // lng must be between 79.0 and 82.5
-        // schedule_id must be a positive integer
-        if (
-            isNaN(latitude) || latitude < 5.0 || latitude > 10.0 ||
-            isNaN(longitude) || longitude < 79.0 || longitude > 82.5 ||
-            isNaN(scheduleId) || !Number.isInteger(scheduleId) || scheduleId <= 0
-        ) {
+        // Validate coordinates are within Sri Lanka bounds (tightened)
+        if (isNaN(latitude) || latitude < 5.7 || latitude > 9.9 ||
+            isNaN(longitude) || longitude < 79.5 || longitude > 81.9 ||
+            isNaN(scheduleId) || !Number.isInteger(scheduleId) || scheduleId <= 0) {
             return res.status(400).json({ error: 'Invalid coordinates or schedule_id' });
         }
 
-        // Enforce assignment check
-        const assignmentCheck = await pool.query('SELECT id FROM train_assignments WHERE schedule_id = $1 AND user_id = $2 AND is_active = true', [scheduleId, req.user.userId]);
-        if (assignmentCheck.rows.length === 0) {
-            return res.status(403).json({ error: 'Not authorized to broadcast for this train' });
+        // Enforce assignment OR session check
+        const assignmentCheck = await pool.query(
+            'SELECT id FROM train_assignments WHERE schedule_id = $1 AND user_id = $2 AND is_active = true',
+            [scheduleId, user.userId]
+        );
+        const sessionCheck = await pool.query(
+            'SELECT id FROM live_train_sessions WHERE schedule_id = $1 AND staff_id = $2 AND is_active = true',
+            [scheduleId, user.userId]
+        );
+        if (assignmentCheck.rows.length === 0 && sessionCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'No active assignment or session found. Start your session first.' });
         }
 
         // UPSERT into trip_status_updates
-        const query = `
-            INSERT INTO trip_status_updates 
-              (schedule_id, trip_date, status, current_lat, current_lng, updated_by, updated_at)
-            VALUES 
-              ($1, CURRENT_DATE, 'ON_TIME', $2, $3, $4, NOW())
-            ON CONFLICT (schedule_id, trip_date) 
-            DO UPDATE SET 
-              current_lat = EXCLUDED.current_lat,
-              current_lng = EXCLUDED.current_lng,
-              updated_by = EXCLUDED.updated_by,
-              updated_at = NOW()
-        `;
+        await pool.query(
+            `INSERT INTO trip_status_updates
+               (schedule_id, trip_date, status, current_lat, current_lng, gps_source, updated_by, updated_at)
+             VALUES ($1, CURRENT_DATE, 'ON_TIME', $2, $3, 'mobile', $4, NOW())
+             ON CONFLICT (schedule_id, trip_date)
+             DO UPDATE SET
+               current_lat = EXCLUDED.current_lat,
+               current_lng = EXCLUDED.current_lng,
+               gps_source = 'mobile',
+               updated_by = EXCLUDED.updated_by,
+               updated_at = NOW()`,
+            [scheduleId, latitude, longitude, user.userId]
+        );
 
-        await pool.query(query, [scheduleId, latitude, longitude, req.user.userId]);
+        // ALSO update live_train_sessions so the live map (/api/sessions/active) can see this train
+        await pool.query(
+            `UPDATE live_train_sessions
+             SET last_latitude = $1, last_longitude = $2, last_accuracy = $3,
+                 last_speed = $4, last_heading = $5, last_updated_at = NOW()
+             WHERE schedule_id = $6 AND staff_id = $7 AND is_active = true`,
+            [latitude, longitude, accuracy || null, speed || null, heading || null, scheduleId, user.userId]
+        );
+
+        // Get train info for WebSocket broadcast
+        const trainInfo = await pool.query(
+            `SELECT s.train_name, s.train_number FROM schedules s WHERE s.id = $1`,
+            [scheduleId]
+        );
+        const trainRow = trainInfo.rows[0] || {};
+
+        // Broadcast real-time update to all connected WebSocket clients (passengers on live map)
+        broadcastTrainUpdate({
+            type: 'train_update',
+            trainId: String(scheduleId),
+            trainName: trainRow.train_name || '',
+            trainNumber: trainRow.train_number || '',
+            latitude,
+            longitude,
+            accuracy: accuracy || null,
+            speed: speed || null,
+            heading: heading || null,
+            timestamp: new Date().toISOString()
+        });
 
         return res.status(200).json({
             success: true,
@@ -169,13 +255,12 @@ router.post('/mobile-update', authenticate, async (req, res) => {
             timestamp: new Date()
         });
     } catch (error) {
-        console.error('POST GPS mobile-update error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // Deprecated hardware update endpoint kept for testing compatibility
-router.post('/update', async (req, res) => {
+router.post('/update', async (req, res, next) => {
     try {
         const gpsToken = req.headers['x-gps-token'];
         if (!gpsToken || gpsToken !== process.env.GPS_DEVICE_TOKEN) {
@@ -191,8 +276,8 @@ router.post('/update', async (req, res) => {
         const latitude = Number(lat);
         const longitude = Number(lng);
 
-        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-            return res.status(400).json({ error: 'Invalid latitude or longitude coordinates' });
+        if (latitude < 5.7 || latitude > 9.9 || longitude < 79.5 || longitude > 81.9) {
+            return res.status(400).json({ error: 'Coordinates outside Sri Lanka bounds' });
         }
 
         // Upsert GPS
@@ -211,8 +296,7 @@ router.post('/update', async (req, res) => {
             lng: longitude
         });
     } catch (error) {
-        console.error('POST GPS hardware update error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 

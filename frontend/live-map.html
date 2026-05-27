@@ -4,84 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live GPS Train Map — Ceylon Track</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
     
     <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Theme Detection Script -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('ceylon_track_theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
-    </script>
-
     <style>
         /* ============================================================
            CEYLON TRACK GLOBAL DESIGN SYSTEM
            ============================================================ */
-        :root {
-            --bg: #F8FAFC;
-            --surface: #FFFFFF;
-            --surface-2: #F1F5F9;
-            --text: #0F172A;
-            --text-2: #475569;
-            --border: #E2E8F0;
-            --primary: #0F4C75;
-            --primary-2: #1B6CA8;
-            --accent: #00B4D8;
-            --accent-2: #0077B6;
-            --success: #059669;
-            --warning: #D97706;
-            --danger: #DC2626;
-            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-blur: blur(12px);
-            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-display: 'Syne', sans-serif;
-        }
-
-        [data-theme="dark"] {
-            --bg: #0A0F1E;
-            --surface: #111827;
-            --surface-2: #1F2937;
-            --text: #F9FAFB;
-            --text-2: #9CA3AF;
-            --border: #374151;
-            --primary: #1B6CA8;
-            --primary-2: #2196F3;
-            --accent: #00D4FF;
-            --accent-2: #00B4D8;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            --glass-bg: rgba(17, 24, 39, 0.75);
-            --glass-blur: blur(16px);
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: var(--font-body);
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            transition: background 0.3s, color 0.3s;
+            background-color: var(--bg-app);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
             display: flex;
@@ -109,11 +51,10 @@
             transform: translateX(-50%);
             width: calc(100% - 40px);
             max-width: 700px;
-            background-color: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
             border-radius: 16px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
             padding: 1.25rem;
             z-index: 1000;
             display: flex;
@@ -129,10 +70,9 @@
         }
 
         .panel-title {
-            font-family: var(--font-display);
             font-weight: 800;
             font-size: 1.2rem;
-            color: var(--text);
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 0.4rem;
@@ -141,12 +81,12 @@
         .nav-link-btn {
             font-size: 0.85rem;
             font-weight: 700;
-            color: var(--accent-2);
+            color: var(--accent-hover);
             text-decoration: none;
             border: 1px solid var(--border);
             padding: 0.35rem 0.75rem;
             border-radius: 8px;
-            background: var(--surface-2);
+            background: var(--bg-elevated);
         }
         .nav-link-btn:hover {
             background: var(--border);
@@ -160,44 +100,13 @@
             align-items: center;
         }
 
-        .select {
-            width: 100%;
-            min-height: 48px;
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background-color: var(--surface);
-            color: var(--text);
-            font-size: 0.95rem;
-            font-weight: 700;
-            outline: none;
-        }
 
-        .btn {
-            min-height: 48px;
-            padding: 0.5rem 1rem;
-            font-size: 0.95rem;
-            font-weight: 800;
-            background-color: var(--primary-2);
-            color: #FFFFFF;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
-        .btn:hover {
-            opacity: 0.9;
-        }
 
         /* Status & Signal countdown overlays */
         .status-overlay {
             font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-2);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -220,7 +129,7 @@
         .info-message-overlay {
             background-color: rgba(15, 76, 117, 0.1);
             border: 1px solid var(--accent);
-            color: var(--text);
+            color: var(--text-primary);
             padding: 0.75rem 1rem;
             border-radius: 8px;
             font-weight: 700;
@@ -236,16 +145,57 @@
             50% { transform: scale(1.35); opacity: 0.65; }
             100% { transform: scale(1); opacity: 1; }
         }
-        .live-train-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            background: rgba(220, 38, 38, 0.25);
-            border: 2px solid var(--danger);
-            border-radius: 50%;
+        .train-marker {
+            font-size: 24px;
+            text-align: center;
+            line-height: 1;
+        }
+        .train-marker .train-label {
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .train-marker.live .train-icon {
+            color: var(--danger);
             animation: pulse 2s infinite;
-            box-shadow: 0 0 16px var(--danger);
+        }
+        .train-marker.stale .train-icon {
+            color: var(--warning);
+            opacity: 0.6;
+        }
+        .train-marker.offline .train-icon {
+            color: #6b7280;
+            opacity: 0.4;
+        }
+        .tracking-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--bg-surface);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            z-index: 1001;
+            display: none;
+            box-shadow: var(--shadow-sm);
+        }
+        .tracking-indicator button {
+            margin-left: 12px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: 700;
         }
 
         /* Back to Home Button Float */
@@ -253,8 +203,8 @@
             position: absolute;
             bottom: 24px;
             right: 24px;
-            background: var(--glass-bg);
-            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -262,7 +212,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
             font-size: 1.25rem;
             z-index: 1000;
         }
@@ -289,18 +239,28 @@
     <div class="map-wrapper">
         <div id="map"></div>
 
+        <!-- Single-train tracking indicator -->
+        <div class="tracking-indicator" id="trackingIndicator">
+            <span id="trackingLabel">Tracking: --</span>
+            <button id="stopTrackingBtn" class="btn btn-danger btn-sm">✕ Stop Tracking</button>
+        </div>
+
         <!-- Float controls Panel overlaid on map -->
         <div class="control-panel">
             <div class="panel-header">
                 <span class="panel-title"><span>🛰</span> Ceylon Track — Live Map</span>
-                <a href="/index.html" class="nav-link-btn">← Back Search</a>
+                <a id="backLink" href="/index.html" class="nav-link-btn" style="display: none;">← Back Search</a>
             </div>
 
             <div class="controls-row">
-                <select id="scheduleSelect" class="select">
+                <select id="scheduleSelect" class="input-field">
                     <option value="">Loading active trains...</option>
                 </select>
-                <button class="btn" id="trackBtn" onclick="trackTrain()">Track This Train</button>
+                <button class="btn btn-primary" id="trackBtn">Track This Train</button>
+            </div>
+
+            <div class="controls-row" style="margin-top: 0.25rem;">
+                <input type="text" id="searchInput" class="input-field" placeholder="Search train name or number..." oninput="filterTrains()">
             </div>
 
             <div class="status-overlay">
@@ -314,349 +274,458 @@
         </div>
     </div>
 
-    <button class="theme-btn-float" id="themeBtn" aria-label="Toggle Theme">🌓</button>
+
 
     <script src="/js/api.js"></script>
     <script>
-        // 10 Station database
-        const STATIONS = [
-            { name: 'Colombo Fort', code: 'FOT', lat: 6.9344, lng: 79.8477 },
-            { name: 'Kandy', code: 'KAN', lat: 7.2906, lng: 80.6337 },
-            { name: 'Galle', code: 'GAL', lat: 6.0535, lng: 80.2170 },
-            { name: 'Matara', code: 'MAT', lat: 5.9549, lng: 80.5353 },
-            { name: 'Negombo', code: 'NEG', lat: 7.2096, lng: 79.8477 },
-            { name: 'Badulla', code: 'BAD', lat: 6.9934, lng: 81.0560 },
-            { name: 'Anuradhapura', code: 'ANP', lat: 8.3114, lng: 80.3864 },
-            { name: 'Jaffna', code: 'JAF', lat: 9.6615, lng: 80.0137 },
-            { name: 'Kurunegala', code: 'KUR', lat: 7.4868, lng: 80.3647 },
-            { name: 'Ratnapura', code: 'RAT', lat: 6.6828, lng: 80.4022 }
-        ];
+        var stationCoords = {};
 
         // Map Setup
-        const map = L.map('map').setView([7.8731, 80.7718], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        var map = L.map('map').setView([7.8731, 80.7718], 8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
-        // Add station circles to map on load
-        STATIONS.forEach(station => {
-            L.circleMarker([station.lat, station.lng], {
-                radius: 6,
-                color: '#0077B6',
-                fillColor: '#00B4D8',
-                fillOpacity: 0.8,
-                weight: 2
-            }).addTo(map)
-              .bindPopup(`<b>🚉 ${station.name} (${station.code})</b>`);
-        });
-
-        // Railway Lines GeoJSON loading & Snapping Logic
-        let railwayGeoJSON = null;
-
-        async function loadRailwayLines() {
+        async function loadStations() {
             try {
-                const response = await fetch('/js/srilanka_railway.geojson');
-                if (!response.ok) throw new Error('Failed to load railway lines');
-                railwayGeoJSON = await response.json();
-
-                // Sleepers (wider dark gray line)
-                L.geoJSON(railwayGeoJSON, {
-                    style: {
-                        color: '#475569',
-                        weight: 4,
-                        opacity: 0.65
+                var stations = await api.getStations();
+                var list = Array.isArray(stations) ? stations : (stations.stations || []);
+                list.forEach(function(s) {
+                    var lat = parseFloat(s.lat || s.latitude);
+                    var lng = parseFloat(s.lng || s.longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        stationCoords[s.code] = { lat: lat, lng: lng };
+                        L.circleMarker([lat, lng], {
+                            radius: 6,
+                            color: '#0077B6',
+                            fillColor: '#00B4D8',
+                            fillOpacity: 0.8,
+                            weight: 2
+                        }).addTo(map).bindPopup('<b>' + s.name + ' (' + s.code + ')</b>');
                     }
-                }).addTo(map);
-
-                // Rails (thinner dashed white/light gray line)
-                L.geoJSON(railwayGeoJSON, {
-                    style: {
-                        color: '#f8fafc',
-                        weight: 1.5,
-                        dashArray: '5, 5',
-                        opacity: 0.9
-                    }
-                }).addTo(map);
-
-                console.log('Successfully loaded and rendered Sri Lanka railway network.');
-            } catch (err) {
-                console.error('Error loading railway lines GeoJSON:', err);
+                });
+            } catch(e) {
+                console.error('Failed to load stations for map:', e);
             }
         }
+        loadStations();
 
-        loadRailwayLines();
+        // Railway Lines GeoJSON loading and snapping
+        var railwayGeoJSON = null;
+        var railPoints = [];
 
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const dy = lat1 - lat2;
-            const dx = lon1 - lon2;
-            return dy * dy + dx * dx; // Squared distance is fine for comparing closeness
-        }
-
-        function projectPointOnSegment(p, a, b) {
-            const py = p[0], px = p[1];
-            const ay = a[0], ax = a[1];
-            const by = b[0], bx = b[1];
-
-            const dx = bx - ax;
-            const dy = by - ay;
-            const len2 = dx * dx + dy * dy;
-
-            if (len2 === 0) return [ay, ax];
-
-            let t = ((px - ax) * dx + (py - ay) * dy) / len2;
-            t = Math.max(0, Math.min(1, t));
-
-            return [ay + t * dy, ax + t * dx];
-        }
-
-        function snapToRailway(lat, lng) {
-            if (!railwayGeoJSON) return [lat, lng];
-
-            let minDistance = Infinity;
-            let snappedPoint = [lat, lng];
-
-            railwayGeoJSON.features.forEach(feature => {
-                if (feature.geometry && feature.geometry.type === 'LineString') {
-                    const coords = feature.geometry.coordinates; // [lon, lat]
-                    for (let i = 0; i < coords.length - 1; i++) {
-                        const a = [coords[i][1], coords[i][0]]; // [lat, lon]
-                        const b = [coords[i+1][1], coords[i+1][0]]; // [lat, lon]
-
-                        // Bounding box filter (approx 5km buffer) to skip calculations for far away segments
-                        const minLat = Math.min(a[0], b[0]) - 0.05;
-                        const maxLat = Math.max(a[0], b[0]) + 0.05;
-                        const minLng = Math.min(a[1], b[1]) - 0.05;
-                        const maxLng = Math.max(a[1], b[1]) + 0.05;
-                        
-                        if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) {
-                            continue;
-                        }
-
-                        const projected = projectPointOnSegment([lat, lng], a, b);
-                        const dist = getDistance(lat, lng, projected[0], projected[1]);
-
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            snappedPoint = projected;
-                        }
+        function extractRailPoints(geojson) {
+            var points = [];
+            if (!geojson || !geojson.features) return points;
+            geojson.features.forEach(function(feature) {
+                if (feature.geometry) {
+                    var type = feature.geometry.type;
+                    var coords = feature.geometry.coordinates;
+                    if (type === 'LineString') {
+                        coords.forEach(function(c) {
+                            points.push([c[1], c[0]]); // GeoJSON is [lng, lat] -> we need [lat, lng]
+                        });
+                    } else if (type === 'MultiLineString') {
+                        coords.forEach(function(line) {
+                            line.forEach(function(c) {
+                                points.push([c[1], c[0]]);
+                            });
+                        });
                     }
                 }
             });
+            // Downsample if too large to make snapping super fast: keep every 2nd or 3rd point
+            var downsampled = [];
+            var skip = Math.max(1, Math.floor(points.length / 5000));
+            for (var i = 0; i < points.length; i += skip) {
+                downsampled.push(points[i]);
+            }
+            return downsampled;
+        }
 
-            // Snap if within roughly 8-10km (0.08 degrees) to prevent snapping bad coordinates
-            if (minDistance < 0.08 * 0.08) {
-                return snappedPoint;
+        function snapToRail(lat, lng) {
+            if (!railPoints || railPoints.length === 0) return [lat, lng];
+            var minDistSq = Infinity;
+            var nearest = [lat, lng];
+            
+            for (var i = 0; i < railPoints.length; i++) {
+                var p = railPoints[i];
+                var dSq = (lat - p[0]) * (lat - p[0]) + (lng - p[1]) * (lng - p[1]);
+                if (dSq < minDistSq) {
+                    minDistSq = dSq;
+                    nearest = p;
+                }
+            }
+            
+            // 0.005 degrees is roughly 500 meters
+            if (minDistSq < 0.000025) {
+                return nearest;
             }
             return [lat, lng];
         }
 
-        // Theme management
-        const themeBtn = document.getElementById('themeBtn');
-        themeBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('ceylon_track_theme', newTheme);
-        });
-
-        // Tracking state variables
-        let pollInterval = null;
-        let selectedScheduleId = null;
-        let trainMarker = null;
-        let lastUpdateTime = null;
-        let updateTimer = null;
-
-        function showInfo(msg) {
-            const overlay = document.getElementById('infoOverlay');
-            if (msg) {
-                overlay.textContent = msg;
-                overlay.style.display = 'block';
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
-
-        function showWarning(msg) {
-            const warningEl = document.getElementById('signalWarning');
-            if (msg) {
-                warningEl.innerHTML = `⚠️ ${msg}`;
-                warningEl.style.display = 'flex';
-            } else {
-                warningEl.style.display = 'none';
-            }
-        }
-
-        // Fetch Live Location of selected Train
-        async function fetchTrainLocation() {
-            if (!selectedScheduleId) return;
-
+        async function loadRailwayLines() {
             try {
-                const response = await fetch(`/api/gps/${selectedScheduleId}`);
-                
-                if (response.status === 404) {
-                    try {
-                        const lsData = await api.getLastStop(selectedScheduleId);
-                        showInfo(`No live GPS. Showing last reported manual stop: ${lsData.station_name}`);
-                        showWarning(null);
+                var response = await fetch('/js/srilanka_railway.geojson');
+                if (!response.ok) throw new Error('Failed to load railway lines');
+                railwayGeoJSON = await response.json();
+                railPoints = extractRailPoints(railwayGeoJSON);
 
-                        const lat = parseFloat(lsData.lat);
-                        const lng = parseFloat(lsData.lng);
-                        const [snappedLat, snappedLng] = snapToRailway(lat, lng);
+                L.geoJSON(railwayGeoJSON, {
+                    style: { color: '#475569', weight: 4, opacity: 0.65 }
+                }).addTo(map);
 
-                        if (trainMarker) {
-                            trainMarker.setLatLng([snappedLat, snappedLng]);
-                        } else {
-                            const lastStopIcon = L.divIcon({
-                                html: '🚉',
-                                className: 'live-train-icon',
-                                iconSize: [36, 36],
-                                iconAnchor: [18, 18],
-                                style: 'border-color: #f59e0b; box-shadow: 0 0 16px #f59e0b;'
-                            });
-                            trainMarker = L.marker([snappedLat, snappedLng], { icon: lastStopIcon }).addTo(map);
-                        }
-
-                        trainMarker.bindPopup(`
-                            <div style="font-family: var(--font-body); font-size: 14px;">
-                                <strong>🚂 Train ${selectedScheduleId}</strong><br>
-                                Status: Offline<br>
-                                Last Stop: <b>${lsData.station_name}</b><br>
-                                Arrival: ${new Date(lsData.arrival_time).toLocaleString()}
-                            </div>
-                        `).openPopup();
-                        
-                        map.panTo([snappedLat, snappedLng]);
-                        document.getElementById('liveStatusText').textContent = "Offline (Showing Last Stop)";
-                        document.getElementById('countdownDisplay').textContent = "Last updated: --";
-                    } catch (e) {
-                        showInfo("No live GPS data and no last stop data available. Ask staff to start broadcasting.");
-                        showWarning(null);
-                        if (trainMarker) {
-                            map.removeLayer(trainMarker);
-                            trainMarker = null;
-                        }
-                        document.getElementById('liveStatusText').textContent = "Waiting for live broadcast...";
-                        document.getElementById('countdownDisplay').textContent = "Last updated: --";
-                    }
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error("HTTP error " + response.status);
-                }
-
-                const data = await response.json();
-                
-                showInfo(null);
-                lastUpdateTime = new Date();
-                
-                const lat = data.lat;
-                const lng = data.lng;
-                const status = data.status || 'ON_TIME';
-                const delayMinutes = data.delayMinutes || 0;
-                
-                const [snappedLat, snappedLng] = snapToRailway(lat, lng);
-
-                document.getElementById('liveStatusText').textContent = `Train ${selectedScheduleId} is Live (${status})`;
-
-                // Render or update train marker
-                if (trainMarker) {
-                    trainMarker.setLatLng([snappedLat, snappedLng]);
-                } else {
-                    const pulsingIcon = L.divIcon({
-                        html: '🚂',
-                        className: 'live-train-icon',
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18]
-                    });
-
-                    trainMarker = L.marker([snappedLat, snappedLng], { icon: pulsingIcon }).addTo(map);
-                }
-
-                // Update popup content dynamically
-                const secondsAgo = data.secondsAgo;
-                const delayText = status === 'DELAYED' ? ` | Delay: ${delayMinutes} mins` : '';
-                const lastStopText = data.lastStopName ? `<br>Last Stop: <b>${data.lastStopName}</b>` : '';
-                
-                trainMarker.bindPopup(`
-                    <div style="font-family: var(--font-body); font-size: 14px;">
-                        <strong>🚂 Train ${selectedScheduleId}</strong><br>
-                        Status: ${status}${delayText}${lastStopText}<br>
-                        Last seen: ${secondsAgo} seconds ago
-                    </div>
-                `).openPopup();
-
-                // Pan map to follow
-                map.panTo([snappedLat, snappedLng]);
-
+                L.geoJSON(railwayGeoJSON, {
+                    style: { color: '#f8fafc', weight: 1.5, dashArray: '5, 5', opacity: 0.9 }
+                }).addTo(map);
             } catch (err) {
-                console.error("Fetch GPS error:", err);
-                showWarning("Network error: Failed to connect to Ceylon server.");
+                console.error('Error loading railway lines:', err);
             }
         }
 
-        // Live timer for updates & signal checks
+
+
+        // Tracking state
+        var pollInterval = null;
+        var selectedScheduleId = null;
+        var trackingTrain = null;
+        var trainMarkers = {};
+        var activeTrains = [];
+        var updateTimer = null;
+        var ws = null;
+        var wsReconnectTimer = null;
+
+        function markerIcon(train, isSelected) {
+            var cls = 'live';
+            var diff = train.updated_at ? Math.floor((Date.now() - new Date(train.updated_at).getTime()) / 1000) : 999;
+            if (diff > 120) {
+                cls = 'stale';
+            }
+            if (diff > 900) {
+                cls = 'offline';
+            }
+            
+            var borderColor = isSelected ? '#00F3FF' : (cls === 'live' ? '#00FF66' : (cls === 'stale' ? '#FFD600' : '#475569'));
+            var size = isSelected ? 48 : 36;
+            var fontSize = isSelected ? 32 : 24;
+
+            return L.divIcon({
+                html: '<div class="train-marker ' + cls + '" style="border: 2px solid ' + borderColor + '; border-radius: 50%; width:' + size + 'px; height:' + size + 'px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.65);">'
+                    + '<span class="train-icon" style="font-size:' + fontSize + 'px;">🚂</span>'
+                    + '<span class="train-label">' + (train.train_number || '') + '</span>'
+                    + '</div>',
+                className: '',
+                iconSize: [size, size],
+                iconAnchor: [size/2, size]
+            });
+        }
+
+        function fetchAllActiveTrains() {
+            return api._fetch('/api/sessions/active').then(function(sVal) {
+                var sessions = Array.isArray(sVal) ? sVal : (sVal.sessions || []);
+                var merged = {};
+                
+                sessions.forEach(function(s) {
+                    var id = String(s.schedule_id);
+                    merged[id] = {
+                        schedule_id: Number(id),
+                        train_name: s.train_name || s.trainName || 'Train',
+                        train_number: s.train_number || s.trainNumber || '',
+                        lat: s.lat || s.latitude,
+                        lng: s.lng || s.longitude,
+                        speed: s.speed || s.last_speed || 0,
+                        updated_at: s.updated_at || s.session_start || new Date().toISOString(),
+                        from_station: s.from_station || s.fromStation || '',
+                        to_station: s.to_station || s.toStation || '',
+                        is_fallback: false
+                    };
+                });
+                
+                activeTrains = Object.values(merged);
+                updateAllMarkers();
+                if (trackingTrain) {
+                    followTrackedTrain();
+                }
+            }).catch(function(e) {
+                console.error('Fetch active trains error:', e);
+            });
+        }
+
+        function updateAllMarkers() {
+            var activeIds = {};
+            activeTrains.forEach(function(t) {
+                var id = String(t.schedule_id);
+                activeIds[id] = t;
+                var latlng = snapToRail(parseFloat(t.lat), parseFloat(t.lng));
+                var isSelected = selectedScheduleId === id;
+
+                if (trainMarkers[id]) {
+                    if (isSelected !== trainMarkers[id].isSelected) {
+                        trainMarkers[id].marker.setIcon(markerIcon(t, isSelected));
+                        trainMarkers[id].isSelected = isSelected;
+                    }
+                    trainMarkers[id].marker.setLatLng(latlng);
+                    trainMarkers[id].train = t;
+                } else {
+                    var marker = L.marker(latlng, { icon: markerIcon(t, isSelected) }).addTo(map);
+                    trainMarkers[id] = {
+                        marker: marker,
+                        train: t,
+                        isSelected: isSelected
+                    };
+
+                    marker.on('click', function() {
+                        startTrackingTrain(id);
+                    });
+                }
+
+                var diff = t.updated_at ? Math.floor((Date.now() - new Date(t.updated_at).getTime()) / 1000) : 999;
+                var isLive = (diff < 120);
+                var statusHtml = isLive 
+                    ? '<span style="color:var(--success)">● Live GPS</span>' 
+                    : '<span style="color:var(--warning)">Signal lost — ' + Math.floor(diff/60) + ' min ago</span>';
+                
+                var popupHtml = '<strong>' + (t.train_name || 'Train') + '</strong> (#' + (t.train_number || '') + ')<br>'
+                    + (t.from_station || '') + ' → ' + (t.to_station || '') + '<br>'
+                    + statusHtml
+                    + '<br><small>Updated: ' + (t.updated_at ? new Date(t.updated_at).toLocaleTimeString() : '—') + '</small>'
+                    + '<br><button onclick="startTrackingTrain(\'' + id + '\')" style="margin-top:4px; padding:4px 10px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; font-weight:700;">📍 Track This Train</button>';
+                trainMarkers[id].marker.bindPopup(popupHtml);
+            });
+
+            Object.keys(trainMarkers).forEach(function(id) {
+                if (!activeIds[id]) {
+                    map.removeLayer(trainMarkers[id].marker);
+                    delete trainMarkers[id];
+                }
+            });
+        }
+
+        function startTrackingTrain(trainId) {
+            selectedScheduleId = trainId;
+            var train = activeTrains.find(function(t) { return String(t.schedule_id) === trainId; }) || (trainMarkers[trainId] && trainMarkers[trainId].train);
+            if (!train) return;
+
+            trackingTrain = { id: trainId, name: train.train_name || 'Train ' + trainId, number: train.train_number || '' };
+
+            var latlng = snapToRail(parseFloat(train.lat), parseFloat(train.lng));
+            map.setView(latlng, 14);
+
+            document.getElementById('trackingLabel').textContent = 'Tracking: ' + trackingTrain.name + ' (#' + trackingTrain.number + ')';
+            document.getElementById('trackingIndicator').style.display = 'flex';
+            document.getElementById('liveStatusText').textContent = 'Following train #' + trainId + ' — all trains visible';
+
+            updateAllMarkers();
+        }
+        window.startTrackingTrain = startTrackingTrain;
+
+        function stopTracking() {
+            selectedScheduleId = null;
+            trackingTrain = null;
+            document.getElementById('trackingIndicator').style.display = 'none';
+            document.getElementById('liveStatusText').textContent = 'Select a train to begin tracking';
+            map.setView([7.8731, 80.7718], 8);
+            updateAllMarkers();
+        }
+
+        function followTrackedTrain() {
+            if (!trackingTrain) return;
+            var t = activeTrains.find(function(t) { return String(t.schedule_id) === trackingTrain.id; });
+            if (t) {
+                var latlng = snapToRail(parseFloat(t.lat), parseFloat(t.lng));
+                map.setView(latlng, 14, { animate: true, duration: 0.5 });
+            }
+        }
+
+        document.getElementById('stopTrackingBtn').addEventListener('click', stopTracking);
+
+        function filterTrains() {
+            var query = (document.getElementById('searchInput').value || '').toLowerCase();
+            Object.keys(trainMarkers).forEach(function(id) {
+                var t = trainMarkers[id].train;
+                var name = (t.train_name || '').toLowerCase();
+                var num = String(t.train_number || '').toLowerCase();
+                var match = !query || name.indexOf(query) >= 0 || num.indexOf(query) >= 0;
+                if (match) {
+                    if (!map.hasLayer(trainMarkers[id].marker)) trainMarkers[id].marker.addTo(map);
+                } else {
+                    if (map.hasLayer(trainMarkers[id].marker)) map.removeLayer(trainMarkers[id].marker);
+                }
+            });
+        }
+
+        function loadActiveSchedules() {
+            var sel = document.getElementById('scheduleSelect');
+            var infoOverlay = document.getElementById('infoOverlay');
+            sel.innerHTML = '<option value="">Select a Train to Track...</option>';
+            activeTrains.forEach(function(t) {
+                var opt = document.createElement('option');
+                opt.value = t.schedule_id;
+                opt.textContent = (t.train_name || 'Train') + ' (#' + (t.train_number || '') + ')';
+                sel.appendChild(opt);
+            });
+
+            if (activeTrains.length === 0) {
+                infoOverlay.textContent = 'Currently there are no trains sharing the live locations.';
+                infoOverlay.style.display = 'block';
+                document.getElementById('liveStatusText').textContent = 'No active broadcasts';
+            } else {
+                infoOverlay.style.display = 'none';
+                if (!selectedScheduleId) {
+                    document.getElementById('liveStatusText').textContent = 'Select a train to begin tracking';
+                }
+            }
+        }
+
+        function trackTrainFromSelect() {
+            var val = document.getElementById('scheduleSelect').value;
+            if (!val) return;
+            startTrackingTrain(val);
+        }
+
         function startLiveTimer() {
             if (updateTimer) clearInterval(updateTimer);
-            updateTimer = setInterval(() => {
-                if (lastUpdateTime) {
-                    const diffSeconds = Math.floor((new Date() - lastUpdateTime) / 1000);
-                    document.getElementById('countdownDisplay').textContent = `Last updated: ${diffSeconds}s ago`;
-
-                    // Check if update is stale (signal lost warning after 60s)
-                    if (diffSeconds > 60) {
-                        showWarning(`Signal lost — last seen ${diffSeconds} seconds ago`);
-                    } else {
-                        showWarning(null);
-                    }
-                }
-            }, 1000);
+            updateTimer = setInterval(function() {
+                document.getElementById('countdownDisplay').textContent = 'Active trains: ' + activeTrains.length;
+            }, 3000);
         }
 
-        // Trigger tracking stream
-        function trackTrain() {
-            selectedScheduleId = document.getElementById('scheduleSelect').value;
-            if (!selectedScheduleId) return;
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
 
-            showInfo(null);
-            showWarning(null);
-            
-            document.getElementById('liveStatusText').textContent = "Connecting to live GPS stream...";
+            var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var wsUrl = protocol + '//' + window.location.host + '/ws';
 
-            // Clean up previous layers
-            if (trainMarker) {
-                map.removeLayer(trainMarker);
-                trainMarker = null;
-            }
-
-            // Perform initial fetch immediately
-            fetchTrainLocation();
-
-            // Setup polling every 5 seconds
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(fetchTrainLocation, 5000);
-
-            startLiveTimer();
-        }
-
-        async function loadActiveSchedules() {
             try {
-                const res = await api.getAllActiveTrains();
-                const sel = document.getElementById('scheduleSelect');
-                sel.innerHTML = '<option value="">Select a Train to Track...</option>';
-                if(res.trains) {
-                    res.trains.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = t.scheduleId;
-                        opt.textContent = `🚂 Train ${t.trainNumber} - ${t.trainName} (${t.fromStation} → ${t.toStation})`;
-                        sel.appendChild(opt);
-                    });
-                }
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+
+                    var token = api.getToken();
+                    if (token) {
+                        ws.send(JSON.stringify({ type: 'auth', token: token }));
+                    }
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        var msg = JSON.parse(event.data);
+                        if (msg.type === 'auth_ok') {
+                            console.log('WebSocket authenticated');
+                        } else if (msg.type === 'train_update') {
+                            handleWsTrainUpdate(msg);
+                        } else if (msg.type === 'train_offline') {
+                            handleWsTrainOffline(msg);
+                        }
+                    } catch(e) {}
+                };
+
+                ws.onclose = function() {
+                    console.log('WebSocket disconnected');
+                    ws = null;
+                    if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+                    wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+                };
+
+                ws.onerror = function() {
+                    if (ws) ws.close();
+                };
             } catch(e) {
-                console.error(e);
+                console.log('WebSocket connection failed, using polling');
             }
         }
-        loadActiveSchedules();
+
+        function handleWsTrainUpdate(msg) {
+            var trainId = String(msg.trainId);
+            var updated = false;
+            for (var i = 0; i < activeTrains.length; i++) {
+                if (String(activeTrains[i].schedule_id) === trainId) {
+                    activeTrains[i].lat = msg.latitude;
+                    activeTrains[i].lng = msg.longitude;
+                    activeTrains[i].accuracy = msg.accuracy;
+                    activeTrains[i].speed = msg.speed;
+                    activeTrains[i].heading = msg.heading;
+                    activeTrains[i].updated_at = msg.timestamp || new Date().toISOString();
+                    updated = true;
+                    break;
+                }
+            }
+            if (!updated) {
+                activeTrains.push({
+                    schedule_id: msg.trainId,
+                    train_name: msg.trainName || 'Train',
+                    train_number: '',
+                    lat: msg.latitude,
+                    lng: msg.longitude,
+                    accuracy: msg.accuracy,
+                    speed: msg.speed,
+                    heading: msg.heading,
+                    updated_at: msg.timestamp || new Date().toISOString(),
+                    from_station: '',
+                    to_station: ''
+                });
+            }
+            updateAllMarkers();
+            loadActiveSchedules();
+            if (trackingTrain) followTrackedTrain();
+        }
+
+        function handleWsTrainOffline(msg) {
+            var trainId = String(msg.trainId);
+            activeTrains = activeTrains.filter(function(t) { return String(t.schedule_id) !== trainId; });
+            if (trainMarkers[trainId]) {
+                map.removeLayer(trainMarkers[trainId].marker);
+                delete trainMarkers[trainId];
+            }
+            loadActiveSchedules();
+            if (trackingTrain && trackingTrain.id === trainId) {
+                stopTracking();
+            }
+        }
+
+        function initMap() {
+            // Role-aware back link
+            var user = window.api.getUser();
+            var backLink = document.getElementById('backLink');
+            
+            var urlParams = new URLSearchParams(window.location.search);
+            var isEmbed = urlParams.get('embed') === 'true';
+            
+            if (!isEmbed) {
+                if (user && (user.role === 'admin' || user.role === 'ceylon-track-admin')) {
+                    backLink.href = 'admin.html';
+                    backLink.textContent = '← Dashboard';
+                } else if (user && user.role === 'staff') {
+                    backLink.href = 'staff-app.html';
+                    backLink.textContent = '← Staff Dashboard';
+                } else {
+                    backLink.href = 'index.html';
+                    backLink.textContent = '← Back Search';
+                }
+                backLink.style.display = 'inline-block';
+            }
+
+            document.getElementById('trackBtn').addEventListener('click', trackTrainFromSelect);
+
+            loadRailwayLines();
+            fetchAllActiveTrains().then(function() {
+                loadActiveSchedules();
+            }).catch(function(){});
+            startLiveTimer();
+            connectWebSocket();
+
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(function() {
+                fetchAllActiveTrains().then(function() {
+                    loadActiveSchedules();
+                }).catch(function(){});
+            }, 8000);
+        }
+
+        initMap();
     </script>
 </body>
 </html>

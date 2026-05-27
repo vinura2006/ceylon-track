@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station Setup — Ceylon Track</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg-app); color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 style="margin-bottom: 0.5rem;">Set Your Station</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">As a Station Master, please declare your assigned station before continuing.</p>
+
+        <label style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Your Assigned Station</label>
+        <select id="station-select" class="input-field" style="margin-top: 0.5rem; margin-bottom: 1rem; width: 100%;">
+            <option value="">-- Select Station --</option>
+        </select>
+        <p id="setup-error" style="color: var(--danger); font-weight: 700; text-align: center; display: none; margin-bottom: 1rem;"></p>
+        <button class="btn btn-primary" id="confirm-btn" onclick="submitStation()">Confirm Station</button>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!window.api.requireRole('staff')) throw new Error('Unauthorized');
+
+        async function loadStations() {
+            try {
+                const stations = await window.api.getStations();
+                const sel = document.getElementById('station-select');
+                const list = Array.isArray(stations) ? stations :
+                    (stations.stations || stations.data || []);
+                list.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name + ' (' + s.code + ')';
+                    sel.appendChild(opt);
+                });
+            } catch(e) {
+                document.getElementById('setup-error').textContent = 'Failed to load stations: ' + e.message;
+                document.getElementById('setup-error').style.display = 'block';
+            }
+        }
+
+        async function submitStation() {
+            const stationId = document.getElementById('station-select').value;
+            if (!stationId) { window.api.showToast('Please select a station', 'error'); return; }
+            const btn = document.getElementById('confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            try {
+                await window.api.setHomeStation(parseInt(stationId));
+                const me = await window.api.getMe();
+                window.api.setAuth(window.api.getToken(), me.user);
+                window.api.showToast('Station set successfully!', 'success');
+                setTimeout(() => { window.location.href = 'staff-app.html'; }, 1000);
+            } catch(e) {
+                window.api.showToast('Failed to set station: ' + e.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Confirm Station';
+            }
+        }
+
+        loadStations();
+    </script>
+</body>
+</html>

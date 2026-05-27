@@ -4,311 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ceylon Track — Sri Lanka Railway Real-Time Tracker</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
-    
-    <!-- Theme Detection Script -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('ceylon_track_theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
-    </script>
 
     <style>
-        /* ============================================================
-           CEYLON TRACK GLOBAL DESIGN SYSTEM
-           ============================================================ */
-        :root {
-            /* Light Theme Tokens */
-            --bg: #F8FAFC;
-            --surface: #FFFFFF;
-            --surface-2: #F1F5F9;
-            --text: #0F172A;
-            --text-2: #475569;
-            --border: #E2E8F0;
-            --primary: #0F4C75;
-            --primary-2: #1B6CA8;
-            --accent: #00B4D8;
-            --accent-2: #0077B6;
-            --success: #059669;
-            --warning: #D97706;
-            --danger: #DC2626;
-            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-blur: blur(8px);
-            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-display: 'Syne', sans-serif;
-        }
-
-        [data-theme="dark"] {
-            /* Dark Theme Tokens */
-            --bg: #0A0F1E;
-            --surface: #111827;
-            --surface-2: #1F2937;
-            --text: #F9FAFB;
-            --text-2: #9CA3AF;
-            --border: #374151;
-            --primary: #1B6CA8;
-            --primary-2: #2196F3;
-            --accent: #00D4FF;
-            --accent-2: #00B4D8;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            --glass-bg: rgba(17, 24, 39, 0.65);
-            --glass-blur: blur(12px);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: var(--font-body);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            transition: background 0.3s, color 0.3s;
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-display);
-            font-weight: 700;
-        }
-
-        a {
-            color: var(--accent);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        a:hover {
-            color: var(--accent-2);
-        }
-
-        /* Nav & Header */
-        header {
-            background-color: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 800;
-            font-family: var(--font-display);
-            color: var(--text);
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .nav-links a {
-            color: var(--text-2);
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--text);
-        }
-
-        .theme-btn, .menu-toggle-btn {
-            background: none;
-            border: none;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 1.25rem;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .theme-btn:hover {
-            background-color: var(--surface-2);
-        }
-
-        .menu-toggle-btn {
-            display: none;
-        }
-
-        /* Mobile Dropdown Nav */
-        .mobile-nav {
-            display: none;
-            background-color: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 1.5rem;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .mobile-nav a {
-            font-weight: 600;
-            color: var(--text-2);
-        }
-        .mobile-nav.open {
-            display: flex;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            min-height: 48px;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: #FFFFFF;
-        }
-        .btn-primary:hover {
-            background-color: var(--primary-2);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background-color: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover {
-            background-color: var(--border);
-        }
-
-        .btn-danger {
-            background-color: var(--danger);
-            color: #FFFFFF;
-        }
-        .btn-danger:hover {
-            opacity: 0.9;
-        }
-
-        .btn-ghost {
-            background: none;
-            color: var(--text-2);
-        }
-        .btn-ghost:hover {
-            background-color: var(--surface-2);
-            color: var(--text);
-        }
-
-        /* Cards */
-        .card {
-            background-color: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            padding: 2rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        /* Inputs & Selects */
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            position: relative;
-        }
-
-        label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-2);
-        }
-
-        .input, .select {
-            width: 100%;
-            min-height: 48px;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background-color: var(--surface);
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-        }
-        .input:focus, .select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
-        }
-
-        /* Badges */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .badge-success { background-color: rgba(5, 150, 105, 0.15); color: var(--success); }
-        .badge-warning { background-color: rgba(217, 119, 6, 0.15); color: var(--warning); }
-        .badge-danger { background-color: rgba(220, 38, 38, 0.15); color: var(--danger); }
-        .badge-neutral { background-color: var(--surface-2); color: var(--text-2); }
-
         /* Autocomplete dropdown styles */
         .autocomplete-dropdown {
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
             right: 0;
-            background-color: var(--surface);
+            background-color: var(--bg-surface);
             border: 1px solid var(--border);
             border-radius: 8px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-sm);
         }
 
         .autocomplete-item {
@@ -317,7 +31,7 @@
             transition: background 0.2s;
         }
         .autocomplete-item:hover {
-            background-color: var(--surface-2);
+            background-color: var(--bg-elevated);
         }
 
         /* ============================================================
@@ -340,12 +54,19 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            opacity: 0.03;
-            background: linear-gradient(135deg, var(--accent) 25%, transparent 25%),
-                        linear-gradient(225deg, var(--accent) 25%, transparent 25%),
-                        linear-gradient(45deg, var(--accent) 25%, transparent 25%),
-                        linear-gradient(315deg, var(--accent) 25%, var(--bg) 25%);
+            opacity: 0.4;
+            background-image: 
+              linear-gradient(var(--accent-muted) 1px, transparent 1px),
+              linear-gradient(90deg, var(--accent-muted) 1px, transparent 1px);
             background-size: 40px 40px;
+            background-position: center center;
+            animation: gridMove 20s linear infinite;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+        }
+        @keyframes gridMove {
+            from { background-position: 0 0; }
+            to { background-position: 0 40px; }
         }
 
         .hero-container {
@@ -362,14 +83,14 @@
             font-size: 3.5rem;
             line-height: 1.1;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--text) 50%, var(--primary-2));
+            background: linear-gradient(135deg, var(--text-primary) 50%, var(--accent-hover));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .hero-text p {
             font-size: 1.25rem;
-            color: var(--text-2);
+            color: var(--text-secondary);
             max-width: 500px;
             margin: 0 auto;
         }
@@ -400,69 +121,73 @@
         }
 
         .feature-chip {
-            background-color: var(--surface-2);
+            background-color: var(--bg-elevated);
             border: 1px solid var(--border);
             padding: 0.5rem 1rem;
             border-radius: 50px;
             font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-2);
+            color: var(--text-secondary);
         }
 
         footer {
             text-align: center;
             padding: 1.5rem;
             border-top: 1px solid var(--border);
-            color: var(--text-2);
+            color: var(--text-secondary);
             font-size: 0.85rem;
         }
 
-        /* ============================================================
-           RESPONSIVE OVERRIDES
-           ============================================================ */
+        /* Pulse Animation */
+        .pulse {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            .menu-toggle-btn {
-                display: flex;
-            }
             .search-row {
                 grid-template-columns: 1fr;
             }
             .hero-text h1 {
-                font-size: 2.5rem;
+                font-size: 2.3rem;
+            }
+            .hero {
+                padding: 2rem 1rem;
+            }
+            .card {
+                padding: 1.25rem;
+            }
+            table th, table td {
+                padding: 0.5rem 0.25rem !important;
+                font-size: 0.8rem;
+            }
+            .features-row {
+                gap: 0.5rem;
+            }
+            .feature-chip {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
             }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="header-container">
-            <a href="index.html" class="logo-container">
-                <span>🚂</span> Ceylon Track
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand">
+                <i class="fa-solid fa-train"></i> Ceylon Track
             </a>
-            <div class="nav-links" id="navLinks">
-                <a href="index.html" class="active">Search</a>
-                <a href="live-map.html">🗺 Live Map</a>
-                <a href="watch.html">My Watches</a>
-                <a href="gps-demo.html">GPS Demo 🛰</a>
-                <a href="login.html" id="authLink">Login</a>
-                <button class="theme-btn" id="themeBtn" aria-label="Toggle Theme">🌓</button>
-            </div>
-            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            <ul class="navbar-links" id="nav-links">
+                <!-- Populated dynamically by api.js -->
+            </ul>
         </div>
-    </header>
-
-    <div class="mobile-nav" id="mobileNav">
-        <a href="index.html" class="active">Search</a>
-        <a href="live-map.html">🗺 Live Map</a>
-        <a href="watch.html">My Watches</a>
-        <a href="gps-demo.html">GPS Demo 🛰</a>
-        <a href="login.html" id="authLinkMobile">Login</a>
-        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
-    </div>
+    </nav>
 
     <main class="hero">
         <div class="hero-bg-mesh"></div>
@@ -477,23 +202,23 @@
                     <div class="search-row">
                         <div class="input-group">
                             <label for="fromInput">From Station</label>
-                            <input type="text" id="fromInput" class="input" placeholder="e.g. Colombo Fort" autocomplete="off" required>
+                            <input type="text" id="fromInput" class="input-field" placeholder="e.g. Colombo Fort" autocomplete="off" required>
                             <div class="autocomplete-dropdown" id="fromDropdown" style="display: none;"></div>
                         </div>
                         <div class="input-group">
                             <label for="toInput">To Station</label>
-                            <input type="text" id="toInput" class="input" placeholder="e.g. Kandy" autocomplete="off" required>
+                            <input type="text" id="toInput" class="input-field" placeholder="e.g. Kandy" autocomplete="off" required>
                             <div class="autocomplete-dropdown" id="toDropdown" style="display: none;"></div>
                         </div>
                     </div>
                     <div class="search-row">
                         <div class="input-group">
                             <label for="dateInput">Journey Date</label>
-                            <input type="date" id="dateInput" class="input" required>
+                            <input type="date" id="dateInput" class="input-field" required>
                         </div>
                         <div class="input-group">
                             <label for="classSelect">Train Class</label>
-                            <select id="classSelect" class="select">
+                            <select id="classSelect" class="input-field">
                                 <option value="all">All Classes</option>
                                 <option value="1st">1st Class</option>
                                 <option value="2nd">2nd Class</option>
@@ -507,6 +232,57 @@
                         Search Trains <span>➔</span>
                     </button>
                 </form>
+            </div>
+
+            <!-- Timetable Section -->
+            <div class="card search-card mt-4" style="text-align: left;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--accent); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-calendar-days"></i> Official Timetable Preview
+                </h2>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border);">
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Train #</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Name</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Route</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Departs</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Arrives</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Class</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indexTimetableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 1rem;">Loading timetable...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Live Train Status Section -->
+            <div class="card search-card mt-4" style="text-align: left;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--danger); display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-circle-play pulse" style="color: var(--danger);"></i> Live Train Status
+                    </span>
+                    <button class="btn btn-secondary btn-sm" onclick="loadPassengerLiveSchedules()" style="min-height: auto; padding: 6px 12px; font-size: 0.8rem; margin: 0;">🔄 Refresh</button>
+                </h2>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border);">
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Train #</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Name</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Route</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Status</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Delay</th>
+                                <th style="padding: 0.75rem 0.5rem; text-align: left; color: var(--text-secondary);">Last Update</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indexLiveTimetableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 1rem;">Loading live schedules...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="features-row">
@@ -530,50 +306,31 @@
         document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
 
         // Mobile Nav Toggle
-        const menuToggleBtn = document.getElementById('menuToggleBtn');
-        const mobileNav = document.getElementById('mobileNav');
-        menuToggleBtn.addEventListener('click', () => {
-            mobileNav.classList.toggle('open');
-        });
-
-        // Theme Toggle Logic
-        const themeBtn = document.getElementById('themeBtn');
-        const themeBtnMobile = document.getElementById('themeBtnMobile');
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('ceylon_track_theme', newTheme);
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                const navLinks = document.getElementById('nav-links');
+                navLinks.classList.toggle('open');
+                mobileMenuBtn.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
+            });
         }
-        themeBtn.addEventListener('click', toggleTheme);
-        themeBtnMobile.addEventListener('click', toggleTheme);
 
         // Load Stations & Set Auth Nav
         window.addEventListener('load', async () => {
-            // Auth Links Update
+            // Role-based redirect: staff/admin should not land on passenger search page
             if (window.api.isLoggedIn()) {
                 const user = window.api.getUser();
-                const authLink = document.getElementById('authLink');
-                const authLinkMobile = document.getElementById('authLinkMobile');
-                
-                authLink.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
-                authLinkMobile.outerHTML = `<a href="#" onclick="window.api.logout(); return false;">Logout</a>`;
-                
-                // Add Admin Dashboard if staff or admin
-                if (user && (user.role === 'staff' || user.role === 'admin')) {
-                    const navLinks = document.getElementById('navLinks');
-                    const adminNode = document.createElement('a');
-                    adminNode.href = 'admin.html';
-                    adminNode.textContent = 'Dashboard 📊';
-                    navLinks.insertBefore(adminNode, themeBtn);
-                    
-                    const mobileNav = document.getElementById('mobileNav');
-                    const adminNodeMobile = document.createElement('a');
-                    adminNodeMobile.href = 'admin.html';
-                    adminNodeMobile.textContent = 'Dashboard 📊';
-                    mobileNav.insertBefore(adminNodeMobile, themeBtnMobile);
+                if (user && (user.role === 'admin' || user.role === 'ceylon-track-admin')) {
+                    window.location.href = 'admin.html';
+                    return;
+                } else if (user && user.role === 'staff') {
+                    window.location.href = 'staff-app.html';
+                    return;
                 }
             }
+
+            // Dynamically load nav links
+            window.api.updateNav();
 
             // Fetch Stations
             try {
@@ -583,7 +340,72 @@
             } catch (err) {
                 console.error('Failed to load stations:', err);
             }
+
+            // Fetch Timetable
+            loadPassengerTimetable();
+            loadPassengerLiveSchedules();
+            setInterval(loadPassengerLiveSchedules, 30000); // Auto-refresh every 30s
         });
+
+        async function loadPassengerLiveSchedules() {
+            const tbody = document.getElementById('indexLiveTimetableBody');
+            if (!tbody) return;
+            try {
+                const res = await window.api.searchSchedules('', '', '', 'all');
+                const list = res.schedules || res || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem;">No live train status updates available.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(item => {
+                    const status = item.status || 'ON_TIME';
+                    let statusClass = 'badge-success';
+                    if (status === 'DELAYED') statusClass = 'badge-warning';
+                    if (status === 'CANCELLED') statusClass = 'badge-danger';
+                    
+                    const routeStr = `${item.fromStation || ''} ➔ ${item.toStation || ''}`;
+                    const timeStr = item.updatedAt || item.updated_at ? new Date(item.updatedAt || item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+                    
+                    return `
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 0.75rem 0.5rem;"><b>${item.trainNumber || item.train_number || ''}</b></td>
+                            <td style="padding: 0.75rem 0.5rem;">${item.trainName || item.train_name || ''}</td>
+                            <td style="padding: 0.75rem 0.5rem;">${routeStr}</td>
+                            <td style="padding: 0.75rem 0.5rem;"><span class="badge ${statusClass}">${status.replace('_', ' ')}</span></td>
+                            <td style="padding: 0.75rem 0.5rem;">${item.delayMinutes || item.delay_minutes || 0} mins</td>
+                            <td style="padding: 0.75rem 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--danger);">Failed to load live train statuses.</td></tr>';
+            }
+        }
+
+        async function loadPassengerTimetable() {
+            const tbody = document.getElementById('indexTimetableBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem;">Loading official timetable...</td></tr>';
+            try {
+                const res = await window.api.getTimetables();
+                const list = res.timetable || res.timetables || res || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem;">No timetable data available.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(item => `
+                    <tr style="border-bottom: 1px solid var(--border-subtle);">
+                        <td style="padding: 0.75rem 0.5rem;"><b>${item.trainNo || item.train_no || ''}</b></td>
+                        <td style="padding: 0.75rem 0.5rem;">${item.trainName || item.train_name || ''}</td>
+                        <td style="padding: 0.75rem 0.5rem;">${item.routeName || item.route_name || (item.fromStation + ' - ' + item.toStation)}</td>
+                        <td style="padding: 0.75rem 0.5rem;">${item.departureTime || item.departure_time || ''}</td>
+                        <td style="padding: 0.75rem 0.5rem;">${item.arrivalTime || item.arrival_time || ''}</td>
+                        <td style="padding: 0.75rem 0.5rem;"><span class="badge badge-neutral">${item.trainClass || ''}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--danger);">Failed to load timetable.</td></tr>';
+            }
+        }
 
         // Setup Autocomplete inputs
         function setupAutocomplete(inputEl, dropdownEl) {

@@ -7,44 +7,74 @@ router.get('/search', async (req, res) => {
     try {
         const { from, to, date, class: trainClass } = req.query;
 
-        if (!from || !to) {
-            return res.status(400).json({ error: 'from and to stations are required' });
+        // Support "all schedules" mode when from/to are empty (used by staff GPS assignment)
+        const hasFrom = from && from.trim() !== '';
+        const hasTo = to && to.trim() !== '';
+        const isAllMode = !hasFrom && !hasTo;
+
+        if (!isAllMode && (!hasFrom || !hasTo)) {
+            return res.status(400).json({ error: 'Both from and to query parameters are required' });
         }
 
         const tripDate = date || new Date().toISOString().split('T')[0];
 
-        let query = `
-            SELECT 
-                s.id,
-                s.train_number as "trainNumber",
-                s.train_name as "trainName",
-                sf.name as "fromStation",
-                st.name as "toStation",
-                s.departure_time as "departureTime",
-                s.arrival_time as "arrivalTime",
-                s.class,
-                COALESCE(u.status, 'ON_TIME') as "liveStatus",
-                COALESCE(u.delay_minutes, 0) as "delayMinutes",
-                rel.reliability_percent as "reliabilityPercent"
-            FROM schedules s
-            JOIN stations sf ON s.from_station_id = sf.id
-            JOIN stations st ON s.to_station_id = st.id
-            LEFT JOIN trip_status_updates u ON u.schedule_id = s.id AND u.trip_date = $1
-            LEFT JOIN (
+        let query, params;
+
+        if (isAllMode) {
+            query = `
                 SELECT 
-                    schedule_id, 
-                    ROUND(COUNT(CASE WHEN status = 'ON_TIME' THEN 1 END)::DECIMAL / COUNT(*)::DECIMAL * 100) as reliability_percent
-                FROM trip_status_updates
-                GROUP BY schedule_id
-            ) rel ON rel.schedule_id = s.id
-            WHERE sf.code ILIKE $2 AND st.code ILIKE $3
-        `;
+                    s.id,
+                    s.train_number as "trainNumber",
+                    s.train_name as "trainName",
+                    sf.code as "fromStation",
+                    st.code as "toStation",
+                    sf.id as "fromStationId",
+                    st.id as "toStationId",
+                    s.departure_time as "departureTime",
+                    s.arrival_time as "arrivalTime",
+                    s.class,
+                    'ON_TIME' as "liveStatus",
+                    0 as "delayMinutes"
+                FROM schedules s
+                JOIN stations sf ON s.from_station_id = sf.id
+                JOIN stations st ON s.to_station_id = st.id
+                WHERE s.is_active = true
+                ORDER BY s.train_number ASC
+            `;
+            params = [];
+        } else {
+            query = `
+                SELECT 
+                    s.id,
+                    s.train_number as "trainNumber",
+                    s.train_name as "trainName",
+                    sf.name as "fromStation",
+                    st.name as "toStation",
+                    s.departure_time as "departureTime",
+                    s.arrival_time as "arrivalTime",
+                    s.class,
+                    COALESCE(u.status, 'ON_TIME') as "liveStatus",
+                    COALESCE(u.delay_minutes, 0) as "delayMinutes",
+                    rel.reliability_percent as "reliabilityPercent"
+                FROM schedules s
+                JOIN stations sf ON s.from_station_id = sf.id
+                JOIN stations st ON s.to_station_id = st.id
+                LEFT JOIN trip_status_updates u ON u.schedule_id = s.id AND u.trip_date = $1
+                LEFT JOIN (
+                    SELECT 
+                        schedule_id, 
+                        ROUND(COUNT(CASE WHEN status = 'ON_TIME' THEN 1 END)::DECIMAL / COUNT(*)::DECIMAL * 100) as reliability_percent
+                    FROM trip_status_updates
+                    GROUP BY schedule_id
+                ) rel ON rel.schedule_id = s.id
+                WHERE sf.code ILIKE $2 AND st.code ILIKE $3 AND s.is_active = true
+            `;
+            params = [tripDate, from, to];
 
-        const params = [tripDate, from, to];
-
-        if (trainClass && trainClass !== 'all' && trainClass !== '') {
-            query += ` AND s.class = $4`;
-            params.push(trainClass);
+            if (trainClass && trainClass !== 'all' && trainClass !== '') {
+                query += ` AND s.class = $4`;
+                params.push(trainClass);
+            }
         }
 
         const result = await pool.query(query, params);
@@ -69,11 +99,13 @@ router.get('/search', async (req, res) => {
                 trainName: row.trainName,
                 fromStation: row.fromStation,
                 toStation: row.toStation,
+                fromStationId: row.fromStationId,
+                toStationId: row.toStationId,
                 departureTime: row.departureTime,
                 arrivalTime: row.arrivalTime,
                 class: row.class,
                 liveStatus: row.liveStatus,
-                delayMinutes: Number(row.delayMinutes),
+                delayMinutes: Number(row.delayMinutes || 0),
                 reliability,
                 reliabilityPercent: relPercent
             };

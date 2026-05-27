@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Ceylon Track</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        
+        h2 { font-size: 1.75rem; margin-bottom: 2rem; }
+        
+        .setting-section {
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .setting-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Font Family styling */
+        .font-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .font-option {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .font-option:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+        .font-option.selected {
+            border-color: var(--accent);
+            background: var(--accent-muted);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            font-weight: 700;
+        }
+        
+        /* Font Size Selector */
+        .size-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .size-btn {
+            flex: 1 1 80px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            text-align: center;
+        }
+        .size-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .size-btn.selected {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: var(--text-inverse);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        /* Language placeholder */
+        .lang-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .btn-lang {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: not-allowed;
+            font-weight: 500;
+        }
+        .btn-lang.active {
+            border-color: var(--border);
+            color: var(--text-secondary);
+            cursor: default;
+        }
+        
+        /* Theme Selection customization */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        .theme-option {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .theme-option:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+        .theme-option.selected {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-glow);
+            background: var(--bg-elevated);
+        }
+        .theme-preview {
+            height: 36px;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .preview-dark { background: linear-gradient(135deg, #050814, #00F3FF); }
+        .preview-light { background: linear-gradient(135deg, #F0F4F8, #0055FF); }
+        .preview-amber { background: linear-gradient(135deg, #120A05, #FF8800); }
+
+        @media (max-width: 480px) {
+            .container { margin: 1rem auto; padding: 0 0.5rem; }
+            .card { padding: 1.25rem 1rem; border-radius: 12px; }
+            h2 { font-size: 1.4rem; margin-bottom: 1.25rem; }
+            .setting-section h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+            .font-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .theme-grid { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+            .theme-option { padding: 0.5rem; }
+            .theme-preview { height: 28px; }
+            .size-btn { flex: 1 1 65px; font-size: 0.8rem; padding: 0.4rem; }
+            .btn-lang { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand"><i class="fa-solid fa-train"></i> Ceylon Track</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            <ul class="navbar-links" id="nav-links">
+                <!-- Nav populated dynamically by api.js -->
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2 style="color: var(--accent); text-shadow: 0 0 8px var(--accent-glow);"><i class="fa-solid fa-gear"></i> Preferences</h2>
+            
+            <!-- Theme Section -->
+            <div class="setting-section">
+                <h3><i class="fa-solid fa-palette"></i> Color Theme</h3>
+                <div class="theme-grid" id="themeGrid"></div>
+            </div>
+            
+            <!-- Font Family Section -->
+            <div class="setting-section">
+                <h3><i class="fa-solid fa-font"></i> Font Family</h3>
+                <div class="font-grid" id="fontGrid">
+                    <!-- Dynamic font cards -->
+                </div>
+            </div>
+            
+            <!-- Font Size Section -->
+            <div class="setting-section">
+                <h3><i class="fa-solid fa-text-height"></i> Font Size</h3>
+                <div class="size-selector" id="sizeSelector">
+                    <!-- Preset buttons for font size -->
+                </div>
+            </div>
+            
+            <!-- Language Section -->
+            <div class="setting-section" style="border-bottom: none; margin-bottom: 1rem; padding-bottom: 0;">
+                <h3><i class="fa-solid fa-globe"></i> Language</h3>
+                <div class="lang-selector">
+                    <button class="btn-lang active" disabled>English</button>
+                    <button class="btn-lang" disabled>Sinhala (Coming Soon)</button>
+                    <button class="btn-lang" disabled>Tamil (Coming Soon)</button>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="saveBtn" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+            <p id="saveStatus" style="text-align:center; margin-top: 1rem; font-weight: 600; color: var(--success); display: none;"></p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        var selectedTheme = window._ct ? window._ct.getCurrentTheme() : 'dark';
+        var selectedFont = localStorage.getItem('ceylon_track_font') || 'Inter';
+        var selectedSize = localStorage.getItem('ceylon_track_font_size') || '16px';
+        
+        var themes = [
+            { id: 'dark', label: 'Dark', cls: 'preview-dark' },
+            { id: 'light', label: 'Light', cls: 'preview-light' },
+            { id: 'amber', label: 'Amber', cls: 'preview-amber' }
+        ];
+
+        var fonts = [
+            { name: 'Inter', stack: 'Inter' },
+            { name: 'Outfit', stack: 'Outfit' },
+            { name: 'Roboto', stack: 'Roboto' },
+            { name: 'Poppins', stack: 'Poppins' },
+            { name: 'JetBrains Mono', stack: 'JetBrains Mono' }
+        ];
+
+        var sizes = [
+            { label: 'Small', value: '14px' },
+            { label: 'Normal', value: '16px' },
+            { label: 'Large', value: '18px' },
+            { label: 'X-Large', value: '20px' }
+        ];
+
+        function init() {
+            if (window.api) {
+                if (!window.api.requireAuth()) {
+                    throw new Error('Access denied. Authentication required.');
+                }
+                window.api.updateNav();
+            }
+            renderThemes();
+            renderFonts();
+            renderSizes();
+        }
+
+        function renderThemes() {
+            var grid = document.getElementById('themeGrid');
+            grid.innerHTML = '';
+            themes.forEach(function(t) {
+                var div = document.createElement('div');
+                div.className = 'theme-option' + (selectedTheme === t.id ? ' selected' : '');
+                div.onclick = function() {
+                    selectedTheme = t.id;
+                    renderThemes();
+                    window._ct.setTheme(t.id);
+                };
+                div.innerHTML = '<div class="theme-preview ' + t.cls + '"></div><div class="theme-label">' + t.label + '</div>';
+                grid.appendChild(div);
+            });
+        }
+
+        function renderFonts() {
+            var grid = document.getElementById('fontGrid');
+            grid.innerHTML = '';
+            fonts.forEach(function(f) {
+                var div = document.createElement('div');
+                div.className = 'font-option' + (selectedFont === f.name ? ' selected' : '');
+                div.style.fontFamily = f.name === 'JetBrains Mono' ? "'JetBrains Mono', monospace" : "'" + f.name + "', sans-serif";
+                div.onclick = function() {
+                    selectedFont = f.name;
+                    localStorage.setItem('ceylon_track_font', f.name);
+                    renderFonts();
+                    if (window._ct && window._ct.applyFontAndSize) {
+                        window._ct.applyFontAndSize();
+                    }
+                };
+                div.innerHTML = `<div style="font-size: 1.1rem; margin-bottom: 0.2rem;">Aa</div><div style="font-size: 0.85rem;">${f.name}</div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        function renderSizes() {
+            var container = document.getElementById('sizeSelector');
+            container.innerHTML = '';
+            sizes.forEach(function(s) {
+                var btn = document.createElement('button');
+                btn.className = 'size-btn' + (selectedSize === s.value ? ' selected' : '');
+                btn.onclick = function() {
+                    selectedSize = s.value;
+                    localStorage.setItem('ceylon_track_font_size', s.value);
+                    renderSizes();
+                    if (window._ct && window._ct.applyFontAndSize) {
+                        window._ct.applyFontAndSize();
+                    }
+                };
+                btn.textContent = s.label + ' (' + s.value + ')';
+                container.appendChild(btn);
+            });
+        }
+
+        async function saveSettings() {
+            var btn = document.getElementById('saveBtn');
+            var status = document.getElementById('saveStatus');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            status.style.display = 'none';
+
+            try {
+                if (window.api && window.api.isLoggedIn()) {
+                    await window.api._fetch('/api/users/theme', { method: 'PUT', body: JSON.stringify({ theme: selectedTheme }) });
+                    // Update local user object so theme-loader.js doesn't revert to old preference on next load
+                    var userStr = localStorage.getItem('ceylon_track_user');
+                    if (userStr) {
+                        var user = JSON.parse(userStr);
+                        user.theme_preference = selectedTheme;
+                        localStorage.setItem('ceylon_track_user', JSON.stringify(user));
+                    }
+                }
+                
+                localStorage.setItem('ceylon_track_theme', selectedTheme);
+                localStorage.setItem('ceylon_track_font', selectedFont);
+                localStorage.setItem('ceylon_track_font_size', selectedSize);
+                
+                if (window._ct) {
+                    window._ct.setTheme(selectedTheme);
+                    if (window._ct.applyFontAndSize) {
+                        window._ct.applyFontAndSize();
+                    }
+                }
+                
+                status.style.color = 'var(--success)';
+                status.textContent = 'Settings saved successfully!';
+                status.style.display = 'block';
+            } catch(e) {
+                status.textContent = 'Preferences saved locally. Log in to sync across devices.';
+                status.style.color = 'var(--warning)';
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Settings';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -34,8 +34,29 @@
             return user && user.role === role;
         },
         logout() {
+            this._fetch('/api/auth/logout', { method: 'POST' }).catch(function(){});
             this.clearAuth();
             window.location.href = 'login.html';
+        },
+        getHomeUrl() {
+            var user = this.getUser();
+            if (user) {
+                if (user.role === 'admin' || user.role === 'ceylon-track-admin') {
+                    return 'admin.html';
+                }
+                if (user.role === 'staff') {
+                    return 'staff-app.html';
+                }
+            }
+            return 'index.html';
+        },
+        isStationMaster() {
+            const user = this.getUser();
+            return user && user.role === 'staff' && (user.subRole === 'station_master' || user.sub_role === 'station_master');
+        },
+        needsStationSetup() {
+            // Unimplemented for now, returning false prevents the redirect crash.
+            return false;
         },
 
         // INTERNAL FETCH HELPER
@@ -66,6 +87,11 @@
             }
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    api.clearAuth();
+                    api.showToast('Your session has expired. Please log in again.', 'error');
+                    setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                }
                 const error = new Error(data.error || 'Request failed');
                 error.status = response.status;
                 throw error;
@@ -75,7 +101,7 @@
         },
 
         // PUBLIC API METHODS
-        register(firstName, lastName, email, password, role = 'passenger', employeeId = null, staffAccessCode = null) {
+        register(firstName, lastName, email, password, role = 'passenger', employeeId = null, staffAccessCode = null, subRole = null) {
             const body = {
                 first_name: firstName,
                 last_name: lastName,
@@ -86,6 +112,7 @@
             if (role === 'staff') {
                 body.employee_id = employeeId;
                 body.staff_access_code = staffAccessCode;
+                body.sub_role = subRole || 'staff';
             }
             return this._fetch('/api/auth/register', {
                 method: 'POST',
@@ -95,7 +122,13 @@
         login(loginType, emailOrEmployeeId, password) {
             const body = { login_type: loginType, password };
             if (loginType === 'staff') {
-                body.employee_id = emailOrEmployeeId;
+                if (emailOrEmployeeId.includes('@')) {
+                    body.email = emailOrEmployeeId;
+                } else {
+                    body.employee_id = emailOrEmployeeId;
+                }
+            } else if (loginType === 'admin') {
+                body.email = emailOrEmployeeId;
             } else {
                 body.email = emailOrEmployeeId;
             }
@@ -154,13 +187,16 @@
         getAllActiveTrains() {
             return this._fetch('/api/gps/all-active');
         },
-        pushMobileLocation(scheduleId, lat, lng) {
+        pushMobileLocation({ scheduleId, lat, lng, accuracy, heading, speed }) {
             return this._fetch('/api/gps/mobile-update', {
                 method: 'POST',
                 body: JSON.stringify({
                     schedule_id: parseInt(scheduleId),
                     lat: parseFloat(lat),
-                    lng: parseFloat(lng)
+                    lng: parseFloat(lng),
+                    accuracy: accuracy ? parseFloat(accuracy) : undefined,
+                    heading: heading ? parseFloat(heading) : undefined,
+                    speed: speed ? parseFloat(speed) : undefined
                 })
             });
         },
@@ -178,16 +214,9 @@
         getMyAssignment() {
             return this._fetch('/api/assignments/my-active');
         },
-        startAssignment(scheduleId) {
-            return this._fetch('/api/assignments/start', {
-                method: 'POST',
-                body: JSON.stringify({ schedule_id: scheduleId })
-            });
-        },
-        stopAssignment() {
-            return this._fetch('/api/assignments/stop', {
-                method: 'POST'
-            });
+        canBroadcastGPS() {
+            var user = this.getUser();
+            return user && user.role === 'staff' && !this.isStationMaster();
         },
         updateLastStop(scheduleId, stationId) {
             return this._fetch('/api/laststop/update', {
@@ -195,9 +224,44 @@
                 body: JSON.stringify({ schedule_id: scheduleId, station_id: stationId })
             });
         },
-        getLastStop(scheduleId) {
-            return this._fetch(`/api/laststop/${scheduleId}`);
-        },
+
+        // Admin staff management
+        getStaffList: () => api._fetch('/api/auth/staff'),
+        updateStaffStatus: (staffId, status, rejection_reason) =>
+            api._fetch('/api/auth/staff/' + staffId + '/status', {
+                method: 'PUT',
+                body: JSON.stringify({ status, rejection_reason: rejection_reason || null })
+            }),
+            
+        // Admin Management
+        getAnalytics: () => api._fetch('/api/admin/analytics'),
+        getAdminSchedules: () => api._fetch('/api/admin/schedules'),
+        deleteSchedule: (id) => api._fetch('/api/admin/schedules/' + id, { method: 'DELETE' }),
+        createSchedule: (scheduleData) => api._fetch('/api/staff/schedules', { 
+            method: 'POST', 
+            body: JSON.stringify(scheduleData) 
+        }),
+        createStation: (stationData) => api._fetch('/api/staff/stations', {
+            method: 'POST',
+            body: JSON.stringify(stationData)
+        }),
+        deleteStation: (id) => api._fetch('/api/admin/stations/' + id, { method: 'DELETE' }),
+
+        // Theme
+        saveTheme: (theme) =>
+            api._fetch('/api/users/theme', { method: 'PUT', body: JSON.stringify({ theme }) }),
+
+        // Sessions
+        startSession: (scheduleId) =>
+            api._fetch('/api/sessions/start', { method: 'POST', body: JSON.stringify({ schedule_id: scheduleId }) }),
+        stopSession: () =>
+            api._fetch('/api/sessions/stop', { method: 'POST' }),
+        getMySession: () =>
+            api._fetch('/api/sessions/my-active'),
+        getActiveSessions: () =>
+            api._fetch('/api/sessions/active'),
+        cancelSession: (sessionId) =>
+            api._fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }),
 
         // UI HELPERS
         showToast(message, type = 'info') {
@@ -325,10 +389,19 @@
         requireRole(role) {
             if (!this.requireAuth()) return false;
             const user = this.getUser();
-            if (!user || user.role !== role) {
+            let hasRole = false;
+            if (user) {
+                if (role === 'admin' && (user.role === 'admin' || user.role === 'ceylon-track-admin')) {
+                    hasRole = true;
+                } else if (user.role === role) {
+                    hasRole = true;
+                }
+            }
+
+            if (!hasRole) {
                 this.showToast('Access denied. Insufficient permissions.', 'error');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = this.getHomeUrl();
                 }, 2000);
                 return false;
             }
@@ -338,35 +411,56 @@
         updateNav() {
             const user = this.getUser();
             const navLinks = document.getElementById('nav-links');
+            
+            // Dynamically point the brand logo to the user's dashboard home
+            const brandEl = document.querySelector('.navbar-brand');
+            if (brandEl) {
+                brandEl.setAttribute('href', this.getHomeUrl());
+            }
+
             if (!navLinks) return;
             
-            let linksHTML = `
-                <li><a href="index.html">Home</a></li>
-                <li><a href="live-map.html">Live Map</a></li>
-                <li><a href="timetable.html">Timetable</a></li>
-                <li><a href="schedules.html">Search</a></li>
-            `;
+            let linksHTML = '';
+            const role = user ? user.role : 'passenger';
 
-            if (user) {
-                if (user.role === 'admin') {
-                    linksHTML += `<li><a href="admin.html">Admin</a></li>`;
-                }
-                if (user.role === 'admin' || user.role === 'staff') {
-                    linksHTML += `<li><a href="staff-app.html">Staff App</a></li>`;
-                    linksHTML += `<li><a href="disruptions.html">Disruptions</a></li>`;
-                }
-                linksHTML += `
-                    <li><a href="watch.html">My Watches</a></li>
-                    <li><a href="#" onclick="api.logout(); return false;">Logout</a></li>
-                `;
+            if (role === 'admin' || role === 'ceylon-track-admin') {
+                linksHTML = '<li><a href="live-map.html">Live Map</a></li>'
+                    + '<li><a href="admin.html">Dashboard</a></li>'
+                    + '<li><a href="settings.html">Settings</a></li>'
+                    + '<li><a href="#" onclick="api.logout(); return false;">Logout</a></li>';
+            } else if (role === 'staff') {
+                linksHTML = '<li><a href="index.html">Search</a></li>'
+                    + '<li><a href="live-map.html">Live Map</a></li>'
+                    + '<li><a href="staff-app.html">Dashboard</a></li>'
+                    + '<li><a href="settings.html">Settings</a></li>'
+                    + '<li><a href="#" onclick="api.logout(); return false;">Logout</a></li>';
+            } else if (user) {
+                linksHTML = '<li><a href="index.html">Search</a></li>'
+                    + '<li><a href="live-map.html">Live Map</a></li>'
+                    + '<li><a href="timetable.html">Timetable</a></li>'
+                    + '<li><a href="watch.html">My Watches</a></li>'
+                    + '<li><a href="settings.html">Settings</a></li>'
+                    + '<li><a href="#" onclick="api.logout(); return false;">Logout</a></li>';
             } else {
-                linksHTML += `
-                    <li><a href="login.html">Login</a></li>
-                    <li><a href="register.html">Register</a></li>
-                `;
+                linksHTML = '<li><a href="index.html">Search</a></li>'
+                    + '<li><a href="live-map.html">Live Map</a></li>'
+                    + '<li><a href="timetable.html">Timetable</a></li>'
+                    + '<li><a href="settings.html">Settings</a></li>'
+                    + '<li><a href="login.html">Login</a></li>';
             }
-            
+
             navLinks.innerHTML = linksHTML;
+
+            // Automatically setup mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            if (mobileMenuBtn) {
+                const newBtn = mobileMenuBtn.cloneNode(true);
+                mobileMenuBtn.parentNode.replaceChild(newBtn, mobileMenuBtn);
+                newBtn.addEventListener('click', () => {
+                    navLinks.classList.toggle('open');
+                    newBtn.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
+                });
+            }
         }
     };
 

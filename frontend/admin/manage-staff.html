@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management — Ceylon Track Admin</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg); color: var(--text); min-height: 100vh; }
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        .navbar a { color: var(--text-2); font-weight: 600; margin-left: 1.5rem; text-decoration: none; }
+        .navbar a:hover { color: var(--text); }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+        .card-header { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+        .card-header h2 { font-size: 1.5rem; }
+        .filters { display: flex; gap: 0.5rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        .filter-btn {
+            padding: 0.4rem 1rem; border: 1px solid var(--border); border-radius: 999px;
+            background: transparent; color: var(--text-2); font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: var(--surface-2); padding: 0.875rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); border-bottom: 1px solid var(--border); }
+        td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tr:hover td { background: var(--surface-2); }
+        .status-badge {
+            display: inline-block; padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+        }
+        .status-active { background: rgba(16,185,129,0.15); color: var(--success); }
+        .status-pending { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .status-suspended { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .btn-sm {
+            padding: 0.35rem 0.75rem; border: none; border-radius: 6px; font-weight: 600; font-size: 0.8rem; cursor: pointer; margin-right: 0.25rem; transition: all 0.2s;
+        }
+        .btn-approve { background: var(--success); color: #fff; }
+        .btn-approve:hover { opacity: 0.85; }
+        .btn-reject { background: var(--danger); color: #fff; }
+        .btn-reject:hover { opacity: 0.85; }
+        .btn-suspend { background: var(--warning); color: #000; }
+        .loading { text-align: center; padding: 3rem; color: var(--text-2); }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .reject-reason { color: var(--text-2); font-size: 0.8rem; margin-top: 0.2rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <span class="logo">Ceylon Track Admin</span>
+        <div>
+            <a href="admin.html">Dashboard</a>
+            <a href="admin/manage-staff.html">Staff Management</a>
+            <a href="live-map.html">Live Map</a>
+            <a href="settings.html">Settings</a>
+            <a href="#" onclick="window.api.logout();return false">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header"><h2>Staff Management</h2></div>
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterStaff('all', this)">All</button>
+                <button class="filter-btn" onclick="filterStaff('active', this)">Active</button>
+                <button class="filter-btn" onclick="filterStaff('pending', this)">Pending</button>
+                <button class="filter-btn" onclick="filterStaff('suspended', this)">Suspended</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Emp ID</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody">
+                        <tr><td colspan="6" class="loading"><span class="spinner"></span> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        var allStaff = [];
+        var currentFilter = 'all';
+
+        if (!window.api.requireAuth()) throw new Error('Auth required');
+        var user = window.api.getUser();
+        if (user.role !== 'admin') {
+            window.api.showToast('Access denied. Admin only.', 'error');
+            setTimeout(function() { window.location.href = 'index.html'; }, 1500);
+            throw new Error('Unauthorized');
+        }
+
+        async function loadStaff() {
+            try {
+                var res = await window.api.getStaffList();
+                allStaff = res.staff || [];
+                renderTable();
+            } catch(e) {
+                document.getElementById('staffTableBody').innerHTML = '<tr><td colspan="6" class="loading" style="color:var(--danger);">Failed to load: ' + (e.message || 'Error') + '</td></tr>';
+            }
+        }
+
+        function filterStaff(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            renderTable();
+        }
+
+        function renderTable() {
+            var tbody = document.getElementById('staffTableBody');
+            var list = currentFilter === 'all' ? allStaff : allStaff.filter(function(s) { return s.status === currentFilter; });
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-2);">No staff members found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            list.forEach(function(s) {
+                var tr = document.createElement('tr');
+                var actions = '';
+                var roleLabel = s.sub_role || s.role || 'staff';
+                if (s.status === 'pending') {
+                    actions = '<button class="btn-sm btn-approve" onclick="approveStaff(' + s.id + ')">Approve</button>'
+                        + '<button class="btn-sm btn-reject" onclick="rejectStaff(' + s.id + ')">Reject</button>';
+                } else if (s.status === 'active') {
+                    actions = '<button class="btn-sm btn-suspend" onclick="suspendStaff(' + s.id + ')">Suspend</button>';
+                } else if (s.status === 'suspended') {
+                    actions = '<button class="btn-sm btn-approve" onclick="approveStaff(' + s.id + ')">Reactivate</button>';
+                }
+                tr.innerHTML = '<td><strong>' + (s.name || '') + '</strong></td>'
+                    + '<td>' + (s.email || '') + '</td>'
+                    + '<td>' + (s.employee_id || '—') + '</td>'
+                    + '<td>' + roleLabel + '</td>'
+                    + '<td><span class="status-badge status-' + s.status + '">' + s.status + '</span></td>'
+                    + '<td>' + actions + '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function approveStaff(id) {
+            try {
+                await window.api.updateStaffStatus(id, 'active', '');
+                window.api.showToast('Staff approved!', 'success');
+                loadStaff();
+            } catch(e) { window.api.showToast(e.message, 'error'); }
+        }
+
+        async function rejectStaff(id) {
+            var reason = prompt('Rejection reason (optional):');
+            try {
+                await window.api.updateStaffStatus(id, 'suspended', reason || 'Rejected by admin');
+                window.api.showToast('Staff rejected', 'info');
+                loadStaff();
+            } catch(e) { window.api.showToast(e.message, 'error'); }
+        }
+
+        async function suspendStaff(id) {
+            if (!confirm('Suspend this staff member?')) return;
+            try {
+                await window.api.updateStaffStatus(id, 'suspended', 'Suspended by admin');
+                window.api.showToast('Staff suspended', 'info');
+                loadStaff();
+            } catch(e) { window.api.showToast(e.message, 'error'); }
+        }
+
+        loadStaff();
+    </script>
+</body>
+</html>

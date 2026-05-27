@@ -4,227 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Ceylon Track</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/theme-loader.js"></script>
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@400..800&display=swap" rel="stylesheet">
-    
-    <!-- Theme Detection Script -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('ceylon_track_theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
-    </script>
 
     <style>
-        /* ============================================================
-           CEYLON TRACK GLOBAL DESIGN SYSTEM
-           ============================================================ */
-        :root {
-            --bg: #F8FAFC;
-            --surface: #FFFFFF;
-            --surface-2: #F1F5F9;
-            --text: #0F172A;
-            --text-2: #475569;
-            --border: #E2E8F0;
-            --primary: #0F4C75;
-            --primary-2: #1B6CA8;
-            --accent: #00B4D8;
-            --accent-2: #0077B6;
-            --success: #059669;
-            --warning: #D97706;
-            --danger: #DC2626;
-            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-blur: blur(8px);
-            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-display: 'Syne', sans-serif;
-        }
-
-        [data-theme="dark"] {
-            --bg: #0A0F1E;
-            --surface: #111827;
-            --surface-2: #1F2937;
-            --text: #F9FAFB;
-            --text-2: #9CA3AF;
-            --border: #374151;
-            --primary: #1B6CA8;
-            --primary-2: #2196F3;
-            --accent: #00D4FF;
-            --accent-2: #00B4D8;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            --glass-bg: rgba(17, 24, 39, 0.65);
-            --glass-blur: blur(12px);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: var(--font-body);
-        }
-
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg-app);
+            color: var(--text-primary);
             line-height: 1.6;
-            transition: background 0.3s, color 0.3s;
-            overflow-x: hidden;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-display);
-            font-weight: 700;
-        }
-
-        a {
-            color: var(--accent);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        a:hover {
-            color: var(--accent-2);
-        }
-
-        /* Nav & Header */
-        header {
-            background-color: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1.5rem;
-            font-weight: 800;
-            font-family: var(--font-display);
-            color: var(--text);
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .nav-links a {
-            color: var(--text-2);
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--text);
-        }
-
-        .theme-btn, .menu-toggle-btn {
-            background: none;
-            border: none;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 1.25rem;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .theme-btn:hover {
-            background-color: var(--surface-2);
-        }
-
-        .menu-toggle-btn {
-            display: none;
-        }
-
-        /* Mobile Dropdown Nav */
-        .mobile-nav {
-            display: none;
-            background-color: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 1.5rem;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .mobile-nav.open {
-            display: flex;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            min-height: 48px;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: #FFFFFF;
-        }
-        .btn-primary:hover {
-            background-color: var(--primary-2);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background-color: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover {
-            background-color: var(--border);
-        }
-
-        /* Cards */
-        .card {
-            background-color: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            padding: 2rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        /* Inputs & Selects */
         .input-group {
             display: flex;
             flex-direction: column;
@@ -237,24 +30,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--text-2);
-        }
-
-        .input {
-            width: 100%;
-            min-height: 48px;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background-color: var(--surface);
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-        }
-        .input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+            color: var(--text-secondary);
         }
 
         /* Page Layout */
@@ -283,7 +59,7 @@
         /* Tabs */
         .auth-tabs {
             display: flex;
-            background-color: var(--surface-2);
+            background-color: var(--bg-elevated);
             padding: 0.25rem;
             border-radius: 10px;
             margin-bottom: 0.5rem;
@@ -298,61 +74,40 @@
             border-radius: 8px;
             font-weight: 700;
             font-size: 0.95rem;
-            color: var(--text-2);
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .auth-tab.active {
-            background-color: var(--surface);
-            color: var(--text);
-            box-shadow: var(--shadow);
+            background-color: var(--bg-surface);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
         }
 
         footer {
             text-align: center;
             padding: 1.5rem;
             border-top: 1px solid var(--border);
-            color: var(--text-2);
+            color: var(--text-secondary);
             font-size: 0.85rem;
             margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            .menu-toggle-btn {
-                display: flex;
-            }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="header-container">
-            <a href="index.html" class="logo-container">
-                <span>🚂</span> Ceylon Track
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand">
+                <i class="fa-solid fa-train"></i> Ceylon Track
             </a>
-            <div class="nav-links" id="navLinks">
-                <a href="index.html">Search</a>
-                <a href="watch.html">My Watches</a>
-                <a href="gps-demo.html">GPS Demo 🛰</a>
-                <a href="login.html" class="active">Login</a>
-                <button class="theme-btn" id="themeBtn">🌓</button>
-            </div>
-            <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            <ul class="navbar-links" id="nav-links">
+                <!-- Nav populated dynamically by api.js -->
+            </ul>
         </div>
-    </header>
-
-    <div class="mobile-nav" id="mobileNav">
-        <a href="index.html">Search</a>
-        <a href="watch.html">My Watches</a>
-        <a href="gps-demo.html">GPS Demo 🛰</a>
-        <a href="login.html" class="active">Login</a>
-        <button class="btn btn-secondary" id="themeBtnMobile">Toggle Theme 🌓</button>
-    </div>
+    </nav>
 
     <main class="auth-page">
         
@@ -366,15 +121,16 @@
                 <div class="auth-tabs">
                     <button type="button" class="auth-tab active" data-role="passenger">🚆 Passenger</button>
                     <button type="button" class="auth-tab" data-role="staff">👷 Staff</button>
+                    <button type="button" class="auth-tab" data-role="admin">🛡️ Admin</button>
                 </div>
 
                 <div class="input-group">
                     <label id="identifierLabel" for="identifierInput">Email Address</label>
-                    <input type="text" id="identifierInput" class="input" placeholder="e.g. passenger@ceylon.lk" required>
+                    <input type="text" id="identifierInput" class="input-field" placeholder="e.g. passenger@ceylon.lk" required>
                 </div>
                 <div class="input-group">
                     <label for="passwordInput">Password</label>
-                    <input type="password" id="passwordInput" class="input" placeholder="••••••••" required>
+                    <input type="password" id="passwordInput" class="input-field" placeholder="••••••••" required>
                 </div>
                 <div id="errorMsg" style="color: var(--danger); font-weight: 700; text-align: center; display: none; margin-top: 0.5rem;"></div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
@@ -395,31 +151,22 @@
 
     <script src="/js/api.js"></script>
     <script>
+        // Dynamically load nav links
+        window.api.updateNav();
+
         // Redirect if already logged in
         if (window.api.isLoggedIn()) {
             const user = window.api.getUser();
-            if (user.role === 'passenger') {
-                window.location.href = 'watch.html';
-            } else {
+            if (window.api.needsStationSetup()) {
+                window.location.href = 'station-setup.html';
+            } else if (user.role === 'admin' || user.role === 'ceylon-track-admin') {
                 window.location.href = 'admin.html';
+            } else if (user.role === 'staff') {
+                window.location.href = 'staff-app.html';
+            } else {
+                window.location.href = 'index.html';
             }
         }
-
-        // Mobile Nav & Theme logic
-        const menuToggleBtn = document.getElementById('menuToggleBtn');
-        const mobileNav = document.getElementById('mobileNav');
-        menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
-
-        const themeBtn = document.getElementById('themeBtn');
-        const themeBtnMobile = document.getElementById('themeBtnMobile');
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('ceylon_track_theme', newTheme);
-        }
-        themeBtn.addEventListener('click', toggleTheme);
-        themeBtnMobile.addEventListener('click', toggleTheme);
 
         let activeRole = 'passenger';
 
@@ -435,9 +182,13 @@
                 activeRole = tab.getAttribute('data-role');
 
                 if (activeRole === 'staff') {
-                    identifierLabel.textContent = 'Employee ID';
+                    identifierLabel.textContent = 'Email or Employee ID';
                     identifierInput.type = 'text';
-                    identifierInput.placeholder = 'e.g. EMP-001';
+                    identifierInput.placeholder = 'e.g. staff@ceylon.lk or EMP-001';
+                } else if (activeRole === 'admin') {
+                    identifierLabel.textContent = 'Email Address';
+                    identifierInput.type = 'email';
+                    identifierInput.placeholder = 'e.g. admin@ceylon.lk';
                 } else {
                     identifierLabel.textContent = 'Email Address';
                     identifierInput.type = 'email';
@@ -461,7 +212,12 @@
                 window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
                 
                 setTimeout(() => {
-                    if (res.user.role === 'staff' || res.user.role === 'admin') {
+                    const user = window.api.getUser();
+                    if (window.api.needsStationSetup()) {
+                        window.location.href = '/station-setup.html';
+                    } else if (user.role === 'admin' || user.role === 'ceylon-track-admin') {
+                        window.location.href = '/admin.html';
+                    } else if (user.role === 'staff') {
                         window.location.href = '/staff-app.html';
                     } else {
                         window.location.href = '/index.html';
