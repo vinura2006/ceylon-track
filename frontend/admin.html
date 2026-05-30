@@ -106,6 +106,7 @@
             <button class="tab-btn" data-target="tab-staff">👥 Staff Approvals</button>
             <button class="tab-btn" data-target="tab-schedules">📅 Schedules</button>
             <button class="tab-btn" data-target="tab-timetable">📅 Timetable</button>
+            <button class="tab-btn" data-target="tab-requests" onclick="loadChangeRequests()">📋 Change Requests <span id="crCountBadge" class="badge badge-warning" style="display:none; font-size:0.75rem; padding:2px 6px; border-radius:50%; margin-left: 0.25rem;">0</span></button>
             <button class="tab-btn" data-target="tab-analytics">📈 Analytics</button>
             <button class="tab-btn" data-target="tab-gps">🛰 GPS Monitor</button>
             <button class="tab-btn" data-target="tab-stations">🚉 Stations & Trains</button>
@@ -158,8 +159,16 @@
 
         <!-- TAB 7: TIMETABLE -->
         <div id="tab-timetable" class="tab-content">
-            <div class="card">
-                <h2>Official Government Timetable</h2>
+            <div class="card" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <h2>Official Government Timetable</h2>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                        <select id="adminRouteFilter" class="input-field" style="max-width: 250px; margin-bottom: 0;" onchange="loadAdminTimetable()">
+                            <option value="">All Routes</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="openAddTimetableModal()">+ Add Train</button>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -171,10 +180,37 @@
                                 <th>Arrival</th>
                                 <th>Class</th>
                                 <th>Frequency</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="adminTimetableBody">
-                            <tr><td colspan="7">Loading timetable...</td></tr>
+                            <tr><td colspan="8">Loading timetable...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 9: CHANGE REQUESTS -->
+        <div id="tab-requests" class="tab-content">
+            <div class="card" style="padding: 1.5rem;">
+                <h2 style="margin-bottom: 1rem;">Staff Change Requests</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff Name</th>
+                                <th>Train</th>
+                                <th>Change Type</th>
+                                <th>Proposed Details</th>
+                                <th>Reason</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="changeRequestsTableBody">
+                            <tr><td colspan="8" style="text-align: center;">Loading requests...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -321,6 +357,66 @@
                 <button id="btnUpdateStatus" class="btn btn-primary" style="background-color: var(--success); border: none;">Update Status</button>
             </div>
         </div>
+
+        <!-- Timetable Add/Edit Modal -->
+        <div id="timetableModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 11000; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 1.5rem 1rem; backdrop-filter: blur(4px);">
+            <div class="card" style="width: 500px; max-width: 95%; padding: 1.5rem; position: relative; margin: auto;">
+                <span onclick="closeTimetableModal()" style="position: absolute; top: 0.75rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</span>
+                <h3 id="timetableModalTitle" style="margin-bottom: 1rem; padding-right: 2rem; font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase;">Add Timetable Entry</h3>
+                <form id="timetableModalForm">
+                    <input type="hidden" id="ttId">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="input-group"><label>Train No</label><input type="text" id="ttNo" class="input-field" required></div>
+                        <div class="input-group"><label>Train Name</label><input type="text" id="ttName" class="input-field" required></div>
+                    </div>
+                    <div class="input-group"><label>Route Name (e.g. Colombo - Kandy)</label><input type="text" id="ttRoute" class="input-field" required></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="input-group"><label>Start Station ID</label><input type="number" id="ttStart" class="input-field" required></div>
+                        <div class="input-group"><label>End Station ID</label><input type="number" id="ttEnd" class="input-field" required></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="input-group"><label>Departure (HH:MM:SS)</label><input type="time" step="1" id="ttDep" class="input-field" required></div>
+                        <div class="input-group"><label>Arrival (HH:MM:SS)</label><input type="time" step="1" id="ttArr" class="input-field" required></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="input-group"><label>Class</label><input type="text" id="ttClass" class="input-field" placeholder="e.g. 1st, 2nd Class"></div>
+                        <div class="input-group"><label>Frequency</label><input type="text" id="ttFreq" class="input-field" placeholder="e.g. Daily"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Entry</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Timetable Stops Editor Modal -->
+        <div id="stopsModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 11000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+            <div class="card" style="width: 600px; max-width: 95%; padding: 2rem; position: relative; max-height: 90vh; display: flex; flex-direction: column;">
+                <span onclick="closeStopsModal()" style="position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</span>
+                <h3 style="margin-bottom: 1rem;">Manage Stops for Train <span id="stopsModalTrainNo"></span></h3>
+                
+                <div style="overflow-y: auto; flex: 1; margin-bottom: 1.5rem;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Station ID</th>
+                                <th>Arrival</th>
+                                <th>Departure</th>
+                                <th>Seq</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stopsTableBody">
+                            <!-- Rows dynamically added here -->
+                        </tbody>
+                    </table>
+                    <button class="btn btn-secondary btn-sm" onclick="addStopRow()" style="margin-top: 1rem;">+ Add Stop</button>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="closeStopsModal()" style="flex: 1;">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveStops()" style="flex: 1;">Save Stops</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <footer><p>© 2026 Ceylon Track — Admin Dashboard</p></footer>
@@ -357,34 +453,333 @@
                 document.getElementById(target).classList.add('active');
                 if (target === 'tab-timetable') {
                     loadAdminTimetable();
+                } else if (target === 'tab-requests') {
+                    loadChangeRequests();
                 }
             });
         });
 
-        async function loadAdminTimetable() {
-            const tbody = document.getElementById('adminTimetableBody');
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Loading timetable...</td></tr>';
+        let adminRoutesLoaded = false;
+        async function loadAdminRouteFilter() {
+            if (adminRoutesLoaded) return;
             try {
-                const res = await window.api.getTimetables();
+                const res = await window.api.getTimetableRoutes();
+                const filter = document.getElementById('adminRouteFilter');
+                filter.innerHTML = '<option value="">All Routes</option>';
+                res.routes.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = r;
+                    filter.appendChild(opt);
+                });
+                adminRoutesLoaded = true;
+            } catch (err) {
+                console.error('Failed to load admin route filter:', err);
+            }
+        }
+
+        async function loadAdminTimetable() {
+            await loadAdminRouteFilter();
+            const tbody = document.getElementById('adminTimetableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading timetable...</td></tr>';
+            try {
+                const routeVal = document.getElementById('adminRouteFilter').value;
+                const path = routeVal ? `/api/timetable?route=${encodeURIComponent(routeVal)}` : '/api/timetable';
+                const res = await window.api._fetch(path);
                 const list = res.timetable || res.timetables || res || [];
                 if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No timetable records found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No timetable records found.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = list.map(item => `
                     <tr>
                         <td><b>${item.trainNo || item.train_no || ''}</b></td>
                         <td>${item.trainName || item.train_name || ''}</td>
-                        <td>${item.routeName || item.route_name || (item.fromStation + ' - ' + item.toStation)}</td>
+                        <td>${item.routeName || item.route_name || ''}</td>
                         <td>${item.departureTime || item.departure_time || ''}</td>
                         <td>${item.arrivalTime || item.arrival_time || ''}</td>
                         <td><span class="badge badge-info">${item.trainClass || ''}</span></td>
                         <td>${item.frequency || ''}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary btn-sm" onclick='openEditTimetableModal(${JSON.stringify(item)})'>Edit</button>
+                                <button class="btn btn-secondary btn-sm" onclick="manageStops(${item.id}, '${item.trainNo || item.train_no}')">Stops</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteTimetable(${item.id})">Delete</button>
+                            </div>
+                        </td>
                     </tr>
                 `).join('');
             } catch(e) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--danger);">Failed to load timetable.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--danger);">Failed to load timetable: ' + e.message + '</td></tr>';
             }
+        }
+
+        // Add/Edit Timetable
+        window.openAddTimetableModal = function() {
+            document.getElementById('timetableModalTitle').textContent = 'Add Timetable Entry';
+            document.getElementById('timetableModalForm').reset();
+            document.getElementById('ttId').value = '';
+            document.getElementById('timetableModal').style.display = 'flex';
+        };
+
+        window.openEditTimetableModal = function(item) {
+            document.getElementById('timetableModalTitle').textContent = 'Edit Timetable Entry';
+            document.getElementById('ttId').value = item.id;
+            document.getElementById('ttNo').value = item.trainNo || item.train_no || '';
+            document.getElementById('ttName').value = item.trainName || item.train_name || '';
+            document.getElementById('ttRoute').value = item.routeName || item.route_name || '';
+            
+            // Map station code or ID - we need IDs for form
+            // Since API returns start_station_id, end_station_id
+            document.getElementById('ttStart').value = item.start_station_id || '';
+            document.getElementById('ttEnd').value = item.end_station_id || '';
+            document.getElementById('ttDep').value = item.departureTime || item.departure_time || '';
+            document.getElementById('ttArr').value = item.arrivalTime || item.arrival_time || '';
+            document.getElementById('ttClass').value = item.trainClass || item.train_class || '';
+            document.getElementById('ttFreq').value = item.frequency || '';
+            document.getElementById('timetableModal').style.display = 'flex';
+        };
+
+        window.closeTimetableModal = function() {
+            document.getElementById('timetableModal').style.display = 'none';
+        };
+
+        document.getElementById('timetableModalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('ttId').value;
+            const data = {
+                train_no: document.getElementById('ttNo').value,
+                train_name: document.getElementById('ttName').value,
+                route_name: document.getElementById('ttRoute').value,
+                start_station_id: parseInt(document.getElementById('ttStart').value, 10),
+                end_station_id: parseInt(document.getElementById('ttEnd').value, 10),
+                departure_time: document.getElementById('ttDep').value,
+                arrival_time: document.getElementById('ttArr').value,
+                train_class: document.getElementById('ttClass').value,
+                frequency: document.getElementById('ttFreq').value
+            };
+
+            try {
+                if (id) {
+                    await window.api.updateTimetableEntry(id, data);
+                    window.api.showToast('Timetable entry updated successfully', 'success');
+                } else {
+                    await window.api.createTimetableEntry(data);
+                    window.api.showToast('Timetable entry created successfully', 'success');
+                }
+                closeTimetableModal();
+                loadAdminTimetable();
+            } catch (err) {
+                window.api.showToast(err.message, 'error');
+            }
+        });
+
+        window.deleteTimetable = async function(id) {
+            if (!confirm('Are you sure you want to delete this timetable entry?')) return;
+            try {
+                await window.api.deleteTimetableEntry(id);
+                window.api.showToast('Timetable entry deleted', 'success');
+                loadAdminTimetable();
+            } catch (err) {
+                window.api.showToast(err.message, 'error');
+            }
+        };
+
+        // Manage Stops
+        let currentTimetableIdForStops = null;
+        window.manageStops = async function(id, trainNo) {
+            currentTimetableIdForStops = id;
+            document.getElementById('stopsModalTrainNo').textContent = trainNo;
+            document.getElementById('stopsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading stops...</td></tr>';
+            document.getElementById('stopsModal').style.display = 'flex';
+
+            try {
+                const res = await window.api.getTimetableStopsList(id);
+                const tbody = document.getElementById('stopsTableBody');
+                tbody.innerHTML = '';
+                if (res.stops && res.stops.length > 0) {
+                    res.stops.forEach(stop => {
+                        addStopRow(stop.station_id || stop.stationId, stop.arrivalTime || stop.arrival_time, stop.departureTime || stop.departure_time, stop.stopSequence || stop.stop_sequence);
+                    });
+                } else {
+                    // Prepopulate with a row
+                    addStopRow();
+                }
+            } catch (err) {
+                window.api.showToast('Failed to load stops: ' + err.message, 'error');
+            }
+        };
+
+        window.addStopRow = function(stationId = '', arrival = '', departure = '', seq = '') {
+            const tbody = document.getElementById('stopsTableBody');
+            const row = document.createElement('tr');
+            
+            // Calculate next sequence number if not provided
+            if (seq === '') {
+                seq = tbody.rows.length + 1;
+            }
+
+            row.innerHTML = `
+                <td><input type="number" class="input-field stop-station" style="margin-bottom:0;" value="${stationId}" required placeholder="Station ID"></td>
+                <td><input type="time" step="1" class="input-field stop-arr" style="margin-bottom:0;" value="${arrival}"></td>
+                <td><input type="time" step="1" class="input-field stop-dep" style="margin-bottom:0;" value="${departure}"></td>
+                <td><input type="number" class="input-field stop-seq" style="margin-bottom:0; max-width:60px;" value="${seq}" required></td>
+                <td><button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); resequenceStops();" style="margin:0;">Del</button></td>
+            `;
+            tbody.appendChild(row);
+        };
+
+        window.resequenceStops = function() {
+            const rows = document.querySelectorAll('#stopsTableBody tr');
+            rows.forEach((row, index) => {
+                const seqInput = row.querySelector('.stop-seq');
+                if (seqInput) seqInput.value = index + 1;
+            });
+        };
+
+        window.closeStopsModal = function() {
+            document.getElementById('stopsModal').style.display = 'none';
+        };
+
+        window.saveStops = async function() {
+            const rows = document.querySelectorAll('#stopsTableBody tr');
+            const stops = [];
+            
+            let valid = true;
+            rows.forEach(row => {
+                const stationId = row.querySelector('.stop-station').value;
+                const arrival = row.querySelector('.stop-arr').value || null;
+                const departure = row.querySelector('.stop-dep').value || null;
+                const seq = row.querySelector('.stop-seq').value;
+
+                if (!stationId || !seq) {
+                    valid = false;
+                    return;
+                }
+
+                stops.push({
+                    station_id: parseInt(stationId, 10),
+                    arrival_time: arrival,
+                    departure_time: departure,
+                    stop_sequence: parseInt(seq, 10)
+                });
+            });
+
+            if (!valid) {
+                return window.api.showToast('All rows must have Station ID and Sequence', 'error');
+            }
+
+            try {
+                await window.api.updateTimetableStops(currentTimetableIdForStops, stops);
+                window.api.showToast('Stops updated successfully', 'success');
+                closeStopsModal();
+            } catch (err) {
+                window.api.showToast(err.message, 'error');
+            }
+        };
+
+        // Change Requests
+        window.loadChangeRequests = async function() {
+            const tbody = document.getElementById('changeRequestsTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading requests...</td></tr>';
+            try {
+                const res = await window.api.getTimetableChangeRequests();
+                if (!res.requests || res.requests.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No change requests found.</td></tr>';
+                    return;
+                }
+                
+                let pendingCount = 0;
+                tbody.innerHTML = res.requests.map(r => {
+                    if (r.status === 'pending') pendingCount++;
+
+                    let changeDetails = '';
+                    if (r.change_type === 'delete') {
+                        changeDetails = `<span style="color:var(--danger)">Request deletion of Train #${r.currentTrainNo}</span>`;
+                    } else {
+                        const proposed = [];
+                        if (r.proposed_train_no) proposed.push(`Train No: ${r.proposed_train_no}`);
+                        if (r.proposed_train_name) proposed.push(`Name: ${r.proposed_train_name}`);
+                        if (r.proposed_route_name) proposed.push(`Route: ${r.proposed_route_name}`);
+                        if (r.proposed_departure_time) proposed.push(`Dep: ${r.proposed_departure_time}`);
+                        if (r.proposed_arrival_time) proposed.push(`Arr: ${r.proposed_arrival_time}`);
+                        if (r.proposed_train_class) proposed.push(`Class: ${r.proposed_train_class}`);
+                        if (r.proposed_frequency) proposed.push(`Freq: ${r.proposed_frequency}`);
+                        
+                        changeDetails = proposed.join('<br>') || 'No details proposed';
+                    }
+
+                    const trainInfo = r.change_type === 'add' ? 'New Train' : `Train #${r.currentTrainNo} - ${r.currentTrainName || ''}`;
+                    const statusClass = r.status === 'pending' ? 'badge-warning' : (r.status === 'approved' ? 'badge-success' : 'badge-danger');
+
+                    let actions = '';
+                    if (r.status === 'pending') {
+                        actions = `
+                            <button class="btn btn-primary btn-sm" onclick="reviewRequest(${r.id}, 'approved')">Approve</button>
+                            <button class="btn btn-danger btn-sm" onclick="reviewRequest(${r.id}, 'rejected')">Reject</button>
+                        `;
+                    } else {
+                        actions = `<small style="color:var(--text-secondary)">Reviewed by Admin<br>Note: ${r.review_note || '-'}</small>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td>${r.staffName}</td>
+                            <td>${trainInfo}</td>
+                            <td><span class="badge badge-info">${r.change_type.toUpperCase()}</span></td>
+                            <td>${changeDetails}</td>
+                            <td>${r.reason || ''}</td>
+                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                            <td><span class="badge ${statusClass}">${r.status}</span></td>
+                            <td><div style="display:flex; gap:0.25rem;">${actions}</div></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const badge = document.getElementById('crCountBadge');
+                if (pendingCount > 0) {
+                    badge.textContent = pendingCount;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--danger);">Failed to load requests: ' + err.message + '</td></tr>';
+            }
+        };
+
+        window.reviewRequest = async function(id, status) {
+            let note = '';
+            if (status === 'rejected') {
+                note = prompt('Enter rejection reason (optional):');
+                if (note === null) return; // cancelled prompt
+            } else {
+                if (!confirm('Are you sure you want to approve and apply this change?')) return;
+            }
+
+            try {
+                await window.api.reviewTimetableChangeRequest(id, status, note);
+                window.api.showToast(`Request ${status} successfully`, 'success');
+                loadChangeRequests();
+                loadAdminTimetable();
+            } catch (err) {
+                window.api.showToast(err.message, 'error');
+            }
+        };
+
+        async function updatePendingCrBadge() {
+            try {
+                const res = await window.api.getTimetableChangeRequests();
+                const pending = res.requests.filter(r => r.status === 'pending').length;
+                const badge = document.getElementById('crCountBadge');
+                if (pending > 0) {
+                    badge.textContent = pending;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch(e) {}
         }
 
         // Data Loading
@@ -833,7 +1228,9 @@
             loadGPS();
             loadStations();
             loadGpsSchedules();
+            updatePendingCrBadge();
             setInterval(loadGPS, 10000); // Auto-refresh GPS
+            setInterval(updatePendingCrBadge, 30000); // Auto-refresh requests badge
         });
     </script>
 </body>

@@ -14,7 +14,7 @@ beforeAll(async () => {
     // Use seeded admin account
     const login = await request(app)
         .post('/api/auth/login')
-        .send({ login_type: 'admin', email: 'admin@ceylon.lk', password: 'Admin@123456' });
+        .send({ login_type: 'admin', email: 'admin@ceylon.lk', password: 'Admin123!' });
     if (login.body.token) adminToken = login.body.token;
 });
 
@@ -55,7 +55,7 @@ describe('Role-Based Access Guards', () => {
     test('Admin can access admin routes', async () => {
         if (!adminToken) return;
         const res = await request(app)
-            .get('/api/admin/stats')
+            .get('/api/admin/analytics')
             .set('Authorization', 'Bearer ' + adminToken);
         expect([200, 500]).toContain(res.status); // 500 if CamelCase tables are empty - still authorized
     });
@@ -63,7 +63,7 @@ describe('Role-Based Access Guards', () => {
     test('Passenger blocked from admin routes', async () => {
         if (!paxToken) return;
         const res = await request(app)
-            .get('/api/admin/stats')
+            .get('/api/admin/analytics')
             .set('Authorization', 'Bearer ' + paxToken);
         expect(res.status).toBe(403);
     });

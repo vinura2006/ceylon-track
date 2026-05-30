@@ -20,6 +20,7 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "puppeteer": "^25.1.0"
   }
 }

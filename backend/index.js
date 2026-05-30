@@ -12,9 +12,10 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // Rate limiters
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many requests, please try again later' } });
-const gpsLimiter  = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'GPS rate limit exceeded' } });
-const apiLimiter  = rateLimit({ windowMs: 15 * 60 * 1000, max: 500 });
+const isProduction = process.env.NODE_ENV === 'production';
+const authLimiter = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many requests, please try again later' } }) : (req, res, next) => next();
+const gpsLimiter  = isProduction ? rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'GPS rate limit exceeded' } }) : (req, res, next) => next();
+const apiLimiter  = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }) : (req, res, next) => next();
 
 // Core middleware
 const corsOrigin = process.env.CORS_ORIGIN;

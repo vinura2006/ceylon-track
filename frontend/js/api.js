@@ -89,8 +89,13 @@
             if (!response.ok) {
                 if (response.status === 401) {
                     api.clearAuth();
-                    api.showToast('Your session has expired. Please log in again.', 'error');
-                    setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                    // Do not redirect if we are already on login/register pages or if this is an authentication request.
+                    const isAuthPage = window.location.pathname.includes('login.html') || window.location.pathname.includes('register.html');
+                    const isAuthRequest = path.includes('/api/auth/');
+                    if (!isAuthPage && !isAuthRequest) {
+                        api.showToast('Your session has expired. Please log in again.', 'error');
+                        setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+                    }
                 }
                 const error = new Error(data.error || 'Request failed');
                 error.status = response.status;
@@ -224,6 +229,9 @@
                 body: JSON.stringify({ schedule_id: scheduleId, station_id: stationId })
             });
         },
+        getLastStop(scheduleId) {
+            return this._fetch(`/api/laststop/${scheduleId}`);
+        },
 
         // Admin staff management
         getStaffList: () => api._fetch('/api/auth/staff'),
@@ -246,6 +254,34 @@
             body: JSON.stringify(stationData)
         }),
         deleteStation: (id) => api._fetch('/api/admin/stations/' + id, { method: 'DELETE' }),
+
+        // Timetable Enhancements API Methods
+        getGroupedTimetables: () => api._fetch('/api/timetable/grouped'),
+        getTimetableRoutes: () => api._fetch('/api/timetable/routes'),
+        createTimetableEntry: (data) => api._fetch('/api/timetable', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        updateTimetableEntry: (id, data) => api._fetch('/api/timetable/' + id, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+        deleteTimetableEntry: (id) => api._fetch('/api/timetable/' + id, { method: 'DELETE' }),
+        updateTimetableStops: (id, stops) => api._fetch('/api/timetable/' + id + '/stops', {
+            method: 'POST',
+            body: JSON.stringify({ stops })
+        }),
+        getTimetableStopsList: (id) => api._fetch('/api/timetable/' + id),
+        proposeTimetableChange: (data) => api._fetch('/api/timetable/change-request', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        getTimetableChangeRequests: () => api._fetch('/api/timetable/change-requests'),
+        getMyTimetableChangeRequests: () => api._fetch('/api/timetable/my-change-requests'),
+        reviewTimetableChangeRequest: (id, status, review_note) => api._fetch('/api/timetable/change-requests/' + id, {
+            method: 'PUT',
+            body: JSON.stringify({ status, review_note })
+        }),
 
         // Theme
         saveTheme: (theme) =>

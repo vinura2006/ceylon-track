@@ -2,6 +2,34 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
+// GET /all
+router.get('/all', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                s.id as "schedule_id",
+                s.train_number,
+                s.train_name,
+                sf.name as "from_station",
+                st.name as "to_station",
+                s.departure_time,
+                s.arrival_time,
+                s.class as "train_type",
+                s.days_of_week as "days",
+                s.is_active as "active"
+            FROM schedules s
+            JOIN stations sf ON s.from_station_id = sf.id
+            JOIN stations st ON s.to_station_id = st.id
+            ORDER BY s.train_number ASC
+        `;
+        const { rows } = await pool.query(query);
+        return res.status(200).json({ schedules: rows });
+    } catch (error) {
+        console.error('Get all schedules error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // GET /search
 router.get('/search', async (req, res) => {
     try {

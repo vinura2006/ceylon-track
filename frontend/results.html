@@ -380,7 +380,9 @@
         // Mobile Nav logic
         const menuToggleBtn = document.getElementById('menuToggleBtn');
         const mobileNav = document.getElementById('mobileNav');
-        menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
+        if (menuToggleBtn && mobileNav) {
+            menuToggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'));
+        }
 
         // Fetch stop details inside accordion
         async function toggleStops(scheduleId, btn) {

@@ -337,6 +337,7 @@
         <!-- Tabs Navigation -->
         <div class="tabs-container">
             <button class="tab-btn active" data-tab="timetable-tab"><i class="fa-solid fa-calendar-days"></i> Timetable</button>
+            <button class="tab-btn" data-tab="proposals-tab" onclick="loadMyProposals()"><i class="fa-solid fa-code-pull-request"></i> Propose Changes</button>
             <button class="tab-btn" data-tab="live-schedule-tab"><i class="fa-solid fa-clock"></i> Live Schedule</button>
             <button class="tab-btn" id="tabBtnShareLocation" data-tab="share-location-tab"><i class="fa-solid fa-location-crosshairs"></i> Share Location</button>
             <button class="tab-btn" data-tab="live-map-tab"><i class="fa-solid fa-map-location-dot"></i> Live Map</button>
@@ -357,12 +358,42 @@
                                 <th>Arrives</th>
                                 <th>Class</th>
                                 <th>Frequency</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="timetableBody">
                             <tr>
-                                <td colspan="7" style="text-align: center;">Loading timetable...</td>
+                                <td colspan="8" style="text-align: center;">Loading timetable...</td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proposals Tab Content -->
+        <div class="tab-content" id="proposals-tab">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <h2><i class="fa-solid fa-code-pull-request"></i> Propose Timetable Changes</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openProposalModal('add')" style="min-height: auto; font-size: 0.8rem; width: auto; padding: 6px 12px;">+ Propose New Train</button>
+                </div>
+                
+                <h3 style="margin-bottom: 1rem;">My Change Proposals</h3>
+                <div class="table-responsive">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>Train</th>
+                                <th>Type</th>
+                                <th>Proposed Details</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Admin Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myProposalsBody">
+                            <tr><td colspan="6" style="text-align:center;">Loading proposals...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -479,6 +510,44 @@
                 <iframe src="live-map.html?embed=true" width="100%" height="100%" style="border: none; flex: 1;"></iframe>
             </div>
         </div>
+        <!-- Proposal Modal -->
+        <div id="proposalModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 11000; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 1.5rem 1rem; backdrop-filter: blur(4px);">
+            <div class="card" style="width: 500px; max-width: 95%; padding: 1.5rem; position: relative; margin: auto;">
+                <span onclick="closeProposalModal()" style="position: absolute; top: 0.75rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</span>
+                <h3 id="proposalModalTitle" style="margin-bottom: 1rem; padding-right: 2rem; font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase;">Propose New Timetable Entry</h3>
+                <form id="proposalForm">
+                    <input type="hidden" id="propTimetableId">
+                    <input type="hidden" id="propChangeType">
+                    
+                    <div id="proposalFields">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Proposed Train No</label><input type="text" id="propNo" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Proposed Train Name</label><input type="text" id="propName" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Proposed Route Name (e.g. Colombo - Kandy)</label><input type="text" id="propRoute" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Start Station ID</label><input type="number" id="propStart" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">End Station ID</label><input type="number" id="propEnd" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Departure Time (HH:MM:SS)</label><input type="time" step="1" id="propDep" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Arrival Time (HH:MM:SS)</label><input type="time" step="1" id="propArr" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Class</label><input type="text" id="propClass" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                            <div class="form-group" style="margin-bottom: 0.5rem;"><label style="font-size: 0.75rem;">Frequency</label><input type="text" id="propFreq" class="form-control" style="padding: 0.4rem 0.6rem;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label style="font-size: 0.75rem;">Reason for Proposing Change</label>
+                        <textarea id="propReason" class="form-control" style="min-height: 60px; padding: 0.4rem 0.6rem;" required placeholder="e.g. Schedule optimization for Kandy line"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;">Submit Proposal</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="/js/api.js"></script>
@@ -592,12 +661,12 @@
 
         async function loadTimetable() {
             var body = document.getElementById('timetableBody');
-            body.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading official timetable...</td></tr>';
+            body.innerHTML = '<tr><td colspan="8" style="text-align: center;">Loading official timetable...</td></tr>';
             try {
                 var res = await api.getTimetables();
                 var list = res.timetable || res.timetables || res || [];
                 if (list.length === 0) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align: center;">No timetable data available</td></tr>';
+                    body.innerHTML = '<tr><td colspan="8" style="text-align: center;">No timetable data available</td></tr>';
                     return;
                 }
                 body.innerHTML = '';
@@ -606,6 +675,15 @@
                     tr.style.cursor = 'pointer';
                     tr.className = 'timetable-row';
                     tr.dataset.id = item.id;
+                    
+                    // Create buttons for proposal actions
+                    const actionsHtml = `
+                        <div style="display: flex; gap: 0.25rem;">
+                            <button class="btn btn-primary btn-sm btn-propose-edit" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin: 0;">Propose Edit</button>
+                            <button class="btn btn-danger btn-sm btn-propose-del" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin: 0;">Propose Del</button>
+                        </div>
+                    `;
+
                     tr.innerHTML = `
                         <td><strong>${item.trainNo || item.train_no || ''}</strong></td>
                         <td>${item.trainName || item.train_name || ''}</td>
@@ -614,17 +692,159 @@
                         <td>${item.arrivalTime || item.arrival_time || ''}</td>
                         <td><span class="status-badge" style="background: rgba(0, 243, 255, 0.1); color: var(--accent);">${item.trainClass || ''}</span></td>
                         <td>${item.frequency || ''}</td>
+                        <td>${actionsHtml}</td>
                     `;
                     body.appendChild(tr);
                     
-                    tr.addEventListener('click', () => {
+                    tr.addEventListener('click', (e) => {
+                        // Prevent stops expansion if clicking proposal action buttons
+                        if (e.target.closest('button')) return;
                         toggleTimetableStops(item.id, tr);
+                    });
+
+                    tr.querySelector('.btn-propose-edit').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openProposalModal('edit', item);
+                    });
+
+                    tr.querySelector('.btn-propose-del').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openProposalModal('delete', item);
                     });
                 });
             } catch (err) {
-                body.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger);">Failed to load timetable.</td></tr>';
+                body.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger);">Failed to load timetable: ' + err.message + '</td></tr>';
             }
         }
+
+        // Proposals logic
+        window.loadMyProposals = async function() {
+            var body = document.getElementById('myProposalsBody');
+            body.innerHTML = '<tr><td colspan="6" style="text-align: center;">Loading proposals...</td></tr>';
+            try {
+                var res = await api.getMyTimetableChangeRequests();
+                if (!res.requests || res.requests.length === 0) {
+                    body.innerHTML = '<tr><td colspan="6" style="text-align: center;">You have not submitted any timetable change proposals.</td></tr>';
+                    return;
+                }
+                body.innerHTML = '';
+                res.requests.forEach(r => {
+                    let changeDetails = '';
+                    if (r.change_type === 'delete') {
+                        changeDetails = `<span style="color:var(--danger)">Request deletion of Train #${r.currentTrainNo}</span>`;
+                    } else {
+                        const proposed = [];
+                        if (r.proposed_train_no) proposed.push(`No: ${r.proposed_train_no}`);
+                        if (r.proposed_train_name) proposed.push(`Name: ${r.proposed_train_name}`);
+                        if (r.proposed_route_name) proposed.push(`Route: ${r.proposed_route_name}`);
+                        if (r.proposed_departure_time) proposed.push(`Dep: ${r.proposed_departure_time}`);
+                        if (r.proposed_arrival_time) proposed.push(`Arr: ${r.proposed_arrival_time}`);
+                        if (r.proposed_train_class) proposed.push(`Class: ${r.proposed_train_class}`);
+                        if (r.proposed_frequency) proposed.push(`Freq: ${r.proposed_frequency}`);
+                        
+                        changeDetails = proposed.join('<br>') || 'No changes specified';
+                    }
+
+                    const trainInfo = r.change_type === 'add' ? 'New Train' : `Train #${r.currentTrainNo} - ${r.currentTrainName || ''}`;
+                    const statusClass = r.status === 'pending' ? 'badge-warning' : (r.status === 'approved' ? 'badge-success' : 'badge-danger');
+                    const adminNote = r.review_note ? `<br><small style="color:var(--text-secondary)">Note: ${r.review_note}</small>` : '';
+
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${trainInfo}</td>
+                        <td><span class="status-badge" style="background: rgba(0, 243, 255, 0.1); color: var(--accent);">${r.change_type.toUpperCase()}</span></td>
+                        <td>${changeDetails}</td>
+                        <td>${r.reason || ''}</td>
+                        <td><span class="badge ${statusClass}">${r.status}</span></td>
+                        <td>${r.status !== 'pending' ? 'Reviewed' : 'Pending'}${adminNote}</td>
+                    `;
+                    body.appendChild(tr);
+                });
+            } catch (err) {
+                body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">Failed to load proposals.</td></tr>';
+            }
+        };
+
+        window.openProposalModal = function(type, item = null) {
+            document.getElementById('proposalForm').reset();
+            document.getElementById('propChangeType').value = type;
+            document.getElementById('propTimetableId').value = item ? item.id : '';
+            
+            const fieldsContainer = document.getElementById('proposalFields');
+            const titleEl = document.getElementById('proposalModalTitle');
+            
+            if (type === 'delete') {
+                titleEl.textContent = `Propose Deletion of Train #${item.trainNo || item.train_no}`;
+                fieldsContainer.style.display = 'none';
+            } else if (type === 'edit') {
+                titleEl.textContent = `Propose Edits for Train #${item.trainNo || item.train_no}`;
+                fieldsContainer.style.display = 'block';
+                
+                // Pre-fill fields
+                document.getElementById('propNo').value = item.trainNo || item.train_no || '';
+                document.getElementById('propName').value = item.trainName || item.train_name || '';
+                document.getElementById('propRoute').value = item.routeName || item.route_name || '';
+                document.getElementById('propStart').value = item.start_station_id || '';
+                document.getElementById('propEnd').value = item.end_station_id || '';
+                document.getElementById('propDep').value = item.departureTime || item.departure_time || '';
+                document.getElementById('propArr').value = item.arrivalTime || item.arrival_time || '';
+                document.getElementById('propClass').value = item.trainClass || item.train_class || '';
+                document.getElementById('propFreq').value = item.frequency || '';
+            } else {
+                titleEl.textContent = 'Propose New Timetable Entry';
+                fieldsContainer.style.display = 'block';
+            }
+            
+            document.getElementById('proposalModal').style.display = 'flex';
+        };
+
+        window.closeProposalModal = function() {
+            document.getElementById('proposalModal').style.display = 'none';
+        };
+
+        document.getElementById('proposalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('propChangeType').value;
+            const timetableId = document.getElementById('propTimetableId').value;
+            
+            const data = {
+                change_type: type,
+                reason: document.getElementById('propReason').value
+            };
+
+            if (timetableId) {
+                data.timetable_id = parseInt(timetableId, 10);
+            }
+
+            if (type !== 'delete') {
+                data.proposed_train_no = document.getElementById('propNo').value;
+                data.proposed_train_name = document.getElementById('propName').value;
+                data.proposed_route_name = document.getElementById('propRoute').value;
+                
+                const startId = document.getElementById('propStart').value;
+                const endId = document.getElementById('propEnd').value;
+                if (startId) data.proposed_start_station_id = parseInt(startId, 10);
+                if (endId) data.proposed_end_station_id = parseInt(endId, 10);
+                
+                data.proposed_departure_time = document.getElementById('propDep').value || null;
+                data.proposed_arrival_time = document.getElementById('propArr').value || null;
+                data.proposed_train_class = document.getElementById('propClass').value || null;
+                data.proposed_frequency = document.getElementById('propFreq').value || null;
+            }
+
+            api.showSpinner();
+            try {
+                await api.proposeTimetableChange(data);
+                api.showToast('Change proposal submitted successfully for admin approval', 'success');
+                closeProposalModal();
+                // Switch back or reload proposals list if they are in that tab
+                loadMyProposals();
+            } catch (err) {
+                api.showToast(err.message, 'error');
+            } finally {
+                api.hideSpinner();
+            }
+        });
 
         async function toggleTimetableStops(id, row) {
             var next = row.nextElementSibling;

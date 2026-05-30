@@ -20,7 +20,7 @@
         th { background-color: var(--bg-elevated); padding: 1.25rem 1rem; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
         td { padding: 1.25rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background-color: var(--bg-elevated); }
+        .train-row:hover td { background-color: var(--bg-elevated); }
         .train-name { font-weight: 700; color: var(--accent); display: block; font-size: 1.05rem; margin-bottom: 0.25rem; }
         .train-no { font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-elevated); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
         .time-block { font-weight: 700; font-size: 1.1rem; color: var(--text-primary); }
@@ -32,6 +32,80 @@
         .retry-btn { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.5rem; background: var(--accent); color: var(--text-inverse); border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
         .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Route Filters */
+        .filter-pill {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .filter-pill:hover, .filter-pill.active {
+            background: var(--accent);
+            color: var(--text-inverse);
+            border-color: var(--accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* Stops styling */
+        .stops-row td {
+            background-color: var(--bg-elevated);
+            padding: 0;
+            border-bottom: none;
+        }
+        .stops-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 2rem;
+        }
+        .stops-container.open {
+            max-height: 500px;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .stops-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            border-left: 2px solid var(--accent);
+            padding-left: 1.5rem;
+            margin-left: 0.5rem;
+            position: relative;
+        }
+        .stop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            position: relative;
+        }
+        .stop-item::before {
+            content: '';
+            position: absolute;
+            left: -1.92rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background: var(--bg-surface);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            z-index: 2;
+        }
+        .route-header-row td {
+            background-color: var(--bg-elevated);
+            font-weight: 800;
+            color: var(--accent);
+            font-size: 1.1rem;
+            border-bottom: 2px solid var(--border-subtle);
+            padding: 1.5rem 1rem;
+        }
     </style>
 </head>
 <body>
@@ -53,11 +127,16 @@
             <p>Browse the latest schedules and book tickets directly through the official Sri Lanka Railways Pravesha portal.</p>
         </div>
 
+        <div class="route-filters" id="routeFilters" style="display: flex; gap: 0.75rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap;">
+            <!-- Rendered dynamically -->
+        </div>
+
         <div class="timetable-card">
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 5%;"></th>
                             <th>Train</th>
                             <th>Route</th>
                             <th>Departure</th>
@@ -68,7 +147,7 @@
                     </thead>
                     <tbody id="timetableBody">
                         <tr>
-                            <td colspan="6" class="loading-state">
+                            <td colspan="7" class="loading-state">
                                 <span class="spinner"></span> Loading timetables...
                             </td>
                         </tr>
@@ -80,6 +159,8 @@
 
     <script src="/js/api.js"></script>
     <script>
+        let currentFilter = '';
+
         function formatTime(timeStr) {
             if (!timeStr) return '--:--';
             var parts = String(timeStr).split(':');
@@ -90,34 +171,132 @@
             return String(h12).padStart(2, '0') + ':' + m + ' ' + ampm;
         }
 
+        async function loadRoutes() {
+            try {
+                const res = await window.api.getTimetableRoutes();
+                const container = document.getElementById('routeFilters');
+                container.innerHTML = `<button class="filter-pill ${!currentFilter ? 'active' : ''}" onclick="filterRoute('')">All Routes</button>`;
+                
+                res.routes.forEach(r => {
+                    const btn = document.createElement('button');
+                    btn.className = `filter-pill ${currentFilter === r ? 'active' : ''}`;
+                    btn.textContent = r;
+                    btn.onclick = () => filterRoute(r);
+                    container.appendChild(btn);
+                });
+            } catch (err) {
+                console.error('Failed to load routes filter:', err);
+            }
+        }
+
+        function filterRoute(route) {
+            currentFilter = route;
+            loadRoutes();
+            loadTimetable();
+        }
+
         async function loadTimetable() {
             var tbody = document.getElementById('timetableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="loading-state"><span class="spinner"></span> Loading timetables...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><span class="spinner"></span> Loading timetables...</td></tr>';
 
             try {
-                var res = await window.api.getTimetables();
+                // Fetch grouped timetables
+                var res = await window.api.getGroupedTimetables();
+                var grouped = res.groupedTimetables || {};
                 tbody.innerHTML = '';
 
-                var timetables = res.timetables || res || [];
-                if (!timetables.length) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="loading-state">No timetables available. Please check back later.</td></tr>';
-                    return;
-                }
+                let hasRecords = false;
+                
+                Object.keys(grouped).forEach(route => {
+                    if (currentFilter && route !== currentFilter) return;
 
-                timetables.forEach(function(t) {
-                    var tr = document.createElement('tr');
-                    tr.innerHTML = '<td><span class="train-name">' + (t.trainName || 'Unknown Train') + '</span><span class="train-no"><i class="fa-solid fa-hashtag"></i> ' + (t.trainNo || '') + '</span></td>'
-                        + '<td><div style="display:flex;flex-direction:column;gap:0.25rem;"><span><i class="fa-regular fa-circle-dot" style="color:var(--accent);font-size:0.8rem;"></i> ' + (t.fromStation || '') + '</span><span><i class="fa-solid fa-location-dot" style="color:var(--danger);font-size:0.8rem;"></i> ' + (t.toStation || '') + '</span></div></td>'
-                        + '<td class="time-block">' + formatTime(t.departureTime) + '</td>'
-                        + '<td class="time-block">' + formatTime(t.arrivalTime) + '</td>'
-                        + '<td><span class="class-badge"><i class="fa-solid fa-couch"></i> ' + (t.trainClass || 'N/A') + '</span><br><span style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;display:inline-block;">' + (t.frequency || '') + '</span></td>'
-                        + '<td><button class="btn-book" onclick="bookTicket(' + t.id + ')"><i class="fa-solid fa-ticket"></i> Book on Pravesha</button></td>';
-                    tbody.appendChild(tr);
+                    const trains = grouped[route];
+                    if (trains.length === 0) return;
+                    hasRecords = true;
+
+                    // Route header row
+                    const headerRow = document.createElement('tr');
+                    headerRow.className = 'route-header-row';
+                    headerRow.innerHTML = `<td colspan="7"><i class="fa-solid fa-map-route"></i> ${route}</td>`;
+                    tbody.appendChild(headerRow);
+
+                    trains.forEach(function(t) {
+                        var tr = document.createElement('tr');
+                        tr.className = 'train-row';
+                        tr.id = `train-row-${t.id}`;
+                        tr.innerHTML = '<td><button class="btn btn-secondary btn-sm" onclick="toggleStops(' + t.id + ', this)" style="padding: 0.35rem 0.6rem; margin: 0;"><i class="fa-solid fa-chevron-down"></i></button></td>'
+                            + '<td><span class="train-name">' + (t.trainName || 'Unknown Train') + '</span><span class="train-no"><i class="fa-solid fa-hashtag"></i> ' + (t.trainNo || '') + '</span></td>'
+                            + '<td><div style="display:flex;flex-direction:column;gap:0.25rem;"><span><i class="fa-regular fa-circle-dot" style="color:var(--accent);font-size:0.8rem;"></i> ' + (t.fromStation || '') + '</span><span><i class="fa-solid fa-location-dot" style="color:var(--danger);font-size:0.8rem;"></i> ' + (t.toStation || '') + '</span></div></td>'
+                            + '<td class="time-block">' + formatTime(t.departureTime) + '</td>'
+                            + '<td class="time-block">' + formatTime(t.arrivalTime) + '</td>'
+                            + '<td><span class="class-badge"><i class="fa-solid fa-couch"></i> ' + (t.trainClass || 'N/A') + '</span><br><span style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;display:inline-block;">' + (t.frequency || '') + '</span></td>'
+                            + '<td><button class="btn-book" onclick="bookTicket(' + t.id + ')"><i class="fa-solid fa-ticket"></i> Book on Pravesha</button></td>';
+                        tbody.appendChild(tr);
+
+                        // Hidden stops row
+                        var stopsTr = document.createElement('tr');
+                        stopsTr.className = 'stops-row';
+                        stopsTr.id = `stops-row-${t.id}`;
+                        stopsTr.innerHTML = `<td colspan="7">
+                            <div class="stops-container" id="stops-container-${t.id}">
+                                <div class="stops-list" id="stops-list-${t.id}">
+                                    <small style="color:var(--text-secondary);">Loading stops...</small>
+                                </div>
+                            </div>
+                        </td>`;
+                        tbody.appendChild(stopsTr);
+                    });
                 });
+
+                if (!hasRecords) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="loading-state">No timetables available. Please check back later.</td></tr>';
+                }
 
             } catch (err) {
                 console.error('Timetable load error:', err);
-                tbody.innerHTML = '<tr><td colspan="6" class="error-state"><p>Failed to load timetables.</p><p style="font-size:0.9rem;margin-top:0.5rem;">' + (err.message || 'Network error') + '</p><button class="retry-btn" onclick="loadTimetable()"><i class="fa-solid fa-rotate-right"></i> Retry</button></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="error-state"><p>Failed to load timetables.</p><p style="font-size:0.9rem;margin-top:0.5rem;">' + (err.message || 'Network error') + '</p><button class="retry-btn" onclick="loadTimetable()"><i class="fa-solid fa-rotate-right"></i> Retry</button></td></tr>';
+            }
+        }
+
+        async function toggleStops(timetableId, btn) {
+            const container = document.getElementById(`stops-container-${timetableId}`);
+            const list = document.getElementById(`stops-list-${timetableId}`);
+            const icon = btn.querySelector('i');
+
+            if (container.classList.contains('open')) {
+                container.classList.remove('open');
+                icon.className = 'fa-solid fa-chevron-down';
+            } else {
+                container.classList.add('open');
+                icon.className = 'fa-solid fa-chevron-up';
+                
+                // Fetch stops
+                try {
+                    list.innerHTML = '<small style="color:var(--text-secondary);"><span class="spinner" style="width:12px; height:12px;"></span> Loading stops...</small>';
+                    const res = await window.api.getTimetableStopsList(timetableId);
+                    if (!res.stops || res.stops.length === 0) {
+                        list.innerHTML = '<small style="color:var(--text-secondary);">No stops information available.</small>';
+                        return;
+                    }
+                    list.innerHTML = res.stops.map(stop => {
+                        let timeDetails = '';
+                        if (stop.arrivalTime && stop.departureTime) {
+                            timeDetails = `${formatTime(stop.arrivalTime)} Arrival | ${formatTime(stop.departureTime)} Departure`;
+                        } else if (stop.arrivalTime) {
+                            timeDetails = `${formatTime(stop.arrivalTime)} Arrival (End Station)`;
+                        } else if (stop.departureTime) {
+                            timeDetails = `${formatTime(stop.departureTime)} Departure (Start Station)`;
+                        }
+                        return `
+                            <div class="stop-item">
+                                <strong>${stop.stationName}</strong>
+                                <span style="color:var(--text-secondary); font-size:0.85rem;">${timeDetails}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (err) {
+                    list.innerHTML = `<small style="color:var(--danger)">Failed to load stops: ${err.message}</small>`;
+                }
             }
         }
 
@@ -131,7 +310,10 @@
         }
 
         if (window.api) { window.api.updateNav(); }
-        loadTimetable();
+        window.addEventListener('load', () => {
+            loadRoutes();
+            loadTimetable();
+        });
     </script>
 </body>
 </html>

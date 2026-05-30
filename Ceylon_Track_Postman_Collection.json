@@ -1,24 +1,26 @@
 {
 	"info": {
 		"_postman_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-		"name": "Ceylon Track API",
-		"description": "API endpoints for the Ceylon Track Railway System",
+		"name": "Ceylon Track API Complete Suite",
+		"description": "Comprehensive automated testing suite for Ceylon Track (Auth, Timetables, Staff proposals, Stations, GPS tracking)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Auth",
+			"name": "1. Authentication & Profiles",
 			"item": [
 				{
-					"name": "1. Login (Admin)",
+					"name": "1.1 Login as Staff",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
 									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Token is returned\", function () { pm.expect(jsonData.token).to.not.be.undefined; });",
 									"if(jsonData.token) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.token);",
+									"    pm.collectionVariables.set(\"jwt_token_staff\", jsonData.token);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -35,7 +37,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"admin@ceylontrack.lk\",\r\n    \"password\": \"password123\"\r\n}"
+							"raw": "{\n    \"email\": \"{{staff_email}}\",\n    \"password\": \"{{staff_password}}\",\n    \"login_type\": \"staff\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/auth/login",
@@ -51,13 +53,114 @@
 					}
 				},
 				{
-					"name": "2. Get My Profile",
+					"name": "1.2 Login as Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Token is returned\", function () { pm.expect(jsonData.token).to.not.be.undefined; });",
+									"if(jsonData.token) {",
+									"    pm.collectionVariables.set(\"jwt_token_admin\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{admin_email}}\",\n    \"password\": \"{{admin_password}}\",\n    \"login_type\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "1.3 Login as Passenger",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Token is returned\", function () { pm.expect(jsonData.token).to.not.be.undefined; });",
+									"if(jsonData.token) {",
+									"    pm.collectionVariables.set(\"jwt_token_passenger\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{passenger_email}}\",\n    \"password\": \"{{passenger_password}}\",\n    \"login_type\": \"passenger\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "1.4 Get Profile (Staff)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"User role is staff\", function () {",
+									"    pm.expect(jsonData.user.role).to.equal(\"staff\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"value": "Bearer {{jwt_token_staff}}"
 							}
 						],
 						"url": {
@@ -76,45 +179,308 @@
 			]
 		},
 		{
-			"name": "Public API",
+			"name": "2. Timetable Workflows",
 			"item": [
 				{
-					"name": "3. Search Schedules",
+					"name": "2.1 Public - Get Grouped Timetables",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Grouped timetables exist\", function () {",
+									"    pm.expect(jsonData.groupedTimetables).to.not.be.undefined;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/schedules/search?from=FOT&to=GAL&date=2024-05-15",
+							"raw": "{{base_url}}/api/timetable/grouped",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
-								"schedules",
-								"search"
-							],
-							"query": [
-								{
-									"key": "from",
-									"value": "FOT",
-									"description": "Origin Station Code"
-								},
-								{
-									"key": "to",
-									"value": "GAL",
-									"description": "Destination Station Code"
-								},
-								{
-									"key": "date",
-									"value": "2024-05-15",
-									"description": "Date (YYYY-MM-DD)"
-								}
+								"timetable",
+								"grouped"
 							]
 						}
 					}
 				},
 				{
-					"name": "4. Get All Stations",
+					"name": "2.2 Staff - Propose Timetable Edit",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+									"pm.test(\"Proposal created\", function () {",
+									"    pm.expect(jsonData.message).to.contain(\"submitted\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_staff}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"change_type\": \"add\",\n    \"proposed_train_no\": \"8888\",\n    \"proposed_train_name\": \"Postman Test Express\",\n    \"proposed_route_name\": \"Coastal Line\",\n    \"proposed_start_station_id\": 1,\n    \"proposed_end_station_id\": 2,\n    \"proposed_departure_time\": \"08:15:00\",\n    \"proposed_arrival_time\": \"11:45:00\",\n    \"proposed_train_class\": \"2nd Class\",\n    \"proposed_frequency\": \"Weekdays Only\",\n    \"reason\": \"Test route demand via Postman workflow\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/timetable/change-request",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable",
+								"change-request"
+							]
+						}
+					}
+				},
+				{
+					"name": "2.3 Admin - Get Pending Change Requests",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Find proposed train 8888\", function () {",
+									"    var req = jsonData.requests.find(r => r.proposed_train_no === \"8888\" && r.status === \"pending\");",
+									"    pm.expect(req).to.not.be.undefined;",
+									"    if (req) {",
+									"        pm.collectionVariables.set(\"change_request_id\", req.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_admin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/timetable/change-requests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable",
+								"change-requests"
+							]
+						}
+					}
+				},
+				{
+					"name": "2.4 Admin - Approve Change Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_admin}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"approved\",\n    \"review_note\": \"Approved automatically by Postman automation test suite\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/timetable/change-requests/{{change_request_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable",
+								"change-requests",
+								"{{change_request_id}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "2.5 Public - Verify Approved Train In Timetable",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Train 8888 exists in official timetable\", function () {",
+									"    var list = jsonData.timetable || jsonData.timetables || [];",
+									"    var train = list.find(t => t.trainNo === \"8888\");",
+									"    pm.expect(train).to.not.be.undefined;",
+									"    if (train) {",
+									"        pm.collectionVariables.set(\"created_train_id\", train.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/timetable",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable"
+							]
+						}
+					}
+				},
+				{
+					"name": "2.6 Admin - Edit Timetable Entry Directly",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_admin}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"train_no\": \"8888-EDIT\",\n    \"train_name\": \"Postman Test Express (Edited)\",\n    \"route_name\": \"Coastal Line\",\n    \"start_station_id\": 1,\n    \"end_station_id\": 2,\n    \"departure_time\": \"08:30:00\",\n    \"arrival_time\": \"12:00:00\",\n    \"train_class\": \"1st Class\",\n    \"frequency\": \"Daily\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/timetable/{{created_train_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable",
+								"{{created_train_id}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "2.7 Admin - Delete Timetable Entry Directly",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_admin}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/timetable/{{created_train_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"timetable",
+								"{{created_train_id}}"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Location and Stations API",
+			"item": [
+				{
+					"name": "3.1 Get All Stations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+									"pm.test(\"Stations array not empty\", function () {",
+									"    pm.expect(jsonData).to.be.an(\"array\");",
+									"    pm.expect(jsonData.length).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -129,37 +495,54 @@
 							]
 						}
 					}
-				}
-			]
-		},
-		{
-			"name": "Admin/Staff (Requires Auth)",
-			"item": [
+				},
 				{
-					"name": "5. Get System Stats",
+					"name": "3.2 Staff - Force Stop Active Session (Pre-cleanup)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"value": "Bearer {{jwt_token_staff}}"
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/admin/stats",
+							"raw": "{{base_url}}/api/sessions/stop",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
-								"admin",
-								"stats"
+								"sessions",
+								"stop"
 							]
 						}
 					}
 				},
 				{
-					"name": "6. Update Train Status (Delay)",
+					"name": "3.3 Staff - Start GPS Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -169,24 +552,98 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"value": "Bearer {{jwt_token_staff}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"delay_minutes\": 20,\r\n    \"status\": \"Delayed\",\r\n    \"notes\": \"Testing delay from Postman\"\r\n}"
+							"raw": "{\n    \"schedule_id\": 1\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/staff/trains/1/status",
+							"raw": "{{base_url}}/api/sessions/start",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
-								"staff",
-								"trains",
-								"1",
-								"status"
+								"sessions",
+								"start"
+							]
+						}
+					}
+				},
+				{
+					"name": "3.4 Staff - Update Live GPS Location",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_staff}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"schedule_id\": 1,\n    \"lat\": 6.9271,\n    \"lng\": 79.8612,\n    \"accuracy\": 10.0,\n    \"speed\": 45.2,\n    \"heading\": 120.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/gps/mobile-update",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"gps",
+								"mobile-update"
+							]
+						}
+					}
+				},
+				{
+					"name": "3.5 Staff - Stop GPS Session (Post-cleanup)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token_staff}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/stop",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"stop"
 							]
 						}
 					}
@@ -198,6 +655,61 @@
 		{
 			"key": "base_url",
 			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "staff_email",
+			"value": "staff@ceylon.lk",
+			"type": "string"
+		},
+		{
+			"key": "staff_password",
+			"value": "Staff123!",
+			"type": "string"
+		},
+		{
+			"key": "admin_email",
+			"value": "admin@ceylon.lk",
+			"type": "string"
+		},
+		{
+			"key": "admin_password",
+			"value": "Admin123!",
+			"type": "string"
+		},
+		{
+			"key": "passenger_email",
+			"value": "passenger@ceylon.lk",
+			"type": "string"
+		},
+		{
+			"key": "passenger_password",
+			"value": "Pass123!",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token_staff",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token_admin",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token_passenger",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "change_request_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "created_train_id",
+			"value": "",
 			"type": "string"
 		}
 	]

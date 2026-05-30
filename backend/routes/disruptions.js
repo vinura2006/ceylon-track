@@ -4,7 +4,7 @@ const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
 
 // GET /
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const query = `
             SELECT 
@@ -34,16 +34,41 @@ router.get('/', authenticate, async (req, res) => {
 
         const result = await pool.query(query);
 
-        const disruptions = result.rows.map(row => ({
-            scheduleId: Number(row.scheduleId),
-            trainNumber: row.trainNumber,
-            trainName: row.trainName,
-            fromStation: row.fromStation,
-            toStation: row.toStation,
-            reliabilityPercent: Number(row.reliabilityPercent),
-            totalRecords: Number(row.totalRecords),
-            todayStatus: row.todayStatus
-        }));
+        const disruptions = result.rows.map(row => {
+            const reliabilityPercent = Number(row.reliabilityPercent);
+            let tier = 'high';
+            let label = 'Reliable';
+            if (reliabilityPercent < 50) {
+                tier = 'low';
+                label = 'Unreliable';
+            } else if (reliabilityPercent < 80) {
+                tier = 'medium';
+                label = 'Moderate';
+            }
+
+            return {
+                scheduleId: Number(row.scheduleId),
+                trainNumber: row.trainNumber,
+                trainName: row.trainName,
+                fromStation: row.fromStation,
+                toStation: row.toStation,
+                reliabilityPercent: reliabilityPercent,
+                totalRecords: Number(row.totalRecords),
+                todayStatus: row.todayStatus,
+                train_name: row.trainName,
+                train_number: row.trainNumber,
+                train_type: row.trainName.includes('Intercity') ? 'Intercity' : 'Express',
+                reliability: {
+                    tier: tier,
+                    label: `${reliabilityPercent}% (${label})`
+                },
+                stats: {
+                    reliability_score: reliabilityPercent,
+                    avg_delay_minutes: 0,
+                    total_trips: Number(row.totalRecords)
+                }
+            };
+        });
 
         return res.status(200).json({
             disruptions,
