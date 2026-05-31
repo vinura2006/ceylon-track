@@ -5,7 +5,11 @@ const pool = require('./db/pool');
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
 
 function setupWebSocket(server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server, 
+    path: '/ws',
+    maxPayload: 65536 // 64 KB limit to prevent large payload Denial of Service
+  });
   const clients = new Map();
 
   wss.on('connection', (ws, req) => {
@@ -14,11 +18,34 @@ function setupWebSocket(server) {
     let subscribedTrains = new Set();
     let clientId = null;
 
+    // Validate Origin header
+    const origin = req.headers.origin;
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction && origin && origin !== process.env.CORS_ORIGIN) {
+        console.warn(`[SECURITY] WS connection rejected from unauthorized origin: ${origin}`);
+        ws.close(4003, 'Unauthorized origin');
+        return;
+    }
+
     const closeConnection = () => {
       if (clientId) clients.delete(clientId);
     };
 
+    let messageCount = 0;
+    let rateLimitResetTime = Date.now() + 60000;
+
     ws.on('message', async (raw) => {
+      // Simple rate limiting: 100 messages per minute per connection
+      if (Date.now() > rateLimitResetTime) {
+          messageCount = 0;
+          rateLimitResetTime = Date.now() + 60000;
+      }
+      messageCount++;
+      if (messageCount > 100) {
+          ws.send(JSON.stringify({ type: 'error', error: 'Rate limit exceeded. Too many WebSocket requests.' }));
+          ws.close(4029, 'Rate limit exceeded');
+          return;
+      }
       try {
         const msg = JSON.parse(raw.toString());
         const { type } = msg;

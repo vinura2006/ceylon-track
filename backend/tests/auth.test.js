@@ -63,4 +63,59 @@ describe('Auth API', () => {
             .set('Authorization', 'Bearer invalidtoken');
         expect(res.status).toBe(401);
     });
+
+    test('Test 7 — Password strength criteria blocks weak passwords when simulated in production', async () => {
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production'; // simulate production environment
+        try {
+            const email = `${unique()}@example.com`;
+            // 1. Weak password: too short
+            const res1 = await request(app).post('/api/auth/register').send({
+                first_name: 'Short', last_name: 'Pass', email, password: 'Ab1', role: 'passenger'
+            });
+            expect(res1.status).toBe(400);
+            expect(res1.body.error).toContain('characters');
+
+            // 2. Weak password: no uppercase
+            const res2 = await request(app).post('/api/auth/register').send({
+                first_name: 'NoUpper', last_name: 'Pass', email, password: 'password123!', role: 'passenger'
+            });
+            expect(res2.status).toBe(400);
+            expect(res2.body.error).toContain('uppercase');
+
+            // 3. Weak password: common password
+            const res3 = await request(app).post('/api/auth/register').send({
+                first_name: 'Common', last_name: 'Pass', email, password: 'Password123', role: 'passenger'
+            });
+            expect(res3.status).toBe(400);
+            expect(res3.body.error).toContain('too common');
+        } finally {
+            process.env.NODE_ENV = originalNodeEnv; // restore env
+        }
+    });
+
+    test('Test 8 — Lockout mechanism blocks login after 5 failed attempts', async () => {
+        const email = `${unique()}@example.com`;
+        const password = 'CorrectPassword1!';
+        
+        // Register the user
+        await request(app).post('/api/auth/register').send({
+            first_name: 'Lockout', last_name: 'User', email, password, role: 'passenger'
+        });
+
+        // 5 consecutive failed attempts
+        for (let i = 0; i < 5; i++) {
+            const res = await request(app).post('/api/auth/login').send({
+                email, password: 'WrongPassword1!', login_type: 'passenger'
+            });
+            expect(res.status).toBe(401);
+        }
+
+        // 6th attempt (locked out, even if correct password!)
+        const resLocked = await request(app).post('/api/auth/login').send({
+            email, password, login_type: 'passenger'
+        });
+        expect(resLocked.status).toBe(423); // Locked
+        expect(resLocked.body.error).toContain('locked');
+    });
 });

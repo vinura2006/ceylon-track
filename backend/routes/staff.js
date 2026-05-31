@@ -4,6 +4,7 @@ const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const { logAction } = require('../utils/auditLogger');
+const { updateTrainStatusValidation, createStationValidation, createScheduleValidation } = require('../middleware/validate');
 
 // GET /stats
 router.get('/stats', authenticate, authorize(['staff', 'admin', 'ceylon-track-admin']), async (req, res, next) => {
@@ -25,7 +26,7 @@ router.get('/stats', authenticate, authorize(['staff', 'admin', 'ceylon-track-ad
 });
 
 // POST /trains/:id/status
-router.post('/trains/:id/status', authenticate, authorize(['staff', 'admin', 'ceylon-track-admin']), async (req, res, next) => {
+router.post('/trains/:id/status', authenticate, authorize(['staff', 'admin', 'ceylon-track-admin']), updateTrainStatusValidation, async (req, res, next) => {
     try {
         const scheduleId = parseInt(req.params.id, 10);
         if (isNaN(scheduleId)) {
@@ -117,7 +118,7 @@ router.post('/set-station', authenticate, authorize(['staff']), async (req, res,
 });
 
 // POST /stations (admin only)
-router.post('/stations', authenticate, authorize(['ceylon-track-admin', 'admin']), async (req, res, next) => {
+router.post('/stations', authenticate, authorize(['ceylon-track-admin', 'admin']), createStationValidation, async (req, res, next) => {
     try {
         const { name, code, lat, lng } = req.body;
 
@@ -141,7 +142,7 @@ router.post('/stations', authenticate, authorize(['ceylon-track-admin', 'admin']
 });
 
 // POST /schedules (admin only)
-router.post('/schedules', authenticate, authorize(['ceylon-track-admin', 'admin']), async (req, res, next) => {
+router.post('/schedules', authenticate, authorize(['ceylon-track-admin', 'admin']), createScheduleValidation, async (req, res, next) => {
     try {
         const { train_number, train_name = '', from_station_id, to_station_id, departure_time, arrival_time, class: trainClass } = req.body;
 

@@ -303,7 +303,7 @@
                     return;
                 }
 
-                window.api.setAuth(res.token, res.user);
+                window.api.setAuth(res.token, res.user, res.refreshToken);
                 window.api.showToast('Account created successfully! Welcome, ' + res.user.firstName + '!', 'success');
                 
                 setTimeout(() => {

@@ -3,12 +3,16 @@
     const BASE_URL = isLocalhost ? 'http://localhost:3000' : window.location.origin;
 
     const JWT_KEY = 'ceylon_track_jwt';
+    const REFRESH_KEY = 'ceylon_track_refresh_token';
     const USER_KEY = 'ceylon_track_user';
 
     const api = {
         // STORAGE HELPERS
         getToken() {
             return localStorage.getItem(JWT_KEY);
+        },
+        getRefreshToken() {
+            return localStorage.getItem(REFRESH_KEY);
         },
         getUser() {
             const userStr = localStorage.getItem(USER_KEY);
@@ -18,13 +22,17 @@
                 return null;
             }
         },
-        setAuth(token, user) {
+        setAuth(token, user, refreshToken = null) {
             localStorage.setItem(JWT_KEY, token);
             localStorage.setItem(USER_KEY, JSON.stringify(user));
+            if (refreshToken) {
+                localStorage.setItem(REFRESH_KEY, refreshToken);
+            }
         },
         clearAuth() {
             localStorage.removeItem(JWT_KEY);
             localStorage.removeItem(USER_KEY);
+            localStorage.removeItem(REFRESH_KEY);
         },
         isLoggedIn() {
             return !!this.getToken();
@@ -34,7 +42,11 @@
             return user && user.role === role;
         },
         logout() {
-            this._fetch('/api/auth/logout', { method: 'POST' }).catch(function(){});
+            const refreshToken = this.getRefreshToken();
+            this._fetch('/api/auth/logout', { 
+                method: 'POST',
+                body: JSON.stringify({ refreshToken })
+            }).catch(function(){});
             this.clearAuth();
             window.location.href = 'login.html';
         },
@@ -88,10 +100,45 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    api.clearAuth();
-                    // Do not redirect if we are already on login/register pages or if this is an authentication request.
                     const isAuthPage = window.location.pathname.includes('login.html') || window.location.pathname.includes('register.html');
+                    const isRefreshRequest = path.includes('/api/auth/refresh');
                     const isAuthRequest = path.includes('/api/auth/');
+                    
+                    const refreshToken = api.getRefreshToken();
+                    
+                    if (refreshToken && !isRefreshRequest && !isAuthPage) {
+                        try {
+                            const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ refreshToken })
+                            });
+                            
+                            if (refreshRes.ok) {
+                                const refreshData = await refreshRes.json();
+                                api.setAuth(refreshData.token, refreshData.user, refreshData.refreshToken);
+                                
+                                const retryHeaders = { ...headers };
+                                retryHeaders['Authorization'] = `Bearer ${refreshData.token}`;
+                                const retryResponse = await fetch(url, { ...options, headers: retryHeaders });
+                                
+                                let retryData;
+                                try {
+                                    retryData = await retryResponse.json();
+                                } catch (e) {
+                                    retryData = {};
+                                }
+                                
+                                if (retryResponse.ok) {
+                                    return retryData;
+                                }
+                            }
+                        } catch (refreshErr) {
+                            console.error('Auto refresh token failed:', refreshErr);
+                        }
+                    }
+
+                    api.clearAuth();
                     if (!isAuthPage && !isAuthRequest) {
                         api.showToast('Your session has expired. Please log in again.', 'error');
                         setTimeout(() => { window.location.href = '/login.html'; }, 1500);

@@ -208,7 +208,7 @@
             window.api.showSpinner();
             try {
                 const res = await window.api.login(activeRole, identifier, password);
-                window.api.setAuth(res.token, res.user);
+                window.api.setAuth(res.token, res.user, res.refreshToken);
                 window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
                 
                 setTimeout(() => {

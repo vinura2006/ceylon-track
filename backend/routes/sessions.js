@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const { logAction } = require('../utils/auditLogger');
 
 // POST /start — staff starts GPS sharing
 router.post('/start', authenticate, authorize(['staff', 'admin', 'ceylon-track-admin']), async (req, res, next) => {
@@ -43,7 +44,9 @@ router.post('/start', authenticate, authorize(['staff', 'admin', 'ceylon-track-a
             [schedule_id, req.user.userId]
         );
 
-        res.status(201).json({ session: result.rows[0] });
+        const session = result.rows[0];
+        await logAction(req.user.userId, 'GPS_SESSION_STARTED', 'schedule', schedule_id, { sessionId: session.id }, req.ip);
+        res.status(201).json({ session });
     } catch (err) { next(err); }
 });
 
@@ -54,6 +57,9 @@ router.post('/stop', authenticate, authorize(['staff', 'admin', 'ceylon-track-ad
             'UPDATE live_train_sessions SET is_active = false, session_ended_at = NOW() WHERE staff_id = $1 AND is_active = true',
             [req.user.userId]
         );
+        if (result.rowCount > 0) {
+            await logAction(req.user.userId, 'GPS_SESSION_STOPPED', 'user', req.user.userId, null, req.ip);
+        }
         res.json({ success: true, stopped: result.rowCount });
     } catch (err) { next(err); }
 });
@@ -121,6 +127,8 @@ router.delete('/:id', authenticate, authorize(['ceylon-track-admin', 'admin']), 
              WHERE id = $1`,
             [id]
         );
+
+        await logAction(req.user.userId, 'GPS_SESSION_FORCE_STOPPED', 'schedule', schedule_id, { sessionId: id, staffId: staff_id }, req.ip);
 
         // Push real-time notification to the specific staff member
         try {

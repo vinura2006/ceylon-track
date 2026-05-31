@@ -1,4 +1,6 @@
 require('dotenv').config();
+const { runStartupChecks } = require('./startupChecks');
+runStartupChecks();
 const http       = require('http');
 const express    = require('express');
 const cors       = require('cors');
@@ -8,11 +10,28 @@ const rateLimit  = require('express-rate-limit');
 
 const app = express();
 
-// Security headers
-app.use(helmet({ contentSecurityPolicy: false }));
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Trust proxy for correct client IP detection behind reverse proxies like Railway
+app.set('trust proxy', 1);
+
+// Security headers with customized Content Security Policy
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https://unpkg.com", "https://*.basemaps.cartocdn.com", "https://*.tile.openstreetmap.org", "https://a.tile.openstreetmap.org", "https://b.tile.openstreetmap.org", "https://c.tile.openstreetmap.org"],
+            connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"],
+            fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: isProduction ? [] : null,
+        },
+    },
+}));
 
 // Rate limiters
-const isProduction = process.env.NODE_ENV === 'production';
 const authLimiter = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many requests, please try again later' } }) : (req, res, next) => next();
 const gpsLimiter  = isProduction ? rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'GPS rate limit exceeded' } }) : (req, res, next) => next();
 const apiLimiter  = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }) : (req, res, next) => next();
@@ -20,12 +39,12 @@ const apiLimiter  = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 50
 // Core middleware
 const corsOrigin = process.env.CORS_ORIGIN;
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? corsOrigin : '*',
+    origin: isProduction ? corsOrigin : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-gps-token']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));

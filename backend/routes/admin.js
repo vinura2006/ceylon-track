@@ -1,6 +1,14 @@
 const express = require('express');
 const pool = require('../db/pool');
+const authenticate = require('../middleware/authenticate');
+const authorize = require('../middleware/authorize');
+const { logAction } = require('../utils/auditLogger');
+
 const router = express.Router();
+
+// Apply auth middleware to all admin routes
+router.use(authenticate);
+router.use(authorize(['admin', 'ceylon-track-admin']));
 
 // GET /api/admin/analytics
 router.get('/analytics', async (req, res, next) => {
@@ -49,6 +57,7 @@ router.delete('/schedules/:id', async (req, res, next) => {
     try {
         const scheduleId = parseInt(req.params.id, 10);
         await pool.query('DELETE FROM schedules WHERE id = $1', [scheduleId]);
+        await logAction(req.user.userId, 'SCHEDULE_DELETED', 'schedule', scheduleId, null, req.ip);
         res.json({ success: true });
     } catch (err) {
         next(err);
@@ -60,6 +69,7 @@ router.delete('/stations/:id', async (req, res, next) => {
     try {
         const stationId = parseInt(req.params.id, 10);
         await pool.query('DELETE FROM stations WHERE id = $1', [stationId]);
+        await logAction(req.user.userId, 'STATION_DELETED', 'station', stationId, null, req.ip);
         res.json({ success: true });
     } catch (err) {
         // Can fail if schedules still reference this station (foreign key constraint)

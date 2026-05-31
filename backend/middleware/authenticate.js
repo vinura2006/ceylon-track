@@ -29,9 +29,12 @@ module.exports = async (req, res, next) => {
             return res.status(401).json({ error: 'Token has been revoked. Please log in again.' });
         }
     } catch (err) {
-        // If the blacklist table doesn't exist yet, proceed without blocking
-        if (err.code !== '42P01') {
+        // If the blacklist table doesn't exist yet, proceed without blocking (mainly for early migrations/tests)
+        if (err.code === '42P01') {
+            // proceed
+        } else {
             console.error('Token blacklist check error:', err.message);
+            return res.status(503).json({ error: 'Authentication service temporarily unavailable' });
         }
     }
 

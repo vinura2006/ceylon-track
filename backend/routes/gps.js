@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const { logAction } = require('../utils/auditLogger');
 
 // WebSocket broadcast — lazily loaded to avoid circular require at startup
 function broadcastTrainUpdate(data) {
@@ -246,6 +247,9 @@ router.post('/mobile-update', authenticate, authorize(['staff', 'admin']), async
             heading: heading || null,
             timestamp: new Date().toISOString()
         });
+
+        // Log action in audit logs
+        await logAction(user.userId, 'GPS_UPDATE', 'schedule', scheduleId, { lat: latitude, lng: longitude, speed, heading }, req.ip);
 
         return res.status(200).json({
             success: true,
