@@ -6,7 +6,7 @@
  * stable data (stations, all-schedules, static pages).
  */
 
-const CACHE_NAME = 'ceylon-track-v1';
+const CACHE_NAME = 'ceylon-track-v2';
 
 // Static assets always cached on install
 const STATIC_ASSETS = [
@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
     '/js/config.js',
     '/js/api.js',
     '/js/theme-loader.js',
+    '/mfa-setup.html',
 ];
 
 // API paths to cache (network-first, serve stale on failure)
@@ -53,12 +54,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
-
+ 
     // Skip non-GET and cross-origin requests
     if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-    // Skip live/real-time API paths (GPS, WebSocket, auth)
-    const livePatterns = ['/api/gps', '/api/auth', '/ws', '/api/staff', '/api/sessions'];
+    // Skip live/real-time API paths (GPS, WebSocket, auth, MFA)
+    const livePatterns = ['/api/gps', '/api/auth', '/ws', '/api/staff', '/api/sessions', '/api/mfa'];
     if (livePatterns.some(p => url.pathname.startsWith(p))) return;
 
     // Cacheable API paths: network-first, stale fallback
