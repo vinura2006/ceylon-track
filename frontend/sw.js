@@ -6,7 +6,7 @@
  * stable data (stations, all-schedules, static pages).
  */
 
-const CACHE_NAME = 'ceylon-track-v2';
+const CACHE_NAME = 'ceylon-track-v3';
 
 // Static assets always cached on install
 const STATIC_ASSETS = [

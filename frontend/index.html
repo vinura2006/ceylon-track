@@ -11,9 +11,13 @@
 
     <style>
         /* Autocomplete dropdown styles */
+        .input-group {
+            position: relative;
+        }
+
         .autocomplete-dropdown {
             position: absolute;
-            top: calc(100% + 4px);
+            top: 100%;
             left: 0;
             right: 0;
             background-color: var(--bg-surface);
@@ -21,17 +25,20 @@
             border-radius: 8px;
             max-height: 200px;
             overflow-y: auto;
-            z-index: 1000;
-            box-shadow: var(--shadow-sm);
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            margin-top: 4px;
         }
 
         .autocomplete-item {
             padding: 0.75rem 1rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
         }
         .autocomplete-item:hover {
             background-color: var(--bg-elevated);
+            color: var(--accent);
         }
 
         /* ============================================================
@@ -409,18 +416,17 @@
 
         // Setup Autocomplete inputs
         function setupAutocomplete(inputEl, dropdownEl) {
-            inputEl.addEventListener('input', () => {
-                const val = inputEl.value.trim().toLowerCase();
+            function renderDropdown(val) {
+                const searchVal = val.trim().toLowerCase();
                 dropdownEl.innerHTML = '';
-                if (val.length < 1) {
-                    dropdownEl.style.display = 'none';
-                    return;
-                }
-
-                const filtered = stationsList.filter(s => 
-                    s.name.toLowerCase().includes(val) || 
-                    s.code.toLowerCase().includes(val)
-                );
+                
+                // Show all stations if empty, otherwise filter by name or code
+                const filtered = searchVal.length < 1 
+                    ? stationsList 
+                    : stationsList.filter(s => 
+                        s.name.toLowerCase().includes(searchVal) || 
+                        s.code.toLowerCase().includes(searchVal)
+                    );
 
                 if (filtered.length === 0) {
                     dropdownEl.style.display = 'none';
@@ -431,20 +437,29 @@
                     const item = document.createElement('div');
                     item.className = 'autocomplete-item';
                     item.textContent = `${station.name} (${station.code})`;
-                    item.addEventListener('click', () => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation(); // prevent document click listener from triggering
                         inputEl.value = `${station.name} (${station.code})`;
                         dropdownEl.style.display = 'none';
-                        document.getElementById('errorMsg').style.display = 'none';
+                        const errorMsg = document.getElementById('errorMsg');
+                        if (errorMsg) errorMsg.style.display = 'none';
                     });
                     dropdownEl.appendChild(item);
                 });
 
                 dropdownEl.style.display = 'block';
+            }
+
+            inputEl.addEventListener('input', () => renderDropdown(inputEl.value));
+            inputEl.addEventListener('focus', () => renderDropdown(inputEl.value));
+            inputEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                renderDropdown(inputEl.value);
             });
 
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+                if (e.target !== inputEl && !dropdownEl.contains(e.target)) {
                     dropdownEl.style.display = 'none';
                 }
             });
