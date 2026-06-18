@@ -279,19 +279,26 @@
             const disableBtn = document.getElementById('mfaDisableBtn');
             const disableForm = document.getElementById('mfaDisableForm');
             
-            if (user && user.mfaEnabled) {
-                statusText.textContent = 'Enabled';
-                statusText.style.color = 'var(--success)';
-                enableBtn.style.display = 'none';
-                disableBtn.style.display = 'inline-block';
-            } else {
-                statusText.textContent = 'Disabled';
-                statusText.style.color = 'var(--text-muted)';
-                enableBtn.style.display = 'inline-block';
-                disableBtn.style.display = 'none';
+            if (statusText) {
+                if (user && user.mfaEnabled) {
+                    statusText.textContent = 'Enabled';
+                    statusText.style.color = 'var(--success)';
+                    if (enableBtn) enableBtn.style.display = 'none';
+                    if (disableBtn) disableBtn.style.display = 'inline-block';
+                } else {
+                    statusText.textContent = 'Disabled';
+                    statusText.style.color = 'var(--text-muted)';
+                    if (enableBtn) enableBtn.style.display = 'inline-block';
+                    if (disableBtn) disableBtn.style.display = 'none';
+                }
             }
-            disableForm.style.display = 'none';
-            document.getElementById('mfaPassword').value = '';
+            if (disableForm) {
+                disableForm.style.display = 'none';
+            }
+            const passInput = document.getElementById('mfaPassword');
+            if (passInput) {
+                passInput.value = '';
+            }
         }
 
         function goToMfaSetup() {
