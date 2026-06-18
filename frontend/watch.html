@@ -165,16 +165,6 @@
         // Dynamically load nav links
         window.api.updateNav();
 
-        // Mobile Nav Toggle
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        if (mobileMenuBtn) {
-            mobileMenuBtn.addEventListener('click', () => {
-                const navLinks = document.getElementById('nav-links');
-                navLinks.classList.toggle('open');
-                mobileMenuBtn.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
-            });
-        }
-
         // Load Watches
         async function fetchWatches() {
             window.api.showSpinner();

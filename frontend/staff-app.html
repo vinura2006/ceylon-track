@@ -565,16 +565,6 @@
             api.updateNav();
             connectStaffWebSocket();
 
-            // Mobile hamburger toggle
-            var mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            if (mobileMenuBtn) {
-                mobileMenuBtn.addEventListener('click', function() {
-                    var navLinks = document.getElementById('nav-links');
-                    navLinks.classList.toggle('open');
-                    mobileMenuBtn.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
-                });
-            }
-
             var user = api.getUser();
 
             // Time-aware greeting

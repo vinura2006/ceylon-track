@@ -6,6 +6,7 @@
     <title>Train Schedules — Ceylon Track</title>
     <link rel="stylesheet" href="/css/theme.css?v=4">
     <script src="/js/theme-loader.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="description" content="View all Sri Lankan Railway train schedules, routes, and timetables on Ceylon Track.">
     <script src="js/ticketing.js"></script>
     <script src="js/api.js"></script>
@@ -45,9 +46,7 @@
         }
         .logo-text { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.025em; }
         .logo-tagline { font-size: 0.75rem; color: var(--text-secondary); font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; }
-        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-        .nav-links a { text-decoration: none; color: var(--text-secondary); font-weight: 500; font-size: 0.875rem; transition: color 0.2s; }
-        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+        
 
         /* ── Page Layout ── */
         .page-content { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
@@ -253,7 +252,6 @@
         .empty-state p { font-size: 0.95rem; }
 
         @media (max-width: 768px) {
-            .nav-links { display: none; }
             .page-hero h1 { font-size: 1.5rem; }
             .controls-card { flex-direction: column; }
             .days-cell { display: none; }
@@ -261,19 +259,17 @@
     </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <div class="navbar-content">
-                <a href="index.html" class="navbar-brand">
-                    <span>🚂</span> Ceylon Track
-                </a>
-                <ul class="nav-links" id="nav-links">
-                    <!-- Nav populated by api.js -->
-                </ul>
-                <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
-            </div>
-        </nav>
-    </header>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand">
+                <i class="fa-solid fa-train"></i> Ceylon Track
+            </a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            <ul class="navbar-links" id="nav-links">
+                <!-- Nav populated by api.js -->
+            </ul>
+        </div>
+    </nav>
 
     <main class="page-content">
         <div class="page-hero">

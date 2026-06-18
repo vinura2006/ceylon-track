@@ -6,7 +6,7 @@
     <title>Live GPS Train Map — Ceylon Track</title>
     <link rel="stylesheet" href="/css/theme.css?v=4">
     <script src="/js/theme-loader.js"></script>
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -35,7 +35,7 @@
             position: relative;
             flex: 1;
             width: 100vw;
-            height: 100vh;
+            height: calc(100vh - 70px);
             z-index: 1;
         }
         #map {
@@ -235,6 +235,18 @@
 </head>
 <body>
 
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand">
+                <i class="fa-solid fa-train"></i> Ceylon Track
+            </a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            <ul class="navbar-links" id="nav-links">
+                <!-- Nav populated by api.js -->
+            </ul>
+        </div>
+    </nav>
+
     <!-- Full Screen Leaflet Map Container -->
     <div class="map-wrapper">
         <div id="map"></div>
@@ -278,6 +290,7 @@
 
     <script src="/js/api.js"></script>
     <script>
+        window.api.updateNav();
         var stationCoords = {};
 
         // Map Setup
