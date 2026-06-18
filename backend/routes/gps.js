@@ -322,10 +322,13 @@ router.post('/update', async (req, res, next) => {
         broadcastTrainUpdate({
             type: 'train_update',
             trainId: String(schedule_id),
+            latitude: latitude,
+            longitude: longitude,
             lat: latitude,
             lng: longitude,
             speed: 55,
-            heading: 0
+            heading: 0,
+            timestamp: new Date().toISOString()
         });
 
         return res.status(200).json({
