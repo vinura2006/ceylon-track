@@ -541,6 +541,8 @@
                         </div>
                     ` : ''}
 
+                    <div id="live-location-${train.id}"></div>
+
                     <div class="metadata-row">
                         <span class="badge badge-neutral">${train.class || ''} Class</span>
                         <span class="badge ${relBadgeClass}">
@@ -604,11 +606,36 @@
                     const existingTags = cardTop.querySelectorAll('.tracking-tag');
                     existingTags.forEach(t => t.remove());
 
+                    const locContainer = document.getElementById(`live-location-${train.id}`);
+                    if (locContainer) {
+                        locContainer.innerHTML = '';
+                    }
+
                     let tagHtml = '';
                     if (gpsRes.status === 'fulfilled' && gpsRes.value && !gpsRes.value.error) {
                         tagHtml = `<span class="badge tracking-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">🛰 Live GPS</span>`;
+                        const val = gpsRes.value;
+                        const lastStop = val.lastStopName || 'Departure';
+                        if (locContainer) {
+                            locContainer.innerHTML = `
+                                <div class="live-location-banner">
+                                    <span class="pulse-dot"></span>
+                                    <span>Currently past: <strong>${lastStop}</strong></span>
+                                </div>
+                            `;
+                        }
                     } else if (lsRes.status === 'fulfilled' && lsRes.value && !lsRes.value.error) {
-                        tagHtml = `<span class="badge tracking-tag" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">🚉 Last Stop: ${lsRes.value.station_name}</span>`;
+                        tagHtml = `<span class="badge tracking-tag" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">🚉 Last Stop</span>`;
+                        const val = lsRes.value;
+                        const lastStop = val.station_name || val.stationName;
+                        if (locContainer) {
+                            locContainer.innerHTML = `
+                                <div class="last-stop-banner">
+                                    <span class="warning-dot"></span>
+                                    <span>Last spotted at: <strong>${lastStop}</strong></span>
+                                </div>
+                            `;
+                        }
                     } else {
                         tagHtml = `<span class="badge tracking-tag badge-neutral">Offline</span>`;
                     }

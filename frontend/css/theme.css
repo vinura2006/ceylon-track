@@ -474,6 +474,63 @@ input, select, textarea {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@keyframes pulse {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0.4; transform: scale(0.9); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite ease-in-out;
+  box-shadow: 0 0 8px var(--success);
+}
+.warning-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--warning);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.live-location-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 3px solid var(--success);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.last-stop-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  animation: fadeIn 0.3s ease-out;
+}
+
 
 .error-state {
   text-align: center;
