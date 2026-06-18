@@ -548,6 +548,20 @@
 
             navLinks.innerHTML = linksHTML;
 
+            // Highlight the active link based on current page
+            const currentPath = window.location.pathname;
+            let currentPage = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+            if (!currentPage || currentPage === '/') {
+                currentPage = 'index.html';
+            }
+            const links = navLinks.querySelectorAll('a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href === currentPage) {
+                    link.classList.add('active');
+                }
+            });
+
             // Automatically setup mobile menu toggle
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
             if (mobileMenuBtn) {
