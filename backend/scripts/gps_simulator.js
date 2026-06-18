@@ -28,17 +28,19 @@ let currentStep = 0;
 async function sendGpsUpdate(lat, lng, speed) {
     try {
         const payload = {
-            train_id: TRAIN_ID,
-            latitude: lat,
-            longitude: lng,
-            speed_kmh: speed,
-            device_token: TOKEN
+            schedule_id: TRAIN_ID,
+            lat: lat,
+            lng: lng,
+            status: 'ON_TIME',
+            delay_minutes: 0
         };
 
-        // If node fetch is not available we can fallback to http module, but let's assume node 18+
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-gps-token': TOKEN
+            },
             body: JSON.stringify(payload)
         });
 
