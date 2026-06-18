@@ -50,6 +50,15 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(cookieParser());
 
+// Cache-Control headers for static assets to ensure freshness
+app.use((req, res, next) => {
+    const filePath = req.path;
+    if (filePath === '/' || filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+    next();
+});
+
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 

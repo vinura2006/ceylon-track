@@ -6,7 +6,7 @@
  * stable data (stations, all-schedules, static pages).
  */
 
-const CACHE_NAME = 'ceylon-track-v3';
+const CACHE_NAME = 'ceylon-track-v4';
 
 // Static assets always cached on install
 const STATIC_ASSETS = [
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
     '/js/api.js',
     '/js/theme-loader.js',
     '/mfa-setup.html',
+    '/css/theme.css',
 ];
 
 // API paths to cache (network-first, serve stale on failure)
@@ -78,17 +79,18 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets: cache-first
+    // Static assets: network-first with cache fallback
     if (!url.pathname.startsWith('/api/')) {
         event.respondWith(
-            caches.match(request)
-                .then(cached => cached || fetch(request).then(response => {
+            fetch(request)
+                .then(response => {
                     if (response.ok) {
                         const clone = response.clone();
                         caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
                     }
                     return response;
-                }))
+                })
+                .catch(() => caches.match(request))
         );
     }
 });

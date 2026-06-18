@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ceylon Track — Sri Lanka Railway Real-Time Tracker</title>
-    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/theme.css?v=4">
     <script src="/js/theme-loader.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -20,14 +20,20 @@
             top: 100%;
             left: 0;
             right: 0;
-            background-color: var(--bg-surface);
+            background-color: #12192d; /* Opaque solid background for dark theme */
             border: 1px solid var(--border);
             border-radius: 8px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
             margin-top: 4px;
+            backdrop-filter: blur(20px);
+        }
+
+        :root[data-theme="light"] .autocomplete-dropdown {
+            background-color: #ffffff; /* Opaque solid background for light theme */
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
         }
 
         .autocomplete-item {
@@ -36,7 +42,8 @@
             transition: all 0.2s ease;
             color: var(--text-primary);
         }
-        .autocomplete-item:hover {
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
             background-color: var(--bg-elevated);
             color: var(--accent);
         }
@@ -416,33 +423,70 @@
 
         // Setup Autocomplete inputs
         function setupAutocomplete(inputEl, dropdownEl) {
+            let filteredStations = [];
+            let activeIndex = -1;
+
+            function updateActiveItem() {
+                const items = dropdownEl.querySelectorAll('.autocomplete-item');
+                items.forEach((item, index) => {
+                    if (index === activeIndex) {
+                        item.classList.add('active');
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function selectStation(station) {
+                inputEl.value = `${station.name} (${station.code})`;
+                dropdownEl.style.display = 'none';
+                activeIndex = -1;
+                const errorMsg = document.getElementById('errorMsg');
+                if (errorMsg) errorMsg.style.display = 'none';
+            }
+
             function renderDropdown(val) {
                 const searchVal = val.trim().toLowerCase();
                 dropdownEl.innerHTML = '';
+                activeIndex = -1;
                 
-                // Show all stations if empty, otherwise filter by name or code
-                const filtered = searchVal.length < 1 
-                    ? stationsList 
-                    : stationsList.filter(s => 
+                if (searchVal.length < 1) {
+                    filteredStations = [...stationsList];
+                } else {
+                    filteredStations = stationsList.filter(s => 
                         s.name.toLowerCase().includes(searchVal) || 
                         s.code.toLowerCase().includes(searchVal)
                     );
+                    
+                    // Sort prefix matches to the top
+                    filteredStations.sort((a, b) => {
+                        const aNameStart = a.name.toLowerCase().startsWith(searchVal);
+                        const bNameStart = b.name.toLowerCase().startsWith(searchVal);
+                        const aCodeStart = a.code.toLowerCase().startsWith(searchVal);
+                        const bCodeStart = b.code.toLowerCase().startsWith(searchVal);
 
-                if (filtered.length === 0) {
+                        const aStart = aNameStart || aCodeStart;
+                        const bStart = bNameStart || bCodeStart;
+
+                        if (aStart && !bStart) return -1;
+                        if (!aStart && bStart) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                }
+
+                if (filteredStations.length === 0) {
                     dropdownEl.style.display = 'none';
                     return;
                 }
 
-                filtered.forEach(station => {
+                filteredStations.forEach((station, index) => {
                     const item = document.createElement('div');
                     item.className = 'autocomplete-item';
                     item.textContent = `${station.name} (${station.code})`;
                     item.addEventListener('click', (e) => {
-                        e.stopPropagation(); // prevent document click listener from triggering
-                        inputEl.value = `${station.name} (${station.code})`;
-                        dropdownEl.style.display = 'none';
-                        const errorMsg = document.getElementById('errorMsg');
-                        if (errorMsg) errorMsg.style.display = 'none';
+                        e.stopPropagation();
+                        selectStation(station);
                     });
                     dropdownEl.appendChild(item);
                 });
@@ -457,10 +501,43 @@
                 renderDropdown(inputEl.value);
             });
 
+            // Keyboard navigation
+            inputEl.addEventListener('keydown', (e) => {
+                if (dropdownEl.style.display === 'none' || filteredStations.length === 0) {
+                    return;
+                }
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % filteredStations.length;
+                    updateActiveItem();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + filteredStations.length) % filteredStations.length;
+                    updateActiveItem();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const targetIndex = activeIndex >= 0 ? activeIndex : 0;
+                    if (filteredStations[targetIndex]) {
+                        selectStation(filteredStations[targetIndex]);
+                    }
+                } else if (e.key === 'Tab') {
+                    const targetIndex = activeIndex >= 0 ? activeIndex : 0;
+                    if (filteredStations[targetIndex]) {
+                        selectStation(filteredStations[targetIndex]);
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    dropdownEl.style.display = 'none';
+                    activeIndex = -1;
+                }
+            });
+
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if (e.target !== inputEl && !dropdownEl.contains(e.target)) {
                     dropdownEl.style.display = 'none';
+                    activeIndex = -1;
                 }
             });
         }
@@ -477,18 +554,42 @@
             const trainClass = document.getElementById('classSelect').value;
             const errorMsg = document.getElementById('errorMsg');
 
-            // Extract codes from "(CODE)"
-            const fromMatch = rawFrom.match(/\(([^)]+)\)$/);
-            const toMatch = rawTo.match(/\(([^)]+)\)$/);
+            // Helper to get or resolve station code
+            function resolveStation(val, inputEl) {
+                if (!val.trim()) return null;
+                const match = val.match(/\(([^)]+)\)$/);
+                if (match) return match[1];
 
-            if (!fromMatch || !toMatch) {
-                errorMsg.textContent = 'Please select a station from the dropdown';
+                // Not in standard format, resolve from list
+                const searchVal = val.trim().toLowerCase();
+                const matches = stationsList.filter(s => 
+                    s.name.toLowerCase().includes(searchVal) || 
+                    s.code.toLowerCase().includes(searchVal)
+                );
+
+                if (matches.length > 0) {
+                    matches.sort((a, b) => {
+                        const aStart = a.name.toLowerCase().startsWith(searchVal) || a.code.toLowerCase().startsWith(searchVal);
+                        const bStart = b.name.toLowerCase().startsWith(searchVal) || b.code.toLowerCase().startsWith(searchVal);
+                        if (aStart && !bStart) return -1;
+                        if (!aStart && bStart) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    const best = matches[0];
+                    inputEl.value = `${best.name} (${best.code})`;
+                    return best.code;
+                }
+                return null;
+            }
+
+            const fromCode = resolveStation(rawFrom, document.getElementById('fromInput'));
+            const toCode = resolveStation(rawTo, document.getElementById('toInput'));
+
+            if (!fromCode || !toCode) {
+                errorMsg.textContent = 'Please select valid stations from the dropdown';
                 errorMsg.style.display = 'block';
                 return;
             }
-
-            const fromCode = fromMatch[1];
-            const toCode = toMatch[1];
 
             errorMsg.style.display = 'none';
             window.location.href = `results.html?from=${encodeURIComponent(fromCode)}&to=${encodeURIComponent(toCode)}&date=${encodeURIComponent(date)}&class=${encodeURIComponent(trainClass)}`;
