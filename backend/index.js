@@ -22,6 +22,7 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https://unpkg.com", "https://*.basemaps.cartocdn.com", "https://*.tile.openstreetmap.org", "https://a.tile.openstreetmap.org", "https://b.tile.openstreetmap.org", "https://c.tile.openstreetmap.org"],
             connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"],
