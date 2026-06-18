@@ -1,0 +1,59 @@
+Ceylon Track E2E Report
+Generated: 2026-06-18T12:31:19.609Z
+Status: 22 TEST(S) FAILED
+
+FAIL: Home page loads (from-station input visible) → Waiting for selector `#fromStation` failed
+FAIL: Journey search → redirects to results.html → Waiting for selector `#fromStation` failed
+FAIL: Results page shows train cards → Waiting for selector `.train-card, #noResultsMsg, #resultsBody tr` failed
+PASS: Timetable page loads (timetableBody visible)
+PASS: Route filter pills rendered
+PASS: Timetable rows appear after load
+PASS: Route filter pill click filters timetable
+PASS: Disruptions page loads (table visible)
+PASS: Live map page loads (#map element present)
+FAIL: Register page loads → Waiting for selector `#email` failed
+FAIL: Passenger registration form submission → No element found for selector: #first_name
+FAIL: Passenger login succeeds → Waiting for selector `#email` failed
+FAIL: Staff login succeeds → Waiting for selector `#email` failed
+FAIL: Staff dashboard loads (greeting header visible) → Waiting for selector `#greetingHeader` failed
+FAIL: Timetable tab is active by default (timetableBody visible) → Waiting for selector `#timetableBody` failed
+FAIL: Staff proposals tab renders (myProposalsBody visible) → No element found for selector: [data-tab="proposals-tab"], button[onclick*="proposals"]
+FAIL: Staff share-location tab renders (scheduleSelect visible) → No element found for selector: #tabBtnShareLocation
+FAIL: Staff app reloads after navigation → Waiting for selector `#greetingHeader` failed
+FAIL: Proposal modal opens via Propose button → Waiting for selector `#proposalModal` failed
+PASS: Fill and submit the add change-request form
+FAIL: Admin login succeeds → Waiting for selector `#email` failed
+FAIL: Admin dashboard loads (greetingHeader visible) → Waiting for selector `#greetingHeader` failed
+FAIL: Admin Change Requests tab loads (table body visible) → Could not find Change Requests tab button
+PASS: Admin approves first pending change request
+FAIL: Admin Timetable tab loads (adminTimetableBody visible) → Waiting for selector `#adminTimetableBody` failed
+FAIL: Admin timetable Add modal opens → Waiting for selector `#timetableModal` failed
+PASS: Admin fills and submits timetable add form
+FAIL: Admin Stations tab loads (stationForm visible) → Waiting for selector `#stationForm` failed
+FAIL: Admin adds a new station → Cannot set properties of null (setting 'value')
+FAIL: Admin Staff tab loads (staffTableBody visible) → Waiting for selector `#staffTableBody` failed
+FAIL: Admin overview stats cards visible → Waiting for selector `#ovSchedules` failed
+
+Failed checks:
+  - Home page loads (from-station input visible)
+  - Journey search → redirects to results.html
+  - Results page shows train cards
+  - Register page loads
+  - Passenger registration form submission
+  - Passenger login succeeds
+  - Staff login succeeds
+  - Staff dashboard loads (greeting header visible)
+  - Timetable tab is active by default (timetableBody visible)
+  - Staff proposals tab renders (myProposalsBody visible)
+  - Staff share-location tab renders (scheduleSelect visible)
+  - Staff app reloads after navigation
+  - Proposal modal opens via Propose button
+  - Admin login succeeds
+  - Admin dashboard loads (greetingHeader visible)
+  - Admin Change Requests tab loads (table body visible)
+  - Admin Timetable tab loads (adminTimetableBody visible)
+  - Admin timetable Add modal opens
+  - Admin Stations tab loads (stationForm visible)
+  - Admin adds a new station
+  - Admin Staff tab loads (staffTableBody visible)
+  - Admin overview stats cards visible
