@@ -63,7 +63,7 @@ function simulate() {
         console.log('🏁 Reached Kandy! Looping back to Colombo Fort...');
         currentWaypointIdx = 0;
         currentStep = 0;
-        setTimeout(simulate, 10000);
+        setTimeout(simulate, 5000);
         return;
     }
 
@@ -87,8 +87,8 @@ function simulate() {
         currentWaypointIdx++;
     }
 
-    // Every 10 seconds
-    setTimeout(simulate, 10000);
+    // Every 5 seconds
+    setTimeout(simulate, 5000);
 }
 
 console.log('=============================================');
