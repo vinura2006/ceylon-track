@@ -9,16 +9,21 @@ const { updateTrainStatusValidation, createStationValidation, createScheduleVali
 // GET /stats
 router.get('/stats', authenticate, authorize(['staff', 'admin', 'ceylon-track-admin']), async (req, res, next) => {
     try {
-        const activeSchedulesRes = await pool.query("SELECT COUNT(*) FROM schedules WHERE is_active = true");
-        const delayedRes = await pool.query("SELECT COUNT(*) FROM trip_status_updates WHERE status = 'DELAYED' AND trip_date = CURRENT_DATE");
-        const cancelledRes = await pool.query("SELECT COUNT(*) FROM trip_status_updates WHERE status = 'CANCELLED' AND trip_date = CURRENT_DATE");
-        const watchersRes = await pool.query("SELECT COUNT(DISTINCT user_id) FROM journey_watches");
-
+        const result = await pool.query(`
+            SELECT
+                (SELECT COUNT(*) FROM schedules WHERE is_active = true)::INTEGER              AS active_schedules,
+                (SELECT COUNT(*) FROM trip_status_updates
+                    WHERE status = 'DELAYED'   AND trip_date = CURRENT_DATE)::INTEGER         AS delayed_trains,
+                (SELECT COUNT(*) FROM trip_status_updates
+                    WHERE status = 'CANCELLED' AND trip_date = CURRENT_DATE)::INTEGER         AS cancelled_trains,
+                (SELECT COUNT(DISTINCT user_id) FROM journey_watches)::INTEGER               AS active_watchers
+        `);
+        const row = result.rows[0];
         return res.status(200).json({
-            activeSchedules: parseInt(activeSchedulesRes.rows[0].count, 10),
-            delayedTrains: parseInt(delayedRes.rows[0].count, 10),
-            cancelledTrains: parseInt(cancelledRes.rows[0].count, 10),
-            activeWatchers: parseInt(watchersRes.rows[0].count, 10)
+            activeSchedules:  row.active_schedules,
+            delayedTrains:    row.delayed_trains,
+            cancelledTrains:  row.cancelled_trains,
+            activeWatchers:   row.active_watchers
         });
     } catch (error) {
         next(error);

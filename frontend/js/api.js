@@ -1,18 +1,14 @@
 (function () {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const BASE_URL = isLocalhost ? 'http://localhost:3000' : window.location.origin;
+    // Auto-detect host — works on localhost, LAN IP, or any deployed URL
+    const BASE_URL = window.location.origin;
 
     const JWT_KEY = 'ceylon_track_jwt';
-    const REFRESH_KEY = 'ceylon_track_refresh_token';
     const USER_KEY = 'ceylon_track_user';
 
     const api = {
         // STORAGE HELPERS
         getToken() {
             return localStorage.getItem(JWT_KEY);
-        },
-        getRefreshToken() {
-            return localStorage.getItem(REFRESH_KEY);
         },
         getUser() {
             const userStr = localStorage.getItem(USER_KEY);
@@ -22,17 +18,14 @@
                 return null;
             }
         },
-        setAuth(token, user, refreshToken = null) {
+        setAuth(token, user) {
             localStorage.setItem(JWT_KEY, token);
             localStorage.setItem(USER_KEY, JSON.stringify(user));
-            if (refreshToken) {
-                localStorage.setItem(REFRESH_KEY, refreshToken);
-            }
+            // refreshToken is now stored as an httpOnly cookie by the server
         },
         clearAuth() {
             localStorage.removeItem(JWT_KEY);
             localStorage.removeItem(USER_KEY);
-            localStorage.removeItem(REFRESH_KEY);
         },
         isLoggedIn() {
             return !!this.getToken();
@@ -42,10 +35,9 @@
             return user && user.role === role;
         },
         logout() {
-            const refreshToken = this.getRefreshToken();
             this._fetch('/api/auth/logout', { 
                 method: 'POST',
-                body: JSON.stringify({ refreshToken })
+                credentials: 'include' // ensures the httpOnly cookie is sent so server can clear it
             }).catch(function(){});
             this.clearAuth();
             window.location.href = 'login.html';
@@ -104,19 +96,18 @@
                     const isRefreshRequest = path.includes('/api/auth/refresh');
                     const isAuthRequest = path.includes('/api/auth/');
                     
-                    const refreshToken = api.getRefreshToken();
-                    
-                    if (refreshToken && !isRefreshRequest && !isAuthPage) {
+                    if (!isRefreshRequest && !isAuthPage) {
                         try {
+                            // Attempt silent token refresh using httpOnly cookie (no token in body needed)
                             const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ refreshToken })
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' }
                             });
                             
                             if (refreshRes.ok) {
                                 const refreshData = await refreshRes.json();
-                                api.setAuth(refreshData.token, refreshData.user, refreshData.refreshToken);
+                                api.setAuth(refreshData.token, refreshData.user);
                                 
                                 const retryHeaders = { ...headers };
                                 retryHeaders['Authorization'] = `Bearer ${refreshData.token}`;

@@ -1,5 +1,13 @@
-node_modules
+node_modules/
 .env
+
+# Logs
 *.log
+backend/*.log
+
+# Test coverage
+coverage/
+
+# OS junk
 .DS_Store
-dist
+Thumbs.db

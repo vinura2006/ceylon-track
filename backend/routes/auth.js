@@ -9,31 +9,16 @@ const authorize = require('../middleware/authorize');
 const { registerValidation } = require('../middleware/validate');
 const { checkLockout, recordLoginSuccess, recordLoginFailure } = require('../middleware/loginThrottle');
 const { logAction } = require('../utils/auditLogger');
+const { hashToken: hashTokenAuth, addToRevocationCache } = require('../middleware/authenticate');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isProduction = process.env.NODE_ENV === 'production';
 
 function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-// Ensure refresh_tokens table exists
-async function ensureRefreshTokensTable() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS refresh_tokens (
-                id SERIAL PRIMARY KEY,
-                token_hash VARCHAR(255) UNIQUE NOT NULL,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                revoked BOOLEAN DEFAULT FALSE
-            )
-        `);
-    } catch (err) {
-        console.error('Failed to ensure refresh_tokens table:', err.message);
-    }
-}
-ensureRefreshTokensTable();
+// NOTE: refresh_tokens table is created by database/app_tables_migration.sql
 
 // Helper to hash values
 function hashValue(value) {
@@ -55,7 +40,7 @@ async function generateAndStoreRefreshToken(userId) {
 function buildJWT(user) {
     return jwt.sign(
         { userId: user.id, email: user.email, role: user.role, sub_role: user.sub_role, home_station_id: user.home_station_id },
-        process.env.JWT_SECRET || 'default_secret',
+        process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
 }
@@ -118,7 +103,14 @@ router.post('/register', registerValidation, async (req, res, next) => {
             if (!employee_id || !staff_access_code) {
                 return res.status(400).json({ error: 'Employee ID and Staff Access Code are required for staff registration' });
             }
-            if (staff_access_code !== (process.env.STAFF_ACCESS_CODE || 'SLR-STAFF-2026')) {
+            const expectedCode = process.env.STAFF_ACCESS_CODE;
+            if (!expectedCode) {
+                return res.status(500).json({ error: 'Staff registration is not configured on this server' });
+            }
+            // Use timingSafeEqual to prevent timing attacks
+            const provided = Buffer.from(String(staff_access_code).padEnd(64).slice(0, 64));
+            const expected = Buffer.from(String(expectedCode).padEnd(64).slice(0, 64));
+            if (!crypto.timingSafeEqual(provided, expected) || staff_access_code !== expectedCode) {
                 return res.status(403).json({ error: 'Invalid Staff Access Code' });
             }
             employeeId = employee_id;
@@ -157,7 +149,13 @@ router.post('/register', registerValidation, async (req, res, next) => {
         await logAction(user.id, 'USER_REGISTERED', 'user', user.id, { email: user.email, role: user.role, status: 'active' }, req.ip);
         const token = buildJWT(user);
         const refreshToken = await generateAndStoreRefreshToken(user.id);
-        return res.status(201).json({ token, refreshToken, user: buildUserResponse(user) });
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+        return res.status(201).json({ token, user: buildUserResponse(user) });
     } catch (error) {
         next(error);
     }
@@ -236,7 +234,13 @@ router.post('/login', checkLockout, async (req, res, next) => {
         await logAction(user.id, 'USER_LOGIN', 'user', user.id, { email: user.email, login_type }, req.ip);
         const token = buildJWT(user);
         const refreshToken = await generateAndStoreRefreshToken(user.id);
-        return res.status(200).json({ token, refreshToken, user: buildUserResponse(user) });
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+        return res.status(200).json({ token, user: buildUserResponse(user) });
     } catch (error) {
         next(error);
     }
@@ -263,16 +267,20 @@ router.post('/logout', authenticate, async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
         const token = authHeader.split(' ')[1];
+        const hash = hashToken(token);
         await pool.query(
             'INSERT INTO token_blacklist (token_hash, user_id) VALUES ($1, $2) ON CONFLICT (token_hash) DO NOTHING',
-            [hashToken(token), req.user.userId]
+            [hash, req.user.userId]
         );
+        // Immediately block this token in the in-memory cache too
+        addToRevocationCache(hash);
         
-        const { refreshToken } = req.body;
+        const refreshToken = req.cookies ? req.cookies.refreshToken : req.body.refreshToken;
         if (refreshToken) {
             const tokenHash = hashValue(refreshToken);
             await pool.query('UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1', [tokenHash]);
         }
+        res.clearCookie('refreshToken', { httpOnly: true, secure: isProduction, sameSite: 'Strict' });
 
         await logAction(req.user.userId, 'USER_LOGOUT', 'user', req.user.userId, null, req.ip);
         return res.status(200).json({ message: 'Logged out successfully' });
@@ -284,7 +292,7 @@ router.post('/logout', authenticate, async (req, res, next) => {
 // POST /refresh — get a new access token using a refresh token
 router.post('/refresh', async (req, res, next) => {
     try {
-        const { refreshToken } = req.body;
+        const refreshToken = (req.cookies && req.cookies.refreshToken) || req.body.refreshToken;
         if (!refreshToken) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
@@ -319,9 +327,15 @@ router.post('/refresh', async (req, res, next) => {
         const newAccessToken = buildJWT(user);
         const newRefreshToken = await generateAndStoreRefreshToken(user.id);
 
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
         return res.status(200).json({
             token: newAccessToken,
-            refreshToken: newRefreshToken,
             user: buildUserResponse(user)
         });
     } catch (error) {

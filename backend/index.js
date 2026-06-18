@@ -7,6 +7,7 @@ const cors       = require('cors');
 const path       = require('path');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -39,12 +40,14 @@ const apiLimiter  = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 50
 // Core middleware
 const corsOrigin = process.env.CORS_ORIGIN;
 app.use(cors({
-    origin: isProduction ? corsOrigin : '*',
+    origin: isProduction ? corsOrigin : true,
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-gps-token']
 }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(cookieParser());
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
@@ -142,6 +145,14 @@ if (require.main === module) {
             const { startNotificationJob } = require('./jobs/notificationChecker');
             startNotificationJob();
         } catch(e) { console.warn('Notification checker failed to start:', e.message); }
+        try {
+            const { startReliabilityJob } = require('./jobs/reliabilityRefresh');
+            startReliabilityJob();
+        } catch(e) { console.warn('Reliability refresh job failed to start:', e.message); }
+        try {
+            const { startCleanupJob } = require('./jobs/cleanup');
+            startCleanupJob();
+        } catch(e) { console.warn('Cleanup job failed to start:', e.message); }
     });
 }
 

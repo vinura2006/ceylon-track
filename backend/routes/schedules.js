@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
+const cache = require('../utils/simpleCache');
 
-// GET /all
-router.get('/all', async (req, res) => {
+// GET /all — all active schedules (cached 2 minutes)
+router.get('/all', async (req, res, next) => {
     try {
+        const cached = cache.get('schedules_all');
+        if (cached) return res.status(200).json(cached);
+
         const query = `
             SELECT 
                 s.id as "schedule_id",
@@ -23,15 +27,16 @@ router.get('/all', async (req, res) => {
             ORDER BY s.train_number ASC
         `;
         const { rows } = await pool.query(query);
-        return res.status(200).json({ schedules: rows });
+        const data = { schedules: rows };
+        cache.set('schedules_all', data, 120); // 2 min TTL
+        return res.status(200).json(data);
     } catch (error) {
-        console.error('Get all schedules error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // GET /search
-router.get('/search', async (req, res) => {
+router.get('/search', async (req, res, next) => {
     try {
         const { from, to, date, class: trainClass } = req.query;
 
@@ -71,6 +76,7 @@ router.get('/search', async (req, res) => {
             `;
             params = [];
         } else {
+            // Use the pre-computed reliability cache instead of an inline GROUP BY
             query = `
                 SELECT 
                     s.id,
@@ -88,13 +94,7 @@ router.get('/search', async (req, res) => {
                 JOIN stations sf ON s.from_station_id = sf.id
                 JOIN stations st ON s.to_station_id = st.id
                 LEFT JOIN trip_status_updates u ON u.schedule_id = s.id AND u.trip_date = $1
-                LEFT JOIN (
-                    SELECT 
-                        schedule_id, 
-                        ROUND(COUNT(CASE WHEN status = 'ON_TIME' THEN 1 END)::DECIMAL / COUNT(*)::DECIMAL * 100) as reliability_percent
-                    FROM trip_status_updates
-                    GROUP BY schedule_id
-                ) rel ON rel.schedule_id = s.id
+                LEFT JOIN schedule_reliability_cache rel ON rel.schedule_id = s.id
                 WHERE sf.code ILIKE $2 AND st.code ILIKE $3 AND s.is_active = true
             `;
             params = [tripDate, from, to];
@@ -141,13 +141,12 @@ router.get('/search', async (req, res) => {
 
         return res.status(200).json({ schedules, count: schedules.length });
     } catch (error) {
-        console.error('Search schedules error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // GET /:id/route
-router.get('/:id/route', async (req, res) => {
+router.get('/:id/route', async (req, res, next) => {
     try {
         const scheduleId = parseInt(req.params.id, 10);
         if (isNaN(scheduleId)) {
@@ -167,18 +166,14 @@ router.get('/:id/route', async (req, res) => {
             return res.status(404).json({ error: 'Schedule not found or no route stops available' });
         }
 
-        return res.status(200).json({
-            scheduleId,
-            stops: result.rows
-        });
+        return res.status(200).json({ scheduleId, stops: result.rows });
     } catch (error) {
-        console.error('Get route stops error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
 // GET /:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const scheduleId = parseInt(req.params.id, 10);
         if (isNaN(scheduleId)) {
@@ -203,8 +198,7 @@ router.get('/:id', async (req, res) => {
 
         return res.status(200).json(result.rows[0]);
     } catch (error) {
-        console.error('Get schedule error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 

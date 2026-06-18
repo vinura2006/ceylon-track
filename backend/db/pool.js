@@ -26,21 +26,7 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// Configure audit_logs user_id foreign key constraint to allow ON DELETE SET NULL
-pool.query(`
-    ALTER TABLE audit_logs 
-    DROP CONSTRAINT IF EXISTS audit_logs_user_id_fkey,
-    ADD CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-`, (err) => {
-    if (err) {
-        // If audit_logs table does not exist yet, ignore safely
-        if (err.code !== '42P01') {
-            console.error('Failed to configure audit_logs foreign key constraint:', err.message);
-        }
-    } else {
-        console.log('[SECURITY] Configured audit_logs foreign key constraint to ON DELETE SET NULL');
-    }
-});
+// NOTE: audit_logs constraint configurations are handled by database/app_tables_migration.sql
 
 pool.on('error', (err) => {
     console.error('Unexpected error on idle PostgreSQL client:', err.message);

@@ -4,7 +4,14 @@
   "main": "backend/index.js",
   "scripts": {
     "start": "node backend/index.js",
-    "dev": "nodemon backend/index.js"
+    "dev": "nodemon backend/index.js",
+    "migrate": "psql $DATABASE_URL -f database/schema.sql",
+    "migrate:app": "psql $DATABASE_URL -f database/app_tables_migration.sql",
+    "migrate:indexes": "psql $DATABASE_URL -f database/add_missing_indexes.sql",
+    "migrate:all": "npm run migrate && npm run migrate:app && npm run migrate:indexes",
+    "seed": "psql $DATABASE_URL -f database/seed.sql",
+    "test": "node backend/test-api.js",
+    "test:sprint3": "node backend/test-sprint3.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

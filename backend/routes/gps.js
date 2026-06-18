@@ -28,7 +28,7 @@ const optionalAuthenticate = (req, res, next) => {
         return next();
     }
     const token = parts[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'default_secret', (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (!err) {
             req.user = decoded;
         }

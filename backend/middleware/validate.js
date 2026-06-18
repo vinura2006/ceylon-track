@@ -40,8 +40,10 @@ const createStationValidation = [
 ];
 
 const createScheduleValidation = [
-    body('train_number').trim().notEmpty().withMessage('Train number is required').escape(),
-    body('train_name').optional().trim().escape(),
+    body('train_number').trim().notEmpty().withMessage('Train number is required')
+        .isLength({ max: 20 }).withMessage('Train number cannot exceed 20 characters').escape(),
+    body('train_name').optional().trim()
+        .isLength({ max: 150 }).withMessage('Train name cannot exceed 150 characters').escape(),
     body('from_station_id').isInt({ min: 1 }).withMessage('Invalid from_station_id'),
     body('to_station_id').isInt({ min: 1 }).withMessage('Invalid to_station_id'),
     body('departure_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/).withMessage('Departure time must be in HH:MM format'),

@@ -1,21 +1,6 @@
 const pool = require('../db/pool');
 
-// Ensure table exists on first import
-async function ensureLoginAttemptsTable() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS login_attempts (
-                identifier VARCHAR(255) PRIMARY KEY,
-                attempts INT DEFAULT 0,
-                lockout_until TIMESTAMP WITH TIME ZONE NULL,
-                last_attempt_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-            )
-        `);
-    } catch (err) {
-        console.error('Failed to ensure login_attempts table:', err.message);
-    }
-}
-ensureLoginAttemptsTable();
+// NOTE: login_attempts table is created by database/app_tables_migration.sql
 
 const checkLockout = async (req, res, next) => {
     const { email, employee_id, login_type } = req.body;

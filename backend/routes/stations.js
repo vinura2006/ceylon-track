@@ -3,10 +3,14 @@ const router = express.Router();
 const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const cache = require('../utils/simpleCache');
 
-// GET /
-router.get('/', async (req, res) => {
+// GET / — list all stations (cached 5 minutes)
+router.get('/', async (req, res, next) => {
     try {
+        const cached = cache.get('stations_list');
+        if (cached) return res.status(200).json(cached);
+
         const result = await pool.query(
             `SELECT id, name, code, 
              ST_Y(location::geometry) as lat, 
@@ -14,15 +18,16 @@ router.get('/', async (req, res) => {
              created_at as "createdAt" 
              FROM stations ORDER BY name ASC`
         );
-        return res.status(200).json({ stations: result.rows });
+        const data = { stations: result.rows };
+        cache.set('stations_list', data, 300); // 5 min TTL
+        return res.status(200).json(data);
     } catch (error) {
-        console.error('List stations error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 
-// POST /
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+// POST / — create station (admin only); invalidates stations cache
+router.post('/', authenticate, authorize(['admin']), async (req, res, next) => {
     try {
         const { name, code, lat, lng } = req.body;
 
@@ -37,10 +42,10 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
             [name, code, lat, lng]
         );
 
+        cache.invalidate('stations_list'); // bust cache after mutation
         return res.status(201).json({ station: result.rows[0] });
     } catch (error) {
-        console.error('Create station error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 });
 

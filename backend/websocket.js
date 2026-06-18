@@ -2,7 +2,7 @@ const { WebSocketServer } = require('ws');
 const jwt = require('jsonwebtoken');
 const pool = require('./db/pool');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ 
@@ -169,10 +169,16 @@ function setupWebSocket(server) {
 
   function broadcastToAll(message) {
     const data = JSON.stringify(message);
+    const trainId = message.trainId ? String(message.trainId) : null;
     clients.forEach((client) => {
-      if (client.ws.readyState === 1 && client.userId) {
-        try { client.ws.send(data); } catch (e) {}
+      if (client.ws.readyState !== 1 || !client.userId) return;
+      // If message has a trainId, only send to clients subscribed to that train
+      // (or clients with no active subscription filter — e.g. admin live-map)
+      if (trainId) {
+        const hasFilter = client.subscribedTrains && client.subscribedTrains.size > 0;
+        if (hasFilter && !client.subscribedTrains.has(trainId)) return;
       }
+      try { client.ws.send(data); } catch (e) {}
     });
   }
 

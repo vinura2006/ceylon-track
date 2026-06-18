@@ -23,10 +23,12 @@ async function checkNotifications() {
                 tsu.delay_minutes,
                 COALESCE(st.name, 'Unknown Station') AS current_station
             FROM JourneyWatch jw
-            JOIN "User" u ON jw.user_id = u.id
+            JOIN users u ON jw.user_id = u.id
             JOIN Schedule s ON jw.schedule_id = s.id
             JOIN Train t ON s.train_id = t.id
-            JOIN TripStatusUpdate tsu ON tsu.schedule_id = jw.schedule_id AND tsu.trip_date = jw.watch_date
+            JOIN TripStatusUpdate tsu 
+                ON tsu.schedule_id = jw.schedule_id 
+                AND tsu.trip_date = jw.watch_date
             LEFT JOIN Station st ON tsu.current_station_id = st.id
             WHERE jw.notify_delays = TRUE
               AND jw.active = TRUE

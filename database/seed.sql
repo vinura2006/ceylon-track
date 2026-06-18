@@ -1,6 +1,15 @@
 -- ============================================
 -- Ceylon Track - Seed Data
 -- ============================================
+
+-- Safety guard: refuse to run on any DB named with 'prod'
+DO $$
+BEGIN
+    IF current_database() ILIKE '%prod%' THEN
+        RAISE EXCEPTION 'SEED ABORTED: Detected production database "%" — never seed production!', current_database();
+    END IF;
+END;
+$$;
 /*
   To regenerate bcrypt hashes, run in Node.js:
   const bcrypt = require('bcryptjs');

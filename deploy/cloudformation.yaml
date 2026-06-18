@@ -1,0 +1,379 @@
+﻿AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Ceylon Track — Real-Time Railway Passenger Information System.
+  Provisions EC2 t2.micro + RDS db.t3.micro (PostgreSQL 16 + PostGIS)
+  on the AWS 12-month free tier. Includes custom VPC, Nginx, PM2,
+  Elastic IP, and IAM instance profile for SSM access.
+
+Parameters:
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Existing EC2 Key Pair for SSH access."
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 12
+    AllowedPattern: "[^/@\" ]+"
+    ConstraintDescription: "Must not contain /, @, double-quote, or spaces."
+    Description: "RDS master password (min 12 chars)."
+
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: "JWT access-token signing secret (min 32 chars)."
+
+  RefreshTokenSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: "Refresh-token signing secret (min 32 chars)."
+
+  GPSDeviceToken:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: "Secret token for GPS hardware devices."
+
+  StaffAccessCode:
+    Type: String
+    NoEcho: true
+    Default: "SLR-STAFF-2026"
+    Description: "Code staff members use during registration."
+
+  AppPort:
+    Type: Number
+    Default: 3000
+    Description: "Port the Node.js server listens on."
+
+  GitHubRepo:
+    Type: String
+    Default: "https://github.com/vinura2006/ceylon-track.git"
+    Description: "Public GitHub repo to clone onto EC2."
+
+  DBName:
+    Type: String
+    Default: "ceylon_track"
+
+  DBUser:
+    Type: String
+    Default: "ceylon_admin"
+
+Mappings:
+  RegionAMI:
+    us-east-1:      { AMI: ami-0c7217cdde317cfec }
+    us-east-2:      { AMI: ami-05fb0b8c1424f266b }
+    us-west-1:      { AMI: ami-0ce2cb35386fc22e9 }
+    us-west-2:      { AMI: ami-008fe2fc65df48dac }
+    eu-west-1:      { AMI: ami-0905a3c97561e0b69 }
+    eu-central-1:   { AMI: ami-06dd92ecc74fdfb36 }
+    ap-southeast-1: { AMI: ami-078c1149d8ad719a7 }
+    ap-south-1:     { AMI: ami-0f58b397bc5c1f2e8 }
+
+Resources:
+
+  # ──────────────────────────────────────────
+  # NETWORKING
+  # ──────────────────────────────────────────
+  CeylonVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: [ { Key: Name, Value: ceylon-track-vpc } ]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [ { Key: Name, Value: ceylon-track-igw } ]
+
+  IGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CeylonVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CeylonVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags: [ { Key: Name, Value: ceylon-public-1 } ]
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CeylonVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags: [ { Key: Name, Value: ceylon-public-2 } ]
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CeylonVPC
+      Tags: [ { Key: Name, Value: ceylon-public-rt } ]
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  Subnet1Assoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref PublicSubnet1, RouteTableId: !Ref PublicRouteTable }
+
+  Subnet2Assoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: { SubnetId: !Ref PublicSubnet2, RouteTableId: !Ref PublicRouteTable }
+
+  # ──────────────────────────────────────────
+  # SECURITY GROUPS
+  # ──────────────────────────────────────────
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ceylon-ec2-sg
+      GroupDescription: "Ceylon Track EC2 — HTTP/HTTPS/SSH/WS"
+      VpcId: !Ref CeylonVPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 22,   ToPort: 22,   CidrIp: 0.0.0.0/0, Description: "SSH" }
+        - { IpProtocol: tcp, FromPort: 80,   ToPort: 80,   CidrIp: 0.0.0.0/0, Description: "HTTP" }
+        - { IpProtocol: tcp, FromPort: 443,  ToPort: 443,  CidrIp: 0.0.0.0/0, Description: "HTTPS" }
+        - { IpProtocol: tcp, FromPort: !Ref AppPort, ToPort: !Ref AppPort, CidrIp: 0.0.0.0/0, Description: "Node direct (testing)" }
+      SecurityGroupEgress:
+        - { IpProtocol: -1, CidrIp: 0.0.0.0/0 }
+      Tags: [ { Key: Name, Value: ceylon-ec2-sg } ]
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ceylon-rds-sg
+      GroupDescription: "Ceylon Track RDS — Postgres from EC2 only"
+      VpcId: !Ref CeylonVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: "PostgreSQL from EC2"
+      Tags: [ { Key: Name, Value: ceylon-rds-sg } ]
+
+  # ──────────────────────────────────────────
+  # RDS
+  # ──────────────────────────────────────────
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Ceylon Track RDS subnet group"
+      SubnetIds: [ !Ref PublicSubnet1, !Ref PublicSubnet2 ]
+      Tags: [ { Key: Name, Value: ceylon-db-subnet-group } ]
+
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: "Ceylon Track PostgreSQL 16"
+      Family: postgres16
+      Parameters:
+        shared_preload_libraries: "pg_stat_statements"
+      Tags: [ { Key: Name, Value: ceylon-db-params } ]
+
+  CeylonDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: ceylon-track-db
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: "16"
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUser
+      MasterUserPassword: !Ref DBPassword
+      AllocatedStorage: "20"
+      StorageType: gp2
+      StorageEncrypted: false
+      MultiAZ: false
+      PubliclyAccessible: false
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      DBParameterGroupName: !Ref DBParameterGroup
+      VPCSecurityGroups: [ !Ref RDSSecurityGroup ]
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "03:00-04:00"
+      PreferredMaintenanceWindow: "sun:04:00-sun:05:00"
+      AutoMinorVersionUpgrade: true
+      Tags: [ { Key: Name, Value: ceylon-track-db } ]
+
+  # ──────────────────────────────────────────
+  # IAM (SSM Session Manager — no SSH required)
+  # ──────────────────────────────────────────
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ceylon-ec2-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags: [ { Key: Name, Value: ceylon-ec2-role } ]
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: ceylon-ec2-profile
+      Roles: [ !Ref EC2Role ]
+
+  # ──────────────────────────────────────────
+  # EC2
+  # ──────────────────────────────────────────
+  CeylonEC2:
+    Type: AWS::EC2::Instance
+    DependsOn: CeylonDatabase
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !FindInMap [ RegionAMI, !Ref "AWS::Region", AMI ]
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds: [ !Ref EC2SecurityGroup ]
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: { VolumeSize: 8, VolumeType: gp2, DeleteOnTermination: true }
+      Tags: [ { Key: Name, Value: ceylon-track-server } ]
+      UserData:
+        Fn::Base64:
+          !Sub
+            - |
+              #!/bin/bash
+              set -euo pipefail
+              exec > /var/log/ceylon-userdata.log 2>&1
+
+              echo "[1/9] System update"
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -y
+              apt-get upgrade -yq
+
+              echo "[2/9] Node.js 18"
+              curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+              apt-get install -y nodejs
+
+              echo "[3/9] System packages"
+              apt-get install -y git nginx postgresql-client-16
+
+              echo "[4/9] PM2"
+              npm install -g pm2
+
+              echo "[5/9] Clone repo"
+              cd /home/ubuntu
+              git clone ${GitHubRepo} ceylon-track
+              chown -R ubuntu:ubuntu ceylon-track
+
+              echo "[6/9] Install dependencies"
+              cd /home/ubuntu/ceylon-track
+              npm install --omit=dev
+              cd backend && npm install --omit=dev && cd ..
+
+              echo "[7/9] Write .env"
+              cat > /home/ubuntu/ceylon-track/.env <<ENVEOF
+              PORT=${AppPort}
+              NODE_ENV=production
+              DATABASE_URL=postgresql://${DBUser}:${DBPassword}@${RDSHost}:5432/${DBName}?sslmode=require
+              JWT_SECRET=${JWTSecret}
+              JWT_EXPIRES_IN=15m
+              REFRESH_TOKEN_SECRET=${RefreshTokenSecret}
+              REFRESH_TOKEN_EXPIRES_IN=7d
+              GPS_DEVICE_TOKEN=${GPSDeviceToken}
+              STAFF_ACCESS_CODE=${StaffAccessCode}
+              CORS_ORIGIN=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+              ENVEOF
+              chown ubuntu:ubuntu /home/ubuntu/ceylon-track/.env
+              chmod 600 /home/ubuntu/ceylon-track/.env
+
+              echo "[8/9] Nginx config"
+              PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+              cat > /etc/nginx/sites-available/ceylon-track <<NGINXEOF
+              server {
+                  listen 80;
+                  server_name $PUBLIC_IP _;
+
+                  location / {
+                      proxy_pass http://127.0.0.1:${AppPort};
+                      proxy_http_version 1.1;
+                      proxy_set_header Upgrade \$http_upgrade;
+                      proxy_set_header Connection "upgrade";
+                      proxy_set_header Host \$host;
+                      proxy_set_header X-Real-IP \$remote_addr;
+                      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto \$scheme;
+                      proxy_cache_bypass \$http_upgrade;
+                      proxy_read_timeout 86400;
+                  }
+              }
+              NGINXEOF
+              ln -sf /etc/nginx/sites-available/ceylon-track /etc/nginx/sites-enabled/
+              rm -f /etc/nginx/sites-enabled/default
+              nginx -t && systemctl restart nginx && systemctl enable nginx
+
+              echo "[9/9] Start with PM2"
+              cd /home/ubuntu/ceylon-track
+              sudo -u ubuntu pm2 start backend/index.js --name ceylon-track --time
+              sudo -u ubuntu pm2 save
+              env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu | tail -1 | bash
+
+              echo "BOOTSTRAP COMPLETE — now run: bash /home/ubuntu/ceylon-track/deploy/setup.sh"
+            - RDSHost: !GetAtt CeylonDatabase.Endpoint.Address
+
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    DependsOn: IGWAttachment
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref CeylonEC2
+      Tags: [ { Key: Name, Value: ceylon-track-eip } ]
+
+# ──────────────────────────────────────────
+# OUTPUTS
+# ──────────────────────────────────────────
+Outputs:
+
+  AppURL:
+    Description: "Ceylon Track public URL"
+    Value: !Sub "http://${ElasticIP}"
+    Export: { Name: CeylonAppURL }
+
+  HealthCheck:
+    Description: "Verify the app is running"
+    Value: !Sub "curl http://${ElasticIP}/health"
+
+  SSHCommand:
+    Description: "SSH into EC2"
+    Value: !Sub "ssh -i ${KeyPairName}.pem ubuntu@${ElasticIP}"
+
+  SSMSession:
+    Description: "Browser-based terminal (no key pair needed)"
+    Value: !Sub "aws ssm start-session --target ${CeylonEC2}"
+
+  RDSEndpoint:
+    Description: "RDS host (private — EC2 access only)"
+    Value: !GetAtt CeylonDatabase.Endpoint.Address
+    Export: { Name: CeylonRDSEndpoint }
+
+  MigrationCommand:
+    Description: "Run DB migrations after stack completes"
+    Value: !Sub "ssh -i ${KeyPairName}.pem ubuntu@${ElasticIP} 'bash /home/ubuntu/ceylon-track/deploy/setup.sh'"
+
+  BootstrapLog:
+    Description: "Watch EC2 bootstrap progress"
+    Value: !Sub "ssh -i ${KeyPairName}.pem ubuntu@${ElasticIP} 'tail -f /var/log/ceylon-userdata.log'"
