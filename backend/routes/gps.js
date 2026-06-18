@@ -293,6 +293,41 @@ router.post('/update', async (req, res, next) => {
             [schedule_id, status, delay_minutes, latitude, longitude]
         );
 
+        // Upsert live session so the live map sees it
+        let sessionRes = await pool.query(
+            'SELECT id FROM live_train_sessions WHERE schedule_id = $1 AND is_active = true LIMIT 1',
+            [schedule_id]
+        );
+        let sessionId;
+        if (sessionRes.rows.length === 0) {
+            // Create a mock active session (using staff user 2 as reporter)
+            const newSession = await pool.query(
+                `INSERT INTO live_train_sessions (schedule_id, staff_id, is_active, last_latitude, last_longitude, last_updated_at, session_started_at)
+                 VALUES ($1, 2, true, $2, $3, NOW(), NOW())
+                 RETURNING id`,
+                [schedule_id, latitude, longitude]
+            );
+            sessionId = newSession.rows[0].id;
+        } else {
+            sessionId = sessionRes.rows[0].id;
+            await pool.query(
+                `UPDATE live_train_sessions 
+                 SET last_latitude = $1, last_longitude = $2, last_updated_at = NOW() 
+                 WHERE id = $3`,
+                [latitude, longitude, sessionId]
+            );
+        }
+
+        // Broadcast to WebSocket clients
+        broadcastTrainUpdate({
+            type: 'train_update',
+            trainId: String(schedule_id),
+            lat: latitude,
+            lng: longitude,
+            speed: 55,
+            heading: 0
+        });
+
         return res.status(200).json({
             message: 'GPS updated',
             scheduleId: Number(schedule_id),
