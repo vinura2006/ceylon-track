@@ -1,4 +1,4 @@
-﻿AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Ceylon Track — Real-Time Railway Passenger Information System.
   Provisions EC2 t2.micro + RDS db.t3.micro (PostgreSQL 16 + PostGIS)
@@ -200,7 +200,7 @@ Resources:
       MasterUserPassword: !Ref DBPassword
       AllocatedStorage: "20"
       StorageType: gp2
-      StorageEncrypted: false
+      StorageEncrypted: true
       MultiAZ: false
       PubliclyAccessible: false
       DBSubnetGroupName: !Ref DBSubnetGroup
