@@ -337,6 +337,29 @@
         cancelSession: (sessionId) =>
             api._fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' }),
 
+        // MFA Methods
+        setupMfa() {
+            return this._fetch('/api/mfa/setup', { method: 'POST' });
+        },
+        verifyMfaSetup(code) {
+            return this._fetch('/api/mfa/verify-setup', {
+                method: 'POST',
+                body: JSON.stringify({ code })
+            });
+        },
+        disableMfa(password) {
+            return this._fetch('/api/mfa/disable', {
+                method: 'POST',
+                body: JSON.stringify({ password })
+            });
+        },
+        verifyMfa(code, mfaToken) {
+            return this._fetch('/api/mfa/verify', {
+                method: 'POST',
+                body: JSON.stringify({ code, mfaToken })
+            });
+        },
+
         // UI HELPERS
         showToast(message, type = 'info') {
             // Remove existing toasts

@@ -55,7 +55,8 @@ function buildUserResponse(user) {
         sub_role: user.sub_role,
         home_station_id: user.home_station_id,
         status: user.status,
-        theme_preference: user.theme_preference
+        theme_preference: user.theme_preference,
+        mfaEnabled: user.mfa_enabled
     };
 }
 
@@ -131,7 +132,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
         const finalSubRole = role === 'staff' ? (sub_role || 'staff') : null;
 
         const result = await pool.query(
-            'INSERT INTO users (email, password_hash, first_name, last_name, role, sub_role, employee_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, sub_role, employee_id, status, theme_preference',
+            'INSERT INTO users (email, password_hash, first_name, last_name, role, sub_role, employee_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, sub_role, employee_id, status, theme_preference, mfa_enabled',
             [email, passwordHash, first_name, last_name, finalRole, finalSubRole, employeeId, userStatus]
         );
 
@@ -231,6 +232,17 @@ router.post('/login', checkLockout, async (req, res, next) => {
         }
 
         await recordLoginSuccess(identifier);
+        
+        if (user.mfa_enabled) {
+            const mfaToken = jwt.sign(
+                { userId: user.id, email: user.email, mfaRequired: true },
+                process.env.JWT_SECRET,
+                { expiresIn: '5m' }
+            );
+            await logAction(user.id, 'LOGIN_MFA_REQUIRED', 'user', user.id, { email: user.email, login_type }, req.ip);
+            return res.status(200).json({ mfaRequired: true, mfaToken });
+        }
+
         await logAction(user.id, 'USER_LOGIN', 'user', user.id, { email: user.email, login_type }, req.ip);
         const token = buildJWT(user);
         const refreshToken = await generateAndStoreRefreshToken(user.id);
@@ -250,7 +262,7 @@ router.post('/login', checkLockout, async (req, res, next) => {
 router.get('/me', authenticate, async (req, res, next) => {
     try {
         const result = await pool.query(
-            'SELECT id, email, first_name, last_name, role, sub_role, home_station_id, status, theme_preference, created_at FROM users WHERE id = $1',
+            'SELECT id, email, first_name, last_name, role, sub_role, home_station_id, status, theme_preference, created_at, mfa_enabled FROM users WHERE id = $1',
             [req.user.userId]
         );
         if (result.rows.length === 0) {
@@ -377,5 +389,9 @@ router.put('/staff/:id/status', authenticate, authorize(['ceylon-track-admin', '
         res.json({ success: true, user: result.rows[0] });
     } catch (err) { next(err); }
 });
+
+router.buildJWT = buildJWT;
+router.generateAndStoreRefreshToken = generateAndStoreRefreshToken;
+router.buildUserResponse = buildUserResponse;
 
 module.exports = router;

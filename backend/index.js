@@ -58,6 +58,7 @@ const authorize    = require('./middleware/authorize');
 
 // Route modules
 const authRoutes         = require('./routes/auth');
+const mfaRoutes          = require('./routes/mfa');
 const scheduleRoutes     = require('./routes/schedules');
 const stationRoutes      = require('./routes/stations');
 const watchRoutes        = require('./routes/watch');
@@ -73,6 +74,7 @@ const sessionRoutes      = require('./routes/sessions');
 
 // Mount routes with rate limiters
 app.use('/api/auth',         authLimiter, authRoutes);
+app.use('/api/mfa',          apiLimiter, mfaRoutes);
 app.use('/api/schedules',    apiLimiter, scheduleRoutes);
 app.use('/api/stations',     apiLimiter, stationRoutes);
 app.use('/api/watch',        apiLimiter, authenticate, watchRoutes);

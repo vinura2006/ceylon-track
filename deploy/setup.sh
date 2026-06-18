@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # Ceylon Track — Post-Deploy Database Setup Script
 # Run this on your EC2 instance AFTER the CloudFormation stack is CREATE_COMPLETE
@@ -49,8 +49,9 @@ echo "      ✓ Schema applied"
 
 # ── Step 3: App-level migrations ────────────────────────────────────────────
 echo ""
-echo "[3/6] Applying app migrations (refresh tokens, reliability cache)..."
+echo "[3/6] Applying app migrations (refresh tokens, reliability cache, MFA)..."
 psql "$DATABASE_URL" -f database/app_tables_migration.sql
+psql "$DATABASE_URL" -f database/mfa_migration.sql
 echo "      ✓ App migrations applied"
 
 # ── Step 4: Performance indexes ─────────────────────────────────────────────

@@ -197,6 +197,26 @@
                 </div>
             </div>
             
+            <!-- Two-Factor Authentication (MFA) Section -->
+            <div class="setting-section" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                <h3><i class="fa-solid fa-shield-halved"></i> Two-Factor Authentication (MFA)</h3>
+                <div style="margin-bottom: 1rem;">
+                    Status: <span id="mfaStatusText" style="font-weight: 700;">Checking...</span>
+                </div>
+                <div id="mfaActionContainer">
+                    <button class="btn btn-secondary" id="mfaEnableBtn" onclick="goToMfaSetup()" style="display: none;"><i class="fa-solid fa-qrcode"></i> Enable Google Authenticator</button>
+                    <button class="btn btn-danger" id="mfaDisableBtn" onclick="toggleMfaDisableForm(true)" style="display: none;"><i class="fa-solid fa-trash-can"></i> Disable MFA</button>
+                </div>
+                <div id="mfaDisableForm" style="display: none; margin-top: 1rem; flex-direction: column; gap: 0.5rem;">
+                    <label for="mfaPassword" style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary);">CONFIRM PASSWORD TO DISABLE MFA</label>
+                    <input type="password" id="mfaPassword" class="input-field" placeholder="••••••••" style="max-width: 300px;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-danger" onclick="disableMfa()"><i class="fa-solid fa-check"></i> Confirm Disable</button>
+                        <button class="btn btn-secondary" onclick="toggleMfaDisableForm(false)">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Language Section -->
             <div class="setting-section" style="border-bottom: none; margin-bottom: 1rem; padding-bottom: 0;">
                 <h3><i class="fa-solid fa-globe"></i> Language</h3>
@@ -249,6 +269,65 @@
             renderThemes();
             renderFonts();
             renderSizes();
+            updateMfaUI();
+        }
+
+        function updateMfaUI() {
+            const user = window.api.getUser();
+            const statusText = document.getElementById('mfaStatusText');
+            const enableBtn = document.getElementById('mfaEnableBtn');
+            const disableBtn = document.getElementById('mfaDisableBtn');
+            const disableForm = document.getElementById('mfaDisableForm');
+            
+            if (user && user.mfaEnabled) {
+                statusText.textContent = 'Enabled';
+                statusText.style.color = 'var(--success)';
+                enableBtn.style.display = 'none';
+                disableBtn.style.display = 'inline-block';
+            } else {
+                statusText.textContent = 'Disabled';
+                statusText.style.color = 'var(--text-muted)';
+                enableBtn.style.display = 'inline-block';
+                disableBtn.style.display = 'none';
+            }
+            disableForm.style.display = 'none';
+            document.getElementById('mfaPassword').value = '';
+        }
+
+        function goToMfaSetup() {
+            window.location.href = 'mfa-setup.html';
+        }
+
+        function toggleMfaDisableForm(show) {
+            const disableForm = document.getElementById('mfaDisableForm');
+            disableForm.style.display = show ? 'flex' : 'none';
+            if (show) {
+                document.getElementById('mfaPassword').focus();
+            }
+        }
+
+        async function disableMfa() {
+            const password = document.getElementById('mfaPassword').value;
+            if (!password) {
+                window.api.showToast('Password is required', 'error');
+                return;
+            }
+            
+            window.api.showSpinner();
+            try {
+                const res = await window.api.disableMfa(password);
+                window.api.showToast(res.message || 'MFA disabled successfully', 'success');
+                
+                // Fetch the updated user profile from server to ensure it is in sync
+                const meRes = await window.api.getMe();
+                window.api.setAuth(window.api.getToken(), meRes.user);
+                
+                updateMfaUI();
+            } catch (err) {
+                window.api.showToast(err.message || 'Failed to disable MFA', 'error');
+            } finally {
+                window.api.hideSpinner();
+            }
         }
 
         function renderThemes() {

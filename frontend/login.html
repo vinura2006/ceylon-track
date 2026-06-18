@@ -6,7 +6,7 @@
     <title>Login — Ceylon Track</title>
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/theme-loader.js"></script>
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body {
@@ -112,7 +112,7 @@
     <main class="auth-page">
         
         <div class="card auth-card">
-            <div style="text-align: center;">
+            <div style="text-align: center;" id="loginHeader">
                 <h2 style="font-size: 2rem; margin-bottom: 0.25rem;">Welcome Back</h2>
                 <p style="color: var(--text-2); font-weight: 600;">Sign in to your Ceylon Track account</p>
             </div>
@@ -138,7 +138,27 @@
                 </button>
             </form>
 
-            <div style="text-align: center; font-size: 0.95rem; color: var(--text-2); font-weight: 600;">
+            <form class="auth-form" id="mfaForm" style="display: none;">
+                <div style="text-align: center;">
+                    <i class="fa-solid fa-shield-halved fa-2xl" style="color: var(--accent); margin-bottom: 1rem; display: block;"></i>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">Two-Factor Verification</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">Enter the 6-digit code from Google Authenticator</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="mfaCodeInput">6-digit Code</label>
+                    <input type="text" id="mfaCodeInput" class="input-field" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" required style="font-size: 1.25rem; text-align: center; letter-spacing: 0.25em;">
+                </div>
+                <div id="mfaErrorMsg" style="color: var(--danger); font-weight: 700; text-align: center; display: none; margin-top: 0.5rem;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                    Verify Code
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="cancelMfaFlow()" style="width: 100%; margin-top: 0.25rem;">
+                    Back to Login
+                </button>
+            </form>
+
+            <div style="text-align: center; font-size: 0.95rem; color: var(--text-2); font-weight: 600;" id="registerPrompt">
                 Don't have an account? <a href="register.html">Register here</a>
             </div>
         </div>
@@ -169,6 +189,7 @@
         }
 
         let activeRole = 'passenger';
+        let currentMfaToken = null;
 
         // Tab Switching Logic
         const tabs = document.querySelectorAll('.auth-tab');
@@ -208,21 +229,22 @@
             window.api.showSpinner();
             try {
                 const res = await window.api.login(activeRole, identifier, password);
+                
+                if (res.mfaRequired) {
+                    currentMfaToken = res.mfaToken;
+                    document.getElementById('loginHeader').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('registerPrompt').style.display = 'none';
+                    
+                    document.getElementById('mfaForm').style.display = 'flex';
+                    document.getElementById('mfaCodeInput').value = '';
+                    document.getElementById('mfaCodeInput').focus();
+                    return;
+                }
+
                 window.api.setAuth(res.token, res.user, res.refreshToken);
                 window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
-                
-                setTimeout(() => {
-                    const user = window.api.getUser();
-                    if (window.api.needsStationSetup()) {
-                        window.location.href = '/station-setup.html';
-                    } else if (user.role === 'admin' || user.role === 'ceylon-track-admin') {
-                        window.location.href = '/admin.html';
-                    } else if (user.role === 'staff') {
-                        window.location.href = '/staff-app.html';
-                    } else {
-                        window.location.href = '/index.html';
-                    }
-                }, 1500);
+                proceedToDashboard();
             } catch (err) {
                 console.error('Login failed:', err);
                 window.api.showToast(err.message || 'Login failed', 'error');
@@ -232,6 +254,59 @@
                 window.api.hideSpinner();
             }
         });
+
+        // MFA Handler
+        document.getElementById('mfaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('mfaCodeInput').value.trim().replace(/\s/g, '');
+            const mfaErrorMsg = document.getElementById('mfaErrorMsg');
+
+            mfaErrorMsg.style.display = 'none';
+            if (code.length !== 6 || isNaN(code)) {
+                window.api.showToast('Please enter a valid 6-digit code', 'error');
+                return;
+            }
+
+            window.api.showSpinner();
+            try {
+                const res = await window.api.verifyMfa(code, currentMfaToken);
+                window.api.setAuth(res.token, res.user, res.refreshToken);
+                window.api.showToast(`Welcome back, ${res.user.firstName}!`, 'success');
+                proceedToDashboard();
+            } catch (err) {
+                console.error('MFA Verification failed:', err);
+                window.api.showToast(err.message || 'MFA Verification failed', 'error');
+                mfaErrorMsg.textContent = err.message || 'MFA Verification failed';
+                mfaErrorMsg.style.display = 'block';
+            } finally {
+                window.api.hideSpinner();
+            }
+        });
+
+        function cancelMfaFlow() {
+            currentMfaToken = null;
+            document.getElementById('mfaForm').style.display = 'none';
+            document.getElementById('mfaErrorMsg').style.display = 'none';
+            
+            document.getElementById('loginHeader').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'flex';
+            document.getElementById('registerPrompt').style.display = 'block';
+        }
+
+        function proceedToDashboard() {
+            setTimeout(() => {
+                const user = window.api.getUser();
+                if (window.api.needsStationSetup()) {
+                    window.location.href = '/station-setup.html';
+                } else if (user.role === 'admin' || user.role === 'ceylon-track-admin') {
+                    window.location.href = '/admin.html';
+                } else if (user.role === 'staff') {
+                    window.location.href = '/staff-app.html';
+                } else {
+                    window.location.href = '/index.html';
+                }
+            }, 1500);
+        }
     </script>
 </body>
 </html>

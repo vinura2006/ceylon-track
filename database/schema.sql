@@ -27,6 +27,8 @@ CREATE TABLE users (
     sub_role VARCHAR(50),
     assigned_station_id INTEGER,
     employee_id VARCHAR(50) UNIQUE DEFAULT NULL,
+    mfa_secret TEXT DEFAULT NULL,
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
